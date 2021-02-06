@@ -1,0 +1,54 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    # the whole target dir is over 400MB cache limit, so we have to split up
+    # the cache step to avoid caching deps dir
+    - name: Cache Rust build
+      uses: actions/cache@v1.0.1
+      with:
+        path: target/debug/build
+        key: ${{ runner.OS }}-target-build-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.OS }}-target-build-
+    - name: Cache Rust incremental build
+      uses: actions/cache@v1.0.1
+      with:
+        path: target/debug/incremental
+        key: ${{ runner.OS }}-target-incremental-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.OS }}-target-incremental-
+    - name: Install minimal stable with clippy and rustfmt
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: default
+        toolchain: stable
+        override: true
+    - name: Check
+      run: cargo clippy
+    - name: Build
+      run: cargo build
+    - name: Run tests
+      run: cargo test
+
+  simd_test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install nightly rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: default
+        toolchain: nightly
+        override: true
+    - name: Run tests
+      run: cargo test --features simd

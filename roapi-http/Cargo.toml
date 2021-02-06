@@ -1,0 +1,40 @@
+[package]
+name = "roapi-http"
+version = "0.1.1"
+authors = ["Qingping Hou <dave2008713@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "roapi_http"
+path = "src/lib.rs"
+
+[[bin]]
+name = "roapi-http"
+path = "src/main.rs"
+
+[dependencies]
+columnq = { path = "../columnq" }
+arrow  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
+
+# all actix dependencies are patched to use git source until actix-web 4.x lands
+actix-web = "4.0.0-beta"
+actix-http = "3.0.0-beta"
+actix-service = "2.0.0-beta"
+# see https://github.com/actix/actix-extras/pull/144 for cors tokio 1 upgrade
+actix-cors = "*"
+
+env_logger = "0"
+log = "0"
+serde = "1"
+serde_json = "1"
+serde_derive = "1"
+serde_yaml = "0.8"
+clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }
+thiserror = "1"
+anyhow = "1"
+
+[features]
+simd = ["columnq/simd"]
+
+[dev-dependencies]
+actix-rt = "*"

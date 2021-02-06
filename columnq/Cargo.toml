@@ -1,0 +1,37 @@
+[package]
+name = "columnq"
+version = "0.1.1"
+authors = ["Qingping Hou <dave2008713@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "columnq"
+path = "src/lib.rs"
+
+[dependencies]
+arrow  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
+parquet  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
+datafusion  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
+
+regex = "1"
+lexical-core = "0.7"
+lazy_static = "1"
+graphql-parser = "0"
+sqlparser = "0.7"
+yup-oauth2 = "5"
+thiserror = "1"
+serde_json = "1"
+serde_derive = "1"
+serde = "1"
+uriparse = "0"
+bytes = { version = "1" }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+
+tokio = "1"
+
+[dev-dependencies]
+anyhow = "1"
+serde_yaml = "0.8"
+
+[features]
+simd = ["arrow/simd", "datafusion/simd"]
