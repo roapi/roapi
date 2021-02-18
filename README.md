@@ -16,7 +16,7 @@ automatic schema inference.
 * Response encoding layer to serialize intermediate Arrow record batch into
 various formats requested by client.
 
-See beblow for a high level diagram:
+See below for a high level diagram:
 
 <img alt="roapi-design-diagram" src="./docs/roapi.svg">
 
@@ -166,7 +166,7 @@ To sort column `col1` in ascending order and `col2` in descending order, set
 query param to: `sort=col1,-col2`.
 
 To find all rows with `col1` equal to string `'foo'`, set query param to:
-`filter[col1]='foo'`. You can also do basic comparisions with filters, for
+`filter[col1]='foo'`. You can also do basic comparisons with filters, for
 example predicate `0 <= col2 < 5` can be expressed as
 `filter[col2]gte=0&filter[col2]lt=5`.
 
