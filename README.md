@@ -5,7 +5,7 @@
 ROAPI automatically spins up read-only APIs for static datasets without
 requiring you to write a single line of code. It builds on top of [Apache
 Arrow](https://github.com/apache/arrow) and
-[Datafuion](https://github.com/apache/arrow/tree/master/rust/datafusion). The
+[Datafusion](https://github.com/apache/arrow/tree/master/rust/datafusion). The
 core of its design can be boiled down to the following:
 
 * Query frontends to translate SQL, GraphQL and REST API queries into
