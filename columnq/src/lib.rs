@@ -8,24 +8,10 @@ macro_rules! with_reader_from_uri {
         match $uri.scheme() {
             // default to local file when schema is not provided
             None | Some(Scheme::FileSystem) => {
-                let reader = fs::File::open($uri.path().to_string())
-                    .map_err(|e| ColumnQError::FileStore(format!("open file error: {}", e)))?;
-                $call_with_r(reader).map_err(ColumnQError::json_parse)
+                crate::io::partitions_from_fs_uri(&$uri, $call_with_r)
             }
             Some(Scheme::HTTP) | Some(Scheme::HTTPS) => {
-                let resp = reqwest::get(&$uri.to_string())
-                    .await
-                    .map_err(|e| ColumnQError::HttpStore(e.to_string()))?;
-                if resp.status().as_u16() / 100 != 2 {
-                    return Err(ColumnQError::HttpStore(format!(
-                        "Invalid response from server: {:?}",
-                        resp
-                    )));
-                }
-                let reader = Cursor::new(resp.bytes().await.map_err(|e| {
-                    ColumnQError::HttpStore(format!("Failed to decode server response: {}", e))
-                })?);
-                $call_with_r(reader).map_err(ColumnQError::json_parse)
+                crate::io::partitions_from_http_uri(&$uri, $call_with_r).await
             }
             // "s3" => {}
             _ => Err(ColumnQError::InvalidUri(format!(
@@ -37,6 +23,7 @@ macro_rules! with_reader_from_uri {
 }
 
 pub mod columnq;
+pub mod io;
 pub mod query;
 pub mod table;
 
