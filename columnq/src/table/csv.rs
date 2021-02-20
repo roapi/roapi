@@ -1,8 +1,6 @@
-use std::convert::TryFrom;
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
-use uriparse::{Scheme, URIReference};
 
 use crate::error::ColumnQError;
 use crate::table::TableSource;
@@ -16,8 +14,7 @@ pub async fn to_mem_table(
     let batch_size = 1024;
     let projection = None;
 
-    let uri = URIReference::try_from(t.uri.as_str())
-        .map_err(|_| ColumnQError::InvalidUri(t.uri.clone()))?;
+    let uri = t.parsed_uri()?;
 
     let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
         Some(s) => Arc::new(s.into()),
