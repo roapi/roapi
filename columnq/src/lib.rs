@@ -7,10 +7,10 @@ macro_rules! with_reader_from_uri {
     ($call_with_r:expr, $uri:ident) => {
         match $uri.scheme() {
             // default to local file when schema is not provided
-            None | Some(Scheme::FileSystem) => {
+            None | Some(uriparse::Scheme::FileSystem) => {
                 crate::io::partitions_from_fs_uri(&$uri, $call_with_r)
             }
-            Some(Scheme::HTTP) | Some(Scheme::HTTPS) => {
+            Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => {
                 crate::io::partitions_from_http_uri(&$uri, $call_with_r).await
             }
             // "s3" => {}

@@ -6,9 +6,9 @@ members = [
 ]
 
 [patch.crates-io]
-arrow = { git = "https://github.com/houqp/arrow.git", rev = "254318d1d3fca67dd60483e121299b52cf7fab44" }
-parquet = { git = "https://github.com/houqp/arrow.git", rev = "254318d1d3fca67dd60483e121299b52cf7fab44" }
-datafusion = { git = "https://github.com/houqp/arrow.git", rev = "254318d1d3fca67dd60483e121299b52cf7fab44" }
+arrow = { git = "https://github.com/houqp/arrow.git", rev = "e5b567d3582ba9fa91b29ab1c944de97b491bacb" }
+parquet = { git = "https://github.com/houqp/arrow.git", rev = "e5b567d3582ba9fa91b29ab1c944de97b491bacb" }
+datafusion = { git = "https://github.com/houqp/arrow.git", rev = "e5b567d3582ba9fa91b29ab1c944de97b491bacb" }
 
 actix-web = { git = "https://github.com/actix/actix-web.git", rev = "b37669cb3b47eeb60c161ff12156d1c877af91a2" }
 actix-http = { git = "https://github.com/actix/actix-web.git", rev = "b37669cb3b47eeb60c161ff12156d1c877af91a2" }

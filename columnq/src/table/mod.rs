@@ -1,7 +1,9 @@
+use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::path::Path;
 
 use serde_derive::Deserialize;
+use uriparse::URIReference;
 
 use crate::error::ColumnQError;
 
@@ -87,6 +89,11 @@ impl TableSource {
             option: None,
         }
     }
+
+    pub fn parsed_uri(&self) -> Result<URIReference, ColumnQError> {
+        URIReference::try_from(self.uri.as_str())
+            .map_err(|_| ColumnQError::InvalidUri(self.uri.clone()))
+    }
 }
 
 pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, ColumnQError> {
@@ -95,7 +102,7 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
         return Ok(match opt {
             TableLoadOption::json { .. } => json::to_mem_table(t).await?,
             TableLoadOption::csv { .. } => csv::to_mem_table(t).await?,
-            TableLoadOption::parquet { .. } => parquet::to_mem_table(t)?,
+            TableLoadOption::parquet { .. } => parquet::to_mem_table(t).await?,
             TableLoadOption::google_spreadsheet(_) => google_spreadsheets::to_mem_table(t).await?,
         });
     }
@@ -105,7 +112,7 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
         match Path::new(&t.uri).extension().and_then(OsStr::to_str) {
             Some("csv") => csv::to_mem_table(t).await?,
             Some("json") => json::to_mem_table(t).await?,
-            Some("parquet") => parquet::to_mem_table(t)?,
+            Some("parquet") => parquet::to_mem_table(t).await?,
             Some(ext) => {
                 return Err(ColumnQError::InvalidUri(format!(
                     "failed to register `{}` as table `{}`, unsupported table format `{}`",

@@ -1,9 +1,8 @@
-use std::convert::TryFrom;
 use std::io::Read;
 use std::sync::Arc;
 
 use serde_json::value::Value;
-use uriparse::{Scheme, URIReference};
+use uriparse::URIReference;
 
 use crate::error::ColumnQError;
 use crate::table::{TableLoadOption, TableSource};
@@ -12,13 +11,10 @@ fn json_value_from_reader<R: Read>(r: R) -> Result<Value, ColumnQError> {
     serde_json::from_reader(r).map_err(ColumnQError::json_parse)
 }
 
-async fn load_array_by_path(
-    uri_s: &str,
-    pointer: Option<&str>,
+async fn load_array_by_path<'a>(
+    uri: URIReference<'a>,
+    pointer: Option<&'a str>,
 ) -> Result<Vec<Value>, ColumnQError> {
-    let uri =
-        URIReference::try_from(uri_s).map_err(|_| ColumnQError::InvalidUri(uri_s.to_string()))?;
-
     let payload: Value = with_reader_from_uri!(json_value_from_reader, uri)?;
 
     let mut value_ref: &Value = &payload;
@@ -47,6 +43,7 @@ async fn load_array_by_path(
 pub async fn to_mem_table(
     t: &TableSource,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+    // TODO: make batch size configurable
     let batch_size = 1024;
     let array_encoded = match &t.option {
         Some(TableLoadOption::json { array_encoded, .. }) => array_encoded.unwrap_or(false),
@@ -65,7 +62,7 @@ pub async fn to_mem_table(
     };
 
     // load array from file
-    let json_rows = load_array_by_path(&t.uri, pointer.as_deref()).await?;
+    let json_rows = load_array_by_path(t.parsed_uri()?, pointer.as_deref()).await?;
 
     if json_rows.is_empty() {
         match pointer {
@@ -152,7 +149,7 @@ mod tests {
     use crate::test_util::*;
 
     #[tokio::test]
-    async fn test_nested_struct_and_lists() -> Result<(), ColumnQError> {
+    async fn nested_struct_and_lists() -> Result<(), ColumnQError> {
         let t = to_mem_table(&TableSource {
             name: "spacex_launches".to_string(),
             uri: test_data_path("spacex-launches.json"),
