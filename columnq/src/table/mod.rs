@@ -94,7 +94,7 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
     if let Some(opt) = &t.option {
         return Ok(match opt {
             TableLoadOption::json { .. } => json::to_mem_table(t).await?,
-            TableLoadOption::csv { .. } => csv::to_mem_table(t)?,
+            TableLoadOption::csv { .. } => csv::to_mem_table(t).await?,
             TableLoadOption::parquet { .. } => parquet::to_mem_table(t)?,
             TableLoadOption::google_spreadsheet(_) => google_spreadsheets::to_mem_table(t).await?,
         });
@@ -103,7 +103,7 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
     // no format specified explictly, try to guess from file path
     Ok(
         match Path::new(&t.uri).extension().and_then(OsStr::to_str) {
-            Some("csv") => csv::to_mem_table(t)?,
+            Some("csv") => csv::to_mem_table(t).await?,
             Some("json") => json::to_mem_table(t).await?,
             Some("parquet") => parquet::to_mem_table(t)?,
             Some(ext) => {

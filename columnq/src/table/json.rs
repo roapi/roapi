@@ -1,6 +1,5 @@
 use std::convert::TryFrom;
-use std::fs;
-use std::io::Cursor;
+use std::io::Read;
 use std::sync::Arc;
 
 use serde_json::value::Value;
@@ -9,6 +8,10 @@ use uriparse::{Scheme, URIReference};
 use crate::error::ColumnQError;
 use crate::table::{TableLoadOption, TableSource};
 
+fn json_value_from_reader<R: Read>(r: R) -> Result<Value, ColumnQError> {
+    serde_json::from_reader(r).map_err(ColumnQError::json_parse)
+}
+
 async fn load_array_by_path(
     uri_s: &str,
     pointer: Option<&str>,
@@ -16,7 +19,7 @@ async fn load_array_by_path(
     let uri =
         URIReference::try_from(uri_s).map_err(|_| ColumnQError::InvalidUri(uri_s.to_string()))?;
 
-    let payload: Value = with_reader_from_uri!(serde_json::from_reader, uri)?;
+    let payload: Value = with_reader_from_uri!(json_value_from_reader, uri)?;
 
     let mut value_ref: &Value = &payload;
 
