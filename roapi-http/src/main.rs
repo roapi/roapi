@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 use std::fs;
 
 use actix_cors::Cors;

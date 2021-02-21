@@ -105,7 +105,7 @@ impl TableSource {
             .map_err(|_| ColumnQError::InvalidUri(self.uri.clone()))
     }
 
-    pub fn extension<'a>(&'a self) -> Result<&'a str, ColumnQError> {
+    pub fn extension(&self) -> Result<&str, ColumnQError> {
         Ok(match &self.option {
             Some(opt) => opt.extension(),
             None => {

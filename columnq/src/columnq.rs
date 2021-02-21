@@ -21,8 +21,7 @@ impl ColumnQ {
 
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
         let table = table::load(&t).await?;
-        self.schema_map
-            .insert(t.name.clone(), table.schema().clone());
+        self.schema_map.insert(t.name.clone(), table.schema());
         self.dfctx.register_table(&t.name, Arc::new(table));
 
         Ok(())
@@ -52,5 +51,11 @@ impl ColumnQ {
         params: &HashMap<String, String>,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
         query::rest::query_table(&self.dfctx, table_name, params).await
+    }
+}
+
+impl Default for ColumnQ {
+    fn default() -> Self {
+        Self::new()
     }
 }
