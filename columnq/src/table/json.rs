@@ -1,23 +1,22 @@
 use std::io::Read;
 use std::sync::Arc;
 
+use arrow::datatypes::Schema;
+use arrow::record_batch::RecordBatch;
 use serde_json::value::Value;
-use uriparse::URIReference;
 
 use crate::error::ColumnQError;
-use crate::table::{TableLoadOption, TableSource};
+use crate::table::{TableLoadOption, TableSchema, TableSource};
 
 fn json_value_from_reader<R: Read>(r: R) -> Result<Value, ColumnQError> {
     serde_json::from_reader(r).map_err(ColumnQError::json_parse)
 }
 
-async fn load_array_by_path<'a>(
-    uri: URIReference<'a>,
+fn json_partition_to_vec<'a>(
+    json_partition: &Value,
     pointer: Option<&'a str>,
 ) -> Result<Vec<Value>, ColumnQError> {
-    let payload: Value = with_reader_from_uri!(json_value_from_reader, uri)?;
-
-    let mut value_ref: &Value = &payload;
+    let mut value_ref = json_partition;
 
     if let Some(p) = pointer {
         match value_ref.pointer(p) {
@@ -38,6 +37,67 @@ async fn load_array_by_path<'a>(
             pointer.unwrap_or("JSON data")
         ))),
     }
+}
+
+fn json_vec_to_partition(
+    json_rows: Vec<Value>,
+    provided_schema: &Option<TableSchema>,
+    batch_size: usize,
+    array_encoded: bool,
+) -> Result<(arrow::datatypes::Schema, Vec<RecordBatch>), ColumnQError> {
+    // load schema
+    let schema = match provided_schema {
+        Some(s) => s.into(),
+        None => arrow::json::reader::infer_json_schema_from_iterator(
+            json_rows.iter().map(|v| Ok(v.clone())),
+        )
+        .map_err(|e| {
+            ColumnQError::LoadJson(format!("Failed to infer schema from JSON data: {}", e))
+        })?,
+    };
+
+    // decode to arrow record batch
+    let decoder = arrow::json::reader::Decoder::new(Arc::new(schema.clone()), batch_size, None);
+    let batch = {
+        // enclose values_iter in its own scope so it won't brrow schema_ref til end of this
+        // function
+        let mut values_iter: Box<dyn Iterator<Item = arrow::error::Result<Value>>>;
+        values_iter = if array_encoded {
+            // convert row array to object based on schema
+            // TODO: support array_encoded read in upstream arrow json reader instead
+            Box::new(json_rows.into_iter().map(|json_row| {
+                let mut m = serde_json::map::Map::new();
+                schema.fields().iter().enumerate().try_for_each(|(i, f)| {
+                    match json_row.get(i) {
+                        Some(x) => {
+                            m.insert(f.name().to_string(), x.clone());
+                            Ok(())
+                        }
+                        None => Err(arrow::error::ArrowError::JsonError(format!(
+                            "arry encoded JSON row missing column {:?} : {:?}",
+                            i, json_row
+                        ))),
+                    }
+                })?;
+                Ok(Value::Object(m))
+            }))
+        } else {
+            // no need to convert row since each row is already an object
+            Box::new(json_rows.into_iter().map(Ok))
+        };
+
+        // decode whole array into single record batch
+        decoder
+            .next_batch(&mut values_iter)
+            .map_err(|e| {
+                ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {}", e))
+            })?
+            .ok_or_else(|| {
+                ColumnQError::LoadJson("JSON data results in empty arrow record batch".to_string())
+            })?
+    };
+
+    Ok((schema, vec![batch]))
 }
 
 pub async fn to_mem_table(
@@ -61,82 +121,47 @@ pub async fn to_mem_table(
         _ => None,
     };
 
-    // load array from file
-    let json_rows = load_array_by_path(t.parsed_uri()?, pointer.as_deref()).await?;
+    let mut merged_schema: Option<Schema> = None;
+    let json_partitions: Vec<Value> = partitions_from_table_source!(t, json_value_from_reader)?;
 
-    if json_rows.is_empty() {
-        match pointer {
-            Some(p) => {
-                return Err(ColumnQError::LoadJson(format!(
-                    "{} points to an emtpy array",
-                    p
-                )));
+    let partitions = json_partitions
+        .iter()
+        .map(|json_partition| {
+            let json_rows = json_partition_to_vec(json_partition, pointer.as_deref())?;
+            if json_rows.is_empty() {
+                match &pointer {
+                    Some(p) => {
+                        return Err(ColumnQError::LoadJson(format!(
+                            "{} points to an emtpy array",
+                            p
+                        )));
+                    }
+                    None => {
+                        return Err(ColumnQError::LoadJson(
+                            "JSON data is an emtpy array".to_string(),
+                        ));
+                    }
+                }
             }
-            None => {
-                return Err(ColumnQError::LoadJson(
-                    "JSON data is an emtpy array".to_string(),
-                ));
-            }
-        }
-    }
 
-    // load schema
-    let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
-        Some(s) => Arc::new(s.into()),
-        None => arrow::json::reader::infer_json_schema_from_iterator(
-            json_rows.iter().map(|v| Ok(v.clone())),
-        )
-        .map_err(|e| {
-            ColumnQError::LoadJson(format!("Failed to infer schema from JSON data: {}", e))
-        })?,
-    };
+            let (batch_schema, partition) =
+                json_vec_to_partition(json_rows, &t.schema, batch_size, array_encoded)?;
 
-    // decode to arrow record batch
-    let decoder = arrow::json::reader::Decoder::new(schema_ref.clone(), batch_size, None);
-    let batch = {
-        // enclose values_iter in its own scope so it won't brrow schema_ref til end of this
-        // function
-        let mut values_iter: Box<dyn Iterator<Item = arrow::error::Result<Value>>>;
-        values_iter = if array_encoded {
-            // convert row array to object based on schema
-            // TODO: support array_encoded read in arrow json reader instead
-            Box::new(json_rows.into_iter().map(|json_row| {
-                let mut m = serde_json::map::Map::new();
-                schema_ref
-                    .fields()
-                    .iter()
-                    .enumerate()
-                    .try_for_each(|(i, f)| match json_row.get(i) {
-                        Some(x) => {
-                            m.insert(f.name().to_string(), x.clone());
-                            Ok(())
-                        }
-                        None => Err(arrow::error::ArrowError::JsonError(format!(
-                            "arry encoded JSON row missing column {:?} : {:?}",
-                            i, json_row
-                        ))),
-                    })?;
-                Ok(Value::Object(m))
-            }))
-        } else {
-            // no need to convert row since each row is already an object
-            Box::new(json_rows.into_iter().map(Ok))
-        };
+            merged_schema = Some(match &merged_schema {
+                Some(s) if s != &batch_schema => Schema::try_merge(vec![s.clone(), batch_schema])?,
+                _ => batch_schema,
+            });
 
-        // decode whole array into single record batch
-        decoder
-            .next_batch(&mut values_iter)
-            .map_err(|e| {
-                ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {}", e))
-            })?
-            .ok_or_else(|| {
-                ColumnQError::LoadJson("JSON data results in empty arrow record batch".to_string())
-            })?
-    };
-    let partitions = vec![vec![batch]];
+            Ok(partition)
+        })
+        .collect::<Result<Vec<Vec<RecordBatch>>, ColumnQError>>()?;
 
     Ok(datafusion::datasource::MemTable::try_new(
-        schema_ref, partitions,
+        Arc::new(
+            merged_schema
+                .ok_or_else(|| ColumnQError::LoadJson("failed to load schema".to_string()))?,
+        ),
+        partitions,
     )?)
 }
 
@@ -194,7 +219,7 @@ mod tests {
         ];
         expected_obj_keys.sort();
 
-        assert_eq!(obj_keys, expected_obj_keys,);
+        assert_eq!(obj_keys, expected_obj_keys);
 
         Ok(())
     }

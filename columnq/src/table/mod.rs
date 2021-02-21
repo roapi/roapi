@@ -69,6 +69,15 @@ impl TableLoadOption {
             )),
         }
     }
+
+    pub fn extension<'a>(&'a self) -> &'static str {
+        match self {
+            TableLoadOption::json { .. } => "json",
+            TableLoadOption::csv { .. } => "csv",
+            TableLoadOption::parquet { .. } => "parquet",
+            TableLoadOption::google_spreadsheet(_) => "gsheet",
+        }
+    }
 }
 
 #[derive(Deserialize, Clone)]
@@ -82,6 +91,7 @@ pub struct TableSource {
 
 impl TableSource {
     pub fn new(name: String, uri: String) -> Self {
+        // TODO: parse table format from uri during initializeion?
         Self {
             name,
             uri,
@@ -94,10 +104,36 @@ impl TableSource {
         URIReference::try_from(self.uri.as_str())
             .map_err(|_| ColumnQError::InvalidUri(self.uri.clone()))
     }
+
+    pub fn extension<'a>(&'a self) -> Result<&'a str, ColumnQError> {
+        Ok(match &self.option {
+            Some(opt) => opt.extension(),
+            None => {
+                let ext = Path::new(&self.uri)
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .ok_or_else(|| {
+                        ColumnQError::InvalidUri(format!(
+                            "cannot detect table extension from uri: {}",
+                            self.uri
+                        ))
+                    })?;
+
+                match ext {
+                    "csv" | "json" | "parquet" => ext,
+                    _ => {
+                        return Err(ColumnQError::InvalidUri(format!(
+                            "unsupported extension in uri: {}",
+                            self.uri
+                        )));
+                    }
+                }
+            }
+        })
+    }
 }
 
 pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, ColumnQError> {
-    // TODO: support reading list of files within directory
     if let Some(opt) = &t.option {
         return Ok(match opt {
             TableLoadOption::json { .. } => json::to_mem_table(t).await?,

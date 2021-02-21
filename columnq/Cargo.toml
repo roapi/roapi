@@ -32,6 +32,7 @@ tokio = "1"
 [dev-dependencies]
 anyhow = "1"
 serde_yaml = "0.8"
+tempdir = "0"
 
 [features]
 simd = ["arrow/simd", "datafusion/simd"]
