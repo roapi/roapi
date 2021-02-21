@@ -12,9 +12,9 @@ fn json_value_from_reader<R: Read>(r: R) -> Result<Value, ColumnQError> {
     serde_json::from_reader(r).map_err(ColumnQError::json_parse)
 }
 
-fn json_partition_to_vec<'a>(
+fn json_partition_to_vec(
     json_partition: &Value,
-    pointer: Option<&'a str>,
+    pointer: Option<&str>,
 ) -> Result<Vec<Value>, ColumnQError> {
     let mut value_ref = json_partition;
 

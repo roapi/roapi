@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 pub mod api;
 pub mod config;
 pub mod encoding;

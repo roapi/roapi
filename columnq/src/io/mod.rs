@@ -27,7 +27,7 @@ where
             let reader = fs::File::open(fpath)
                 .map_err(|e| ColumnQError::FileStore(format!("open file error: {}", e)))?;
 
-            Ok(partition_reader(reader)?)
+            partition_reader(reader)
         })
         .collect::<Result<Vec<T>, ColumnQError>>()?;
 
