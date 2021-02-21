@@ -242,7 +242,6 @@ Data layer:
     - [x] JSON
     - [x] parquet
     - [ ] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
-  - [ ] load multiple partitions from a folder
 
 Misc:
   - [ ] auto gen OpenApi doc for rest layer

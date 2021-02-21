@@ -18,10 +18,8 @@ pub async fn to_mem_table(
 
     let mut schema: Option<Schema> = None;
 
-    let uri = t.parsed_uri()?;
-
-    let partition: Vec<RecordBatch> = with_reader_from_uri!(
-        |mut r| -> Result<Vec<RecordBatch>, ColumnQError> {
+    let partitions: Vec<Vec<RecordBatch>> =
+        partitions_from_table_source!(t, |mut r| -> Result<Vec<RecordBatch>, ColumnQError> {
             // TODO: this is very inefficient, we are copying the parquet data in memory twice when
             // it's being fetched from http store
             let mut buffer = Vec::new();
@@ -41,35 +39,35 @@ pub async fn to_mem_table(
                 ColumnQError::LoadParquet("failed to load schema from partition".to_string())
             })?;
             schema = Some(match &schema {
-                Some(s) => Schema::try_merge(vec![s.clone(), batch_schema])?,
-                None => batch_schema,
+                Some(s) if s != &batch_schema => Schema::try_merge(vec![s.clone(), batch_schema])?,
+                _ => batch_schema,
             });
 
             Ok(record_batch_reader
                 .into_iter()
                 .collect::<arrow::error::Result<Vec<RecordBatch>>>()?)
-        },
-        uri
-    )?;
+        })?;
 
     Ok(datafusion::datasource::MemTable::try_new(
         Arc::new(
             schema.ok_or_else(|| ColumnQError::LoadParquet("failed to load schema".to_string()))?,
         ),
-        vec![partition],
+        partitions,
     )?)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     use datafusion::datasource::TableProvider;
 
+    use crate::table::TableLoadOption;
     use crate::test_util::*;
 
     #[tokio::test]
-    async fn simple_parquet_load() -> Result<(), ColumnQError> {
+    async fn load_simple_parquet() -> Result<(), ColumnQError> {
         let t = to_mem_table(&TableSource {
             name: "blogs".to_string(),
             uri: test_data_path("blogs.parquet"),
@@ -88,6 +86,37 @@ mod tests {
         );
 
         assert_eq!(t.statistics().num_rows, Some(500));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn load_partitions() -> anyhow::Result<()> {
+        let tmp_dir = tempdir::TempDir::new("columnq.test.parquet_partitions")?;
+        let tmp_dir_path = tmp_dir.path();
+
+        let source_path = test_data_path("blogs.parquet");
+        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-01.parquet"))? > 0);
+        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-02.parquet"))? > 0);
+        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-03.parquet"))? > 0);
+
+        let t = to_mem_table(&TableSource {
+            name: "blogs".to_string(),
+            uri: tmp_dir_path.to_string_lossy().to_string(),
+            schema: None,
+            option: Some(TableLoadOption::parquet {}),
+        })
+        .await?;
+
+        assert_eq!(
+            t.schema()
+                .metadata()
+                .get("writer.model.name")
+                .map(|s| s.as_str()),
+            Some("protobuf")
+        );
+
+        assert_eq!(t.statistics().num_rows, Some(1500));
 
         Ok(())
     }
