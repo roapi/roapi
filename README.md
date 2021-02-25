@@ -138,7 +138,7 @@ tables:
 ```
 
 
-### Reponse serialization
+### Response serialization
 
 By default, roapi encodes responses in JSON format, but you can request
 different encoding by specifying the `ACCEPT` header:
