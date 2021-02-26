@@ -25,7 +25,7 @@ See below for a high level diagram:
 ## Installation
 
 ```bash
-cargo install --git https://github.com/roapi/roapi --bin roapi-http
+cargo install --git https://github.com/roapi/roapi --branch main --bin roapi-http
 ```
 
 ## Usage
