@@ -11,7 +11,7 @@ core of its design can be boiled down to the following:
 
 * Query frontends to translate SQL, GraphQL and REST API queries into
 Datafusion plans.
-* Datafusion for query plan exection.
+* Datafusion for query plan execution.
 * Data layer to load datasets from a variety of sources and formats with
 automatic schema inference.
 * Response encoding layer to serialize intermediate Arrow record batch into
