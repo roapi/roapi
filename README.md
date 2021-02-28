@@ -31,10 +31,7 @@ See below for a high level diagram:
 cargo install --git https://github.com/roapi/roapi --branch main --bin roapi-http
 ```
 
-```bash
-# docker build
-docker build . -t roapi-http
-```
+A prebuilt docker image is also available at [ghcr.io/roapi/roapi-http](https://github.com/orgs/roapi/packages/container/package/roapi-http).
 
 
 ## Usage
@@ -50,9 +47,10 @@ roapi-http \
     --table 'spacex_launches:test_data/spacex-launches.json'
 ```
 
+Or using docker:
+
 ```bash
-# docker run
-docker run --rm -t -p 8080:8080 roapi-http roapi-http --addr 0.0.0.0:8080 \
+docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi-http:latest --addr 0.0.0.0:8080 \
     --table 'uk_cities:test_data/uk_cities_with_headers.csv' \
     --table 'spacex_launches:test_data/spacex-launches.json'
 ```
@@ -282,3 +280,12 @@ wraps `columnq` with a HTTP based API layer. It serializes Arrow record batches
 produced by `columnq` into different formats based on client request.
 
 Building ROAPI with `simd` optimization requires nightly rust toolchain.
+
+
+### Build Docker image
+
+```bash
+docker build --build-arg RELEASE=main --rm -t ghcr.io/roapi/roapi-http:latest .
+```
+
+You can set `RELEASE` variable to any git reference to build for a specific version.
