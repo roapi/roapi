@@ -19,9 +19,8 @@ pub async fn to_mem_table(
         Some(s) => Arc::new(s.into()),
         None => {
             let schemas = partitions_from_table_source!(t, |mut r| {
-                let (schema, record_count) = arrow::csv::reader::infer_schema_from_reader(
-                    &mut r, delimiter, None, has_header,
-                )?;
+                let (schema, record_count) =
+                    arrow::csv::reader::infer_reader_schema(&mut r, delimiter, None, has_header)?;
 
                 if record_count > 0 {
                     Ok(Some(schema))

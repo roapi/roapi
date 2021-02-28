@@ -293,7 +293,7 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 [[package]]
 name = "arrow"
 version = "4.0.0-SNAPSHOT"
-source = "git+https://github.com/houqp/arrow.git?rev=555d12458a1c32301e0ce179143577f34fe78b6e#555d12458a1c32301e0ce179143577f34fe78b6e"
+source = "git+https://github.com/houqp/arrow.git?rev=f7cf15749f2df907994f48ef0bfbed3001bf145e#f7cf15749f2df907994f48ef0bfbed3001bf145e"
 dependencies = [
  "cfg_aliases",
  "chrono",
@@ -779,7 +779,7 @@ dependencies = [
 [[package]]
 name = "datafusion"
 version = "4.0.0-SNAPSHOT"
-source = "git+https://github.com/houqp/arrow.git?rev=555d12458a1c32301e0ce179143577f34fe78b6e#555d12458a1c32301e0ce179143577f34fe78b6e"
+source = "git+https://github.com/houqp/arrow.git?rev=f7cf15749f2df907994f48ef0bfbed3001bf145e#f7cf15749f2df907994f48ef0bfbed3001bf145e"
 dependencies = [
  "ahash 0.7.0",
  "arrow",
@@ -800,6 +800,7 @@ dependencies = [
  "sha2",
  "sqlparser 0.8.0",
  "tokio",
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -1718,7 +1719,7 @@ dependencies = [
 [[package]]
 name = "parquet"
 version = "4.0.0-SNAPSHOT"
-source = "git+https://github.com/houqp/arrow.git?rev=555d12458a1c32301e0ce179143577f34fe78b6e#555d12458a1c32301e0ce179143577f34fe78b6e"
+source = "git+https://github.com/houqp/arrow.git?rev=f7cf15749f2df907994f48ef0bfbed3001bf145e#f7cf15749f2df907994f48ef0bfbed3001bf145e"
 dependencies = [
  "arrow",
  "base64 0.12.3",
