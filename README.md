@@ -32,6 +32,12 @@ See below for a high level diagram:
 cargo install --git https://github.com/roapi/roapi --branch main --bin roapi-http
 ```
 
+```bash
+# docker build
+docker build . -t roapi-http
+```
+
+
 ## Usage
 
 ### Quick start
@@ -41,6 +47,13 @@ Spin up APIs for `test_data/uk_cities_with_headers.csv` and
 
 ```bash
 roapi-http \
+    --table 'uk_cities:test_data/uk_cities_with_headers.csv' \
+    --table 'spacex_launches:test_data/spacex-launches.json'
+```
+
+```bash
+# docker run
+docker run --rm -t -p 8080:8080 roapi-http roapi-http --addr 0.0.0.0:8080 \
     --table 'uk_cities:test_data/uk_cities_with_headers.csv' \
     --table 'spacex_launches:test_data/spacex-launches.json'
 ```
