@@ -2,6 +2,7 @@
 # ROAPI
 
 ![build](https://github.com/roapi/roapi/workflows/build/badge.svg)
+[![Documentation](https://img.shields.io/badge/-documentation-blue)](https://roapi.github.io/docs/index.html)
 
 ROAPI automatically spins up read-only APIs for static datasets without
 requiring you to write a single line of code. It builds on top of [Apache
@@ -9,13 +10,16 @@ Arrow](https://github.com/apache/arrow) and
 [Datafusion](https://github.com/apache/arrow/tree/master/rust/datafusion). The
 core of its design can be boiled down to the following:
 
-* Query frontends to translate SQL, GraphQL and REST API queries into
+* [Query frontends](https://roapi.github.io/docs/api/query/index.html) to
+translate SQL, GraphQL and REST API queries into
 Datafusion plans.
 * Datafusion for query plan execution.
-* Data layer to load datasets from a variety of sources and formats with
-automatic schema inference.
-* Response encoding layer to serialize intermediate Arrow record batch into
-various formats requested by client.
+* [Data layer](https://roapi.github.io/docs/config/dataset-formats/index.html)
+to load datasets from a variety of sources and formats with automatic schema
+inference.
+* [Response encoding layer](https://roapi.github.io/docs/api/response.html) to
+serialize intermediate Arrow record batch into various formats requested by
+client.
 
 See below for a high level diagram:
 
@@ -37,7 +41,7 @@ Spin up APIs for `test_data/uk_cities_with_headers.csv` and
 
 ```bash
 roapi-http \
-    --table 'uk_cities:test_data/uk_cities_with_headers.csv'
+    --table 'uk_cities:test_data/uk_cities_with_headers.csv' \
     --table 'spacex_launches:test_data/spacex-launches.json'
 ```
 
@@ -107,6 +111,10 @@ To run serve tables using config file:
 roapi-http -c ./roapi.yml
 ```
 
+See [config
+documentation](https://roapi.github.io/docs/config/config-file.html) for more
+options.
+
 
 ### Google spreadsheet as table source
 
@@ -140,8 +148,8 @@ tables:
 
 ### Response serialization
 
-By default, roapi encodes responses in JSON format, but you can request
-different encoding by specifying the `ACCEPT` header:
+By default, ROAPI encodes responses in JSON format, but you can request
+different encodings by specifying the `ACCEPT` header:
 
 ```
 curl -X POST \
@@ -174,7 +182,7 @@ example predicate `0 <= col2 < 5` can be expressed as
 
 ### GraphQL query interface
 
-To query tables through GraphQL, send the query through `POST` request to
+To query tables using GraphQL, send the query through `POST` request to
 `/api/graphql` endpoint.
 
 GraphQL query interface supports the same set of operators supported by REST
@@ -203,7 +211,7 @@ API. Here how you can apply various operators to your query:
 
 ### SQL query interface
 
-To query tables through a subset of standard SQL, send the query through `POST`
+To query tables using a subset of standard SQL, send the query through `POST`
 request to `/api/sql` endpoint. This is the only query interface that supports
 table joins.
 

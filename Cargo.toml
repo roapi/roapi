@@ -14,3 +14,7 @@ actix-web = { git = "https://github.com/actix/actix-web.git", rev = "b37669cb3b4
 actix-http = { git = "https://github.com/actix/actix-web.git", rev = "b37669cb3b47eeb60c161ff12156d1c877af91a2" }
 awc = { git = "https://github.com/actix/actix-web.git", rev = "b37669cb3b47eeb60c161ff12156d1c877af91a2" }
 actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6a5924b6d881d204856199e7539e273d2f" }
+
+# arrow = { path = "/home/houqp/Documents/code/delta/arrow/rust/arrow" }
+# parquet = { path = "/home/houqp/Documents/code/delta/arrow/rust/parquet" }
+# datafusion = { path = "/home/houqp/Documents/code/delta/arrow/rust/datafusion" }
