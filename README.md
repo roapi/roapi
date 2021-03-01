@@ -168,7 +168,7 @@ To query tables using GraphQL, send the query through `POST` request to
 `/api/graphql` endpoint.
 
 GraphQL query frontend supports the same set of operators supported by [REST
-+query frontend](https://roapi.github.io/docs/api/query/rest.html). Here how is
+query frontend](https://roapi.github.io/docs/api/query/rest.html). Here how is
 you can apply various operators in a query:
 
 
