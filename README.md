@@ -31,7 +31,8 @@ See below for a high level diagram:
 cargo install --git https://github.com/roapi/roapi --branch main --bin roapi-http
 ```
 
-A prebuilt docker image is also available at [ghcr.io/roapi/roapi-http](https://github.com/orgs/roapi/packages/container/package/roapi-http).
+Pre-built docker images are also available at
+[ghcr.io/roapi/roapi-http](https://github.com/orgs/roapi/packages/container/package/roapi-http).
 
 
 ## Usage
@@ -123,37 +124,8 @@ roapi-http -c ./roapi.yml
 
 See [config
 documentation](https://roapi.github.io/docs/config/config-file.html) for more
-options.
-
-
-### Google spreadsheet as table source
-
-To serve a Google spreadsheet as API, you need to gather the following config values:
-
-* Google spreadsheet URL
-* Google spreadsheet sheet title (bottom of the spreadsheet UI)
-* Service account secret key
-
-Here are the steps to configure the service account:
-
-1. Activate the Google Sheets API in the Google API Console.
-1. Create service account: https://console.developers.google.com/apis/api/sheets.googleapis.com/credentials.
-1. Go into service account setting and click `ADD KEY`. Then select JSON format
-   and save it somewhere safe.
-1. Go back to Google spreadsheet and share it with the newly created service
-   account through service account email).
-
-ROAPI config to load the google spreadsheet as data source:
-
-```yaml
-tables:
-  - name: "table_name"
-    uri: "https://docs.google.com/spreadsheets/d/1-lc4oij04aXzFSRMwVBLjU76s-K0-s6UPc2biOvtuuU#gid=0"
-    option:
-      format: "google_spreadsheet"
-      application_secret_path: "path/to/service_account_key.json"
-      sheet_title: "sheet_name_within_google_spreadsheet"
-```
+options including [using Google spreadsheet as a table
+source](https://roapi.github.io/docs/config/dataset-formats/gsheet.html).
 
 
 ### Response serialization
@@ -262,7 +234,7 @@ Data layer:
     - [ ] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
 
 Misc:
-  - [ ] auto gen OpenApi doc for rest layer
+  - [ ] auto gen OpenAPI doc for rest layer
   - [ ] query input type conversion based on table schema
   - [ ] stream arrow encoding response
   - [ ] authentication layer
