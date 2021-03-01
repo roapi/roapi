@@ -146,7 +146,7 @@ curl -X POST \
 You can query tables through REST API by sending `GET` requests to
 `/api/tables/{table_name}`. Query operators are specified as query params.
 
-REST API currently supports the following query operators:
+REST query frontend currently supports the following query operators:
 
 * columns
 * sort
@@ -167,8 +167,10 @@ example predicate `0 <= col2 < 5` can be expressed as
 To query tables using GraphQL, send the query through `POST` request to
 `/api/graphql` endpoint.
 
-GraphQL query interface supports the same set of operators supported by REST
-API. Here how you can apply various operators to your query:
+GraphQL query frontend supports the same set of operators supported by [REST
++query frontend](https://roapi.github.io/docs/api/query/rest.html). Here how is
+you can apply various operators in a query:
+
 
 ```graphql
 {
