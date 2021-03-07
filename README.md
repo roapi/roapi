@@ -22,7 +22,7 @@ client.
 
 See below for a high level diagram:
 
-<img alt="roapi-design-diagram" src="./docs/roapi.svg">
+<img alt="roapi-design-diagram" src="https://roapi.github.io/docs/images/roapi.svg">
 
 
 ## Installation
@@ -222,9 +222,8 @@ Response serialization:
 Data layer:
   - [x] filesystem
   - [x] HTTP/HTTPS
-  - [ ] S3
+  - [x] S3
   - [ ] GCS
-  - [ ] ABS
   - [x] Google spreadsheet
   - [ ] MySQL
   - [ ] Postgres
