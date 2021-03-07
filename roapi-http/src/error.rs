@@ -14,6 +14,14 @@ pub struct ApiErrResp {
 }
 
 impl ApiErrResp {
+    pub fn not_found(message: &str) -> Self {
+        Self {
+            code: http::StatusCode::NOT_FOUND,
+            error: "not_found".to_string(),
+            message: message.to_string(),
+        }
+    }
+
     pub fn json_serialization(_: serde_json::Error) -> Self {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,

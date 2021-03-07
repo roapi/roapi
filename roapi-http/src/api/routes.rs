@@ -23,6 +23,10 @@ where
     .route("/api/sql", web::post().to(api::sql::post))
     .route("/api/graphql", web::post().to(api::graphql::post))
     .route("/api/schema", web::get().to(api::schema::get))
+    .route(
+        "/api/schema/{table_name}",
+        web::get().to(api::schema::get_by_table_name),
+    )
 }
 
 #[cfg(test)]
