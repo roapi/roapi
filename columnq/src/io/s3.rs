@@ -71,7 +71,7 @@ fn list_objects<'a>(
 
     futures::stream::unfold(init_state, |mut state| async move {
         match state.obj_iter.next() {
-            Some(obj) => Some((Ok(obj.key.unwrap()), state)),
+            Some(obj) => Some((obj.key.ok_or_else(ColumnQError::s3_obj_missing_key), state)),
             None => match &state.continuation_token {
                 ContinuationToken::End => None, // terminate stream
                 ContinuationToken::Value(v) => {
@@ -99,15 +99,12 @@ fn list_objects<'a>(
                         .next_continuation_token
                         .map(|t| ContinuationToken::Value(Some(t)))
                         .unwrap_or(ContinuationToken::End);
-                    state.obj_iter = match list_resp.contents {
-                        Some(objs) => objs.into_iter(),
-                        None => Vec::new().into_iter(),
-                    };
 
+                    state.obj_iter = list_resp.contents.unwrap_or_else(Vec::new).into_iter();
                     state
                         .obj_iter
                         .next()
-                        .map(|obj| (Ok(obj.key.unwrap()), state))
+                        .map(|obj| (obj.key.ok_or_else(ColumnQError::s3_obj_missing_key), state))
                 }
             },
         }

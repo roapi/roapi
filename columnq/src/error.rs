@@ -64,6 +64,10 @@ impl ColumnQError {
     pub fn json_parse(e: serde_json::Error) -> Self {
         Self::LoadJson(format!("Failed to parse JSON data: {}", e))
     }
+
+    pub fn s3_obj_missing_key() -> Self {
+        Self::S3Store("Missing key in S3 object list item".to_string())
+    }
 }
 
 impl From<URIReferenceError> for ColumnQError {
