@@ -12,12 +12,18 @@ macro_rules! partitions_from_table_source {
         match uri.scheme() {
             // default to local file when schema is not provided
             None | Some(uriparse::Scheme::FileSystem) => {
-                crate::io::partitions_from_fs_uri(&$table_source, uri, $call_with_r)
+                crate::io::fs::partitions_from_uri(&$table_source, uri, $call_with_r)
             }
             Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => {
-                crate::io::partitions_from_http_uri(&$table_source, uri, $call_with_r).await
+                crate::io::http::partitions_from_uri(&$table_source, uri, $call_with_r).await
             }
-            // "s3" => {}
+            Some(uriparse::Scheme::Unregistered(s)) => match s.as_str() {
+                "s3" => crate::io::s3::partitions_from_uri(&$table_source, uri, $call_with_r).await,
+                _ => Err(ColumnQError::InvalidUri(format!(
+                    "Unsupported scheme in table uri: {:?}",
+                    $table_source.uri,
+                ))),
+            },
             _ => Err(ColumnQError::InvalidUri(format!(
                 "Unsupported scheme in table uri: {:?}",
                 $table_source.uri,
