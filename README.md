@@ -231,8 +231,10 @@ Data layer:
   - Data format
     - [x] CSV
     - [x] JSON
+    - [x] NDJSON
     - [x] parquet
     - [ ] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
+    - [ ] DeltaLake
 
 Misc:
   - [ ] auto gen OpenAPI doc for rest layer
