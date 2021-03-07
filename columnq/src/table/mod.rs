@@ -45,6 +45,12 @@ pub struct TableOptionGoogleSpreasheet {
     sheet_title: Option<String>,
 }
 
+// Adding new table format:
+// * update TableLoadOption enum to add the new variant
+// * update TableLoadOption.extension
+// * update TableSource.extension
+// * update load
+
 #[allow(non_camel_case_types)]
 #[derive(Deserialize, Clone)]
 #[serde(tag = "format")]
@@ -56,6 +62,7 @@ pub enum TableLoadOption {
         array_encoded: Option<bool>,
     },
     csv {},
+    ndjson {},
     parquet {},
     google_spreadsheet(TableOptionGoogleSpreasheet),
 }
@@ -73,6 +80,7 @@ impl TableLoadOption {
     pub fn extension<'a>(&'a self) -> &'static str {
         match self {
             TableLoadOption::json { .. } => "json",
+            TableLoadOption::ndjson { .. } => "ndjson",
             TableLoadOption::csv { .. } => "csv",
             TableLoadOption::parquet { .. } => "parquet",
             TableLoadOption::google_spreadsheet(_) => "gsheet",
@@ -120,7 +128,7 @@ impl TableSource {
                     })?;
 
                 match ext {
-                    "csv" | "json" | "parquet" => ext,
+                    "csv" | "json" | "parquet" | "ndjson" => ext,
                     _ => {
                         return Err(ColumnQError::InvalidUri(format!(
                             "unsupported extension in uri: {}",
@@ -137,6 +145,7 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
     if let Some(opt) = &t.option {
         return Ok(match opt {
             TableLoadOption::json { .. } => json::to_mem_table(t).await?,
+            TableLoadOption::ndjson { .. } => ndjson::to_mem_table(t).await?,
             TableLoadOption::csv { .. } => csv::to_mem_table(t).await?,
             TableLoadOption::parquet { .. } => parquet::to_mem_table(t).await?,
             TableLoadOption::google_spreadsheet(_) => google_spreadsheets::to_mem_table(t).await?,
@@ -148,6 +157,7 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
         match Path::new(&t.uri).extension().and_then(OsStr::to_str) {
             Some("csv") => csv::to_mem_table(t).await?,
             Some("json") => json::to_mem_table(t).await?,
+            Some("ndjson") => ndjson::to_mem_table(t).await?,
             Some("parquet") => parquet::to_mem_table(t).await?,
             Some(ext) => {
                 return Err(ColumnQError::InvalidUri(format!(
@@ -168,4 +178,5 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
 pub mod csv;
 pub mod google_spreadsheets;
 pub mod json;
+pub mod ndjson;
 pub mod parquet;
