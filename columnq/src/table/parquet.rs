@@ -48,9 +48,17 @@ pub async fn to_mem_table(
                 .collect::<arrow::error::Result<Vec<RecordBatch>>>()?)
         })?;
 
+    if partitions.is_empty() {
+        return Err(ColumnQError::LoadParquet(
+            "no parquet file found".to_string(),
+        ));
+    }
+
     Ok(datafusion::datasource::MemTable::try_new(
         Arc::new(
-            schema.ok_or_else(|| ColumnQError::LoadParquet("failed to load schema".to_string()))?,
+            schema.ok_or_else(|| {
+                ColumnQError::LoadParquet("schema not found for table".to_string())
+            })?,
         ),
         partitions,
     )?)

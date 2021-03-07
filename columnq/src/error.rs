@@ -32,6 +32,9 @@ pub enum ColumnQError {
     #[error("Error loading data from file store: {0}")]
     FileStore(String),
 
+    #[error("Error loading data from S3 store: {0}")]
+    S3Store(String),
+
     #[error("Failed to parse source into arrow format: {source}")]
     Arrow {
         #[from]
