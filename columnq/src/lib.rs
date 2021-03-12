@@ -7,27 +7,20 @@ pub mod error;
 
 macro_rules! partitions_from_table_source {
     ($table_source:ident, $call_with_r:expr) => {{
-        let uri = $table_source.parsed_uri()?;
+        use crate::io;
+        use std::convert::TryFrom;
 
-        match uri.scheme() {
-            // default to local file when schema is not provided
-            None | Some(uriparse::Scheme::FileSystem) => {
-                crate::io::fs::partitions_from_uri(&$table_source, uri, $call_with_r)
+        let uri = $table_source.parsed_uri()?;
+        match io::BlobStoreType::try_from(uri.scheme())? {
+            io::BlobStoreType::FileSystem => {
+                io::fs::partitions_from_uri(&$table_source, uri, $call_with_r)
             }
-            Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => {
-                crate::io::http::partitions_from_uri(&$table_source, uri, $call_with_r).await
+            io::BlobStoreType::Http => {
+                io::http::partitions_from_uri(&$table_source, uri, $call_with_r).await
             }
-            Some(uriparse::Scheme::Unregistered(s)) => match s.as_str() {
-                "s3" => crate::io::s3::partitions_from_uri(&$table_source, uri, $call_with_r).await,
-                _ => Err(ColumnQError::InvalidUri(format!(
-                    "Unsupported scheme in table uri: {:?}",
-                    $table_source.uri,
-                ))),
-            },
-            _ => Err(ColumnQError::InvalidUri(format!(
-                "Unsupported scheme in table uri: {:?}",
-                $table_source.uri,
-            ))),
+            io::BlobStoreType::S3 => {
+                io::s3::partitions_from_uri(&$table_source, uri, $call_with_r).await
+            }
         }
     }};
 }

@@ -24,7 +24,7 @@ pub async fn to_mem_table(
             // it's being fetched from http store
             let mut buffer = Vec::new();
             r.read_to_end(&mut buffer).map_err(|_| {
-                ColumnQError::LoadParquet("failed to copy parquet data in memory".to_string())
+                ColumnQError::LoadParquet("failed to copy parquet data into memory".to_string())
             })?;
 
             let file_reader = SerializedFileReader::new(SliceableCursor::new(buffer))
