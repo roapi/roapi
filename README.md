@@ -234,7 +234,7 @@ Data layer:
     - [x] NDJSON
     - [x] parquet
     - [ ] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
-    - [ ] DeltaLake
+    - [x] [DeltaLake](https://delta.io/)
 
 Misc:
   - [ ] auto gen OpenAPI doc for rest layer

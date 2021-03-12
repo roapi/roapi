@@ -26,6 +26,9 @@ pub enum ColumnQError {
     #[error("Error loading Parquet: {0}")]
     LoadParquet(String),
 
+    #[error("Error loading Delta table: {0}")]
+    LoadDelta(String),
+
     #[error("Error loading data from HTTP store: {0}")]
     HttpStore(String),
 
@@ -35,13 +38,19 @@ pub enum ColumnQError {
     #[error("Error loading data from S3 store: {0}")]
     S3Store(String),
 
-    #[error("Failed to parse source into arrow format: {source}")]
+    #[error("DeltaTable error: {source}")]
+    DeltaTable {
+        #[from]
+        source: deltalake::DeltaTableError,
+    },
+
+    #[error("Arrow error: {source}")]
     Arrow {
         #[from]
         source: arrow::error::ArrowError,
     },
 
-    #[error("Failed to convert into DataFusion table: {source}")]
+    #[error("DataFusion error: {source}")]
     DataFusion {
         #[from]
         source: datafusion::error::DataFusionError,

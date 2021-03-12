@@ -35,6 +35,8 @@ futures = "0.3"
 rusoto_core = { version = "0.46" }
 rusoto_s3 = { version = "0.46" }
 
+deltalake = { version = "0", features = ["s3"] }
+
 [dev-dependencies]
 anyhow = "1"
 serde_yaml = "0.8"

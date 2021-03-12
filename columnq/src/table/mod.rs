@@ -7,6 +7,13 @@ use uriparse::URIReference;
 
 use crate::error::ColumnQError;
 
+pub mod csv;
+pub mod delta;
+pub mod google_spreadsheets;
+pub mod json;
+pub mod ndjson;
+pub mod parquet;
+
 #[derive(Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct TableColumn {
@@ -65,6 +72,7 @@ pub enum TableLoadOption {
     ndjson {},
     parquet {},
     google_spreadsheet(TableOptionGoogleSpreasheet),
+    delta {},
 }
 
 impl TableLoadOption {
@@ -83,7 +91,7 @@ impl TableLoadOption {
             TableLoadOption::ndjson { .. } => "ndjson",
             TableLoadOption::csv { .. } => "csv",
             TableLoadOption::parquet { .. } => "parquet",
-            TableLoadOption::google_spreadsheet(_) => "gsheet",
+            TableLoadOption::google_spreadsheet(_) | TableLoadOption::delta { .. } => "",
         }
     }
 }
@@ -149,6 +157,7 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
             TableLoadOption::csv { .. } => csv::to_mem_table(t).await?,
             TableLoadOption::parquet { .. } => parquet::to_mem_table(t).await?,
             TableLoadOption::google_spreadsheet(_) => google_spreadsheets::to_mem_table(t).await?,
+            TableLoadOption::delta { .. } => delta::to_mem_table(t).await?,
         });
     }
 
@@ -174,9 +183,3 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
         },
     )
 }
-
-pub mod csv;
-pub mod google_spreadsheets;
-pub mod json;
-pub mod ndjson;
-pub mod parquet;

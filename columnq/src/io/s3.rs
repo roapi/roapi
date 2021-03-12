@@ -18,18 +18,12 @@ pub fn parse_uri<'a>(path: &'a str) -> Result<(&'a str, &'a str), ColumnQError> 
     }
 
     let mut path_parts = parts[1].splitn(2, '/');
-    let bucket = match path_parts.next() {
-        Some(x) => x,
-        None => {
-            return Err(ColumnQError::InvalidUri("missing s3 bucket".to_string()));
-        }
-    };
-    let key = match path_parts.next() {
-        Some(x) => x,
-        None => {
-            return Err(ColumnQError::InvalidUri("missing s3 key".to_string()));
-        }
-    };
+    let bucket = path_parts
+        .next()
+        .ok_or_else(|| ColumnQError::InvalidUri("missing s3 bucket".to_string()))?;
+    let key = path_parts
+        .next()
+        .ok_or_else(|| ColumnQError::InvalidUri("missing s3 key".to_string()))?;
 
     Ok((bucket, key))
 }
@@ -122,10 +116,12 @@ pub async fn partition_key_to_reader(
         ..Default::default()
     };
 
-    let result = client
-        .get_object(get_req)
-        .await
-        .map_err(|e| ColumnQError::S3Store(format!("get_object error: {}", e)))?;
+    let result = client.get_object(get_req).await.map_err(|e| {
+        ColumnQError::S3Store(format!(
+            "get_object error for (s3::{}/{}): {}",
+            bucket, partition_key, e
+        ))
+    })?;
 
     let mut buf = Vec::new();
     let stream = result.body.ok_or_else(|| {
@@ -138,9 +134,34 @@ pub async fn partition_key_to_reader(
         .into_async_read()
         .read_to_end(&mut buf)
         .await
-        .map_err(|e| ColumnQError::S3Store(format!("read object data error: {}", e)))?;
+        .map_err(|e| {
+            ColumnQError::S3Store(format!(
+                "read object data error for (s3::{}/{}): {}",
+                bucket, partition_key, e
+            ))
+        })?;
 
     Ok(std::io::Cursor::new(buf))
+}
+
+pub async fn partitions_from_path_iterator<'a, F, T, I>(
+    path_iter: I,
+    mut partition_reader: F,
+) -> Result<Vec<T>, ColumnQError>
+where
+    I: Iterator<Item = &'a str>,
+    F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
+{
+    let client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
+    let mut partitions = vec![];
+
+    for s3_path in path_iter {
+        let (bucket, key) = parse_uri(s3_path)?;
+        let reader = partition_key_to_reader(&client, bucket, key).await?;
+        partitions.push(partition_reader(reader)?);
+    }
+
+    Ok(partitions)
 }
 
 pub async fn partitions_from_uri<'a, F, T>(
