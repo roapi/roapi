@@ -3,7 +3,7 @@ name: release
 on:
   push:
     branches: [ main ]
-    tags:
+    tags: [ 'roapi-http-v*' ]
 
 jobs:
   macos:
@@ -16,7 +16,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           target: aarch64-apple-darwin
           profile: minimal
           default: true
@@ -24,7 +24,7 @@ jobs:
         run: pip install maturin
       - name: Build wheels - x86_64
         run: |
-          maturin build -m roapi-http/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist
+          maturin build -m roapi-http/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
           pip install roapi-http --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
         env:
@@ -33,7 +33,7 @@ jobs:
         run: |
           # set SDKROOT for C dependencies
           export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-          maturin build -m roapi-http/Cargo.toml -b bin --release --universal2 --out dist --no-sdist
+          maturin build -m roapi-http/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd"
           pip install roapi-http --no-index --find-links dist --force-reinstall
       - name: Upload wheels
         uses: actions/upload-artifact@v2
@@ -56,8 +56,8 @@ jobs:
     strategy:
       matrix:
         platform: [
-          { python-architecture: "x64", target: "x86_64-pc-windows-msvc" },
-          { python-architecture: "x86", target: "i686-pc-windows-msvc" },
+          { python-architecture: "x64", target: "x86_64-pc-windows-msvc", features: "simd" },
+          { python-architecture: "x86", target: "i686-pc-windows-msvc", features: "" },
         ]
     steps:
       - uses: actions/checkout@v2
@@ -68,7 +68,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           target: ${{ matrix.platform.target }}
           profile: minimal
           default: true
@@ -76,7 +76,7 @@ jobs:
         run: pip install maturin
       - name: Build wheels
         run: |
-          maturin build -m roapi-http/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }}
+          maturin build -m roapi-http/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
           pip install roapi-http --no-index --find-links dist --force-reinstall
           roapi-http --help
       - name: Upload wheels
@@ -90,10 +90,10 @@ jobs:
     strategy:
       matrix:
         platform: [
-          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl" },
-          { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl" },
-          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl" },
-          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf" },
+          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl", features: "simd" },
+          { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl", features: "" },
+          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl", features: "" },
+          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf", features: "" },
         ]
     container:
       image: docker://benfred/rust-musl-cross:${{ matrix.platform.image_tag }}
@@ -102,10 +102,15 @@ jobs:
         CARGO_HOME: /root/.cargo
     steps:
       - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        run: |
+          rustup update nightly
+          rustup target add --toolchain nightly ${{ matrix.platform.target }}
+          rustup default nightly
       - name: Build Wheels
         run: |
           pip3 install maturin
-          maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }}
+          maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
