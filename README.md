@@ -27,12 +27,22 @@ See below for a high level diagram:
 
 ## Installation
 
+### Install pre-built binary
+
+```bash
+pip install roapi-http
+```
+
+Check out [Github release page](https://github.com/roapi/roapi/releases) for
+pre-built binaries for each platform. Pre-built docker images are also available at
+[ghcr.io/roapi/roapi-http](https://github.com/orgs/roapi/packages/container/package/roapi-http).
+
+
+### Install from source
+
 ```bash
 cargo install --git https://github.com/roapi/roapi --branch main --bin roapi-http
 ```
-
-Pre-built docker images are also available at
-[ghcr.io/roapi/roapi-http](https://github.com/orgs/roapi/packages/container/package/roapi-http).
 
 
 ## Usage
@@ -260,7 +270,7 @@ Building ROAPI with `simd` optimization requires nightly rust toolchain.
 ### Build Docker image
 
 ```bash
-docker build --build-arg RELEASE=main --rm -t ghcr.io/roapi/roapi-http:latest .
+docker build --rm -t ghcr.io/roapi/roapi-http:latest .
 ```
 
 You can set `RELEASE` variable to any git reference to build for a specific version.

@@ -1,6 +1,7 @@
 FROM rust:1.50 as builder
-ARG RELEASE=main
-RUN cargo install --git https://github.com/roapi/roapi --branch $RELEASE --bin roapi-http
+WORKDIR /roapi_src
+COPY ./ /roapi_src
+RUN cargo install --path ./roapi-http --bin roapi-http
 
 FROM debian:buster-slim
 LABEL org.opencontainers.image.source https://github.com/roapi/roapi

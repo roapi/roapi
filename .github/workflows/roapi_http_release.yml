@@ -1,4 +1,4 @@
-name: release
+name: roapi-http release
 
 on:
   push:
@@ -127,8 +127,8 @@ jobs:
           file: target/release/roapi-http.tar.gz
           tag: ${{ github.ref }}
 
-  release:
-    name: Release
+  pypi_release:
+    name: PyPI Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
     needs: [ linux, macos, windows ]
@@ -142,7 +142,7 @@ jobs:
       - name: Publish to PyPi
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
           pip install --upgrade twine
           twine upload --skip-existing *
