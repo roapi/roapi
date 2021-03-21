@@ -1,6 +1,6 @@
 [package]
 name = "roapi-http"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Qingping Hou <dave2008713@gmail.com>"]
 edition = "2018"
 

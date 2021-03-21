@@ -34,6 +34,8 @@ futures = "0.3"
 # S3
 rusoto_core = { version = "0.46" }
 rusoto_s3 = { version = "0.46" }
+rusoto_credential = { version = "0.46" }
+rusoto_sts = { version = "0.46" }
 
 deltalake = { version = "0", features = ["s3"] }
 

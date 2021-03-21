@@ -28,6 +28,33 @@ pub fn parse_uri<'a>(path: &'a str) -> Result<(&'a str, &'a str), ColumnQError> 
     Ok((bucket, key))
 }
 
+fn new_s3_client() -> Result<rusoto_s3::S3Client, ColumnQError> {
+    let region = rusoto_core::Region::default();
+    let dispatcher = rusoto_core::HttpClient::new()
+        .map_err(|_| ColumnQError::S3Store("Failed to create request dispatcher".to_string()))?;
+
+    let client = match std::env::var("AWS_WEB_IDENTITY_TOKEN_FILE") {
+        Ok(_) => {
+            let provider = rusoto_sts::WebIdentityProvider::from_k8s_env();
+            let provider =
+                rusoto_credential::AutoRefreshingProvider::new(provider).map_err(|e| {
+                    ColumnQError::S3Store(format!(
+                        "Failed to retrieve S3 credentials with message: {}",
+                        e.message
+                    ))
+                })?;
+            rusoto_s3::S3Client::new_with(dispatcher, provider, region)
+        }
+        Err(_) => rusoto_s3::S3Client::new_with(
+            dispatcher,
+            rusoto_core::credential::ChainProvider::new(),
+            region,
+        ),
+    };
+
+    Ok(client)
+}
+
 enum ContinuationToken {
     Value(Option<String>),
     End,
@@ -36,7 +63,7 @@ enum ContinuationToken {
 fn list_objects<'a>(
     bucket: &'a str,
     key: &'a str,
-) -> impl futures::Stream<Item = Result<String, ColumnQError>> + 'a {
+) -> Result<impl futures::Stream<Item = Result<String, ColumnQError>> + 'a, ColumnQError> {
     struct S3ListState<'a> {
         bucket: &'a str,
         key: String,
@@ -58,51 +85,53 @@ fn list_objects<'a>(
     let init_state = S3ListState {
         bucket,
         key,
-        client: rusoto_s3::S3Client::new(rusoto_core::Region::default()),
+        client: new_s3_client()?,
         continuation_token: ContinuationToken::Value(None),
         obj_iter: Vec::new().into_iter(),
     };
 
-    futures::stream::unfold(init_state, |mut state| async move {
-        match state.obj_iter.next() {
-            Some(obj) => Some((obj.key.ok_or_else(ColumnQError::s3_obj_missing_key), state)),
-            None => match &state.continuation_token {
-                ContinuationToken::End => None, // terminate stream
-                ContinuationToken::Value(v) => {
-                    let list_req = rusoto_s3::ListObjectsV2Request {
-                        bucket: state.bucket.to_string(),
-                        prefix: Some(state.key.clone()),
-                        start_after: Some(state.key.clone()),
-                        continuation_token: v.clone(),
-                        ..Default::default()
-                    };
+    Ok(futures::stream::unfold(
+        init_state,
+        |mut state| async move {
+            match state.obj_iter.next() {
+                Some(obj) => Some((obj.key.ok_or_else(ColumnQError::s3_obj_missing_key), state)),
+                None => match &state.continuation_token {
+                    ContinuationToken::End => None, // terminate stream
+                    ContinuationToken::Value(v) => {
+                        let list_req = rusoto_s3::ListObjectsV2Request {
+                            bucket: state.bucket.to_string(),
+                            prefix: Some(state.key.clone()),
+                            start_after: Some(state.key.clone()),
+                            continuation_token: v.clone(),
+                            ..Default::default()
+                        };
 
-                    let list_resp = match state.client.list_objects_v2(list_req).await {
-                        Ok(res) => res,
-                        Err(e) => {
-                            return Some((
-                                Err(ColumnQError::S3Store(format!(
-                                    "Failed to list bucket: {}",
-                                    e
-                                ))),
-                                state,
-                            ));
-                        }
-                    };
-                    state.continuation_token = list_resp
-                        .next_continuation_token
-                        .map(|t| ContinuationToken::Value(Some(t)))
-                        .unwrap_or(ContinuationToken::End);
+                        let list_resp = match state.client.list_objects_v2(list_req).await {
+                            Ok(res) => res,
+                            Err(e) => {
+                                return Some((
+                                    Err(ColumnQError::S3Store(format!(
+                                        "Failed to list bucket: {}",
+                                        e
+                                    ))),
+                                    state,
+                                ));
+                            }
+                        };
+                        state.continuation_token = list_resp
+                            .next_continuation_token
+                            .map(|t| ContinuationToken::Value(Some(t)))
+                            .unwrap_or(ContinuationToken::End);
 
-                    state.obj_iter = list_resp.contents.unwrap_or_else(Vec::new).into_iter();
-                    state
-                        .obj_iter
-                        .next()
-                        .map(|obj| (obj.key.ok_or_else(ColumnQError::s3_obj_missing_key), state))
-                }
-            },
-        }
-    })
+                        state.obj_iter = list_resp.contents.unwrap_or_else(Vec::new).into_iter();
+                        state.obj_iter.next().map(|obj| {
+                            (obj.key.ok_or_else(ColumnQError::s3_obj_missing_key), state)
+                        })
+                    }
+                },
+            }
+        },
+    ))
 }
 
 pub async fn partition_key_to_reader(
@@ -152,7 +181,7 @@ where
     I: Iterator<Item = &'a str>,
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
-    let client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
+    let client = new_s3_client()?;
     let mut partitions = vec![];
 
     for s3_path in path_iter {
@@ -184,7 +213,7 @@ where
         }
         Err(_) => {
             // fallback to directory listing
-            let mut key_stream = Box::pin(list_objects(bucket, key));
+            let mut key_stream = Box::pin(list_objects(bucket, key)?);
             // TODO: fetch s3 objects concurrently
             while let Some(item) = key_stream.next().await {
                 let partition_key = item?;
