@@ -6,18 +6,14 @@ members = [
 ]
 
 [patch."https://github.com/apache/arrow.git"]
-arrow = { git = "https://github.com/houqp/arrow.git", rev = "f7cf15749f2df907994f48ef0bfbed3001bf145e" }
-parquet = { git = "https://github.com/houqp/arrow.git", rev = "f7cf15749f2df907994f48ef0bfbed3001bf145e" }
-datafusion = { git = "https://github.com/houqp/arrow.git", rev = "f7cf15749f2df907994f48ef0bfbed3001bf145e" }
+arrow = { git = "https://github.com/houqp/arrow.git", rev = "cfec7bc607b9b564eceb352e54b21fa005a3d606" }
+parquet = { git = "https://github.com/houqp/arrow.git", rev = "cfec7bc607b9b564eceb352e54b21fa005a3d606" }
+datafusion = { git = "https://github.com/houqp/arrow.git", rev = "cfec7bc607b9b564eceb352e54b21fa005a3d606" }
 
 [patch.crates-io]
-arrow = { git = "https://github.com/houqp/arrow.git", rev = "f7cf15749f2df907994f48ef0bfbed3001bf145e" }
-parquet = { git = "https://github.com/houqp/arrow.git", rev = "f7cf15749f2df907994f48ef0bfbed3001bf145e" }
-datafusion = { git = "https://github.com/houqp/arrow.git", rev = "f7cf15749f2df907994f48ef0bfbed3001bf145e" }
+arrow = { git = "https://github.com/houqp/arrow.git", rev = "cfec7bc607b9b564eceb352e54b21fa005a3d606" }
+parquet = { git = "https://github.com/houqp/arrow.git", rev = "cfec7bc607b9b564eceb352e54b21fa005a3d606" }
+datafusion = { git = "https://github.com/houqp/arrow.git", rev = "cfec7bc607b9b564eceb352e54b21fa005a3d606" }
 
 actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6a5924b6d881d204856199e7539e273d2f" }
-deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "6c8dad8c8fcd5420710dea723541a6c69251be17" }
-
-# arrow = { path = "/home/houqp/Documents/code/delta/arrow/rust/arrow" }
-# parquet = { path = "/home/houqp/Documents/code/delta/arrow/rust/parquet" }
-# datafusion = { path = "/home/houqp/Documents/code/delta/arrow/rust/datafusion" }
+deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "0d8b23fb3401171f33c2f299335418abff4df606" }
