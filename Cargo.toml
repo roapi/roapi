@@ -17,3 +17,7 @@ datafusion = { git = "https://github.com/houqp/arrow.git", rev = "cfec7bc607b9b5
 
 actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6a5924b6d881d204856199e7539e273d2f" }
 deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "38be44cdc8e330a21d9ba31017c29429c2082411" }
+
+
+[profile.dev]
+split-debuginfo = "unpacked"
