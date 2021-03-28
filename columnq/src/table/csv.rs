@@ -29,7 +29,7 @@ pub async fn to_mem_table(
                 }
             })?
             .into_iter()
-            .filter_map(|e| e)
+            .flatten()
             .collect::<Vec<_>>();
 
             Arc::new(Schema::try_merge(schemas)?)
