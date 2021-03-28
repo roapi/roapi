@@ -8,6 +8,10 @@ edition = "2018"
 name = "columnq"
 path = "src/lib.rs"
 
+[[bin]]
+name = "columnq"
+path = "src/bin/main.rs"
+
 [dependencies]
 arrow  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
 parquet  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
@@ -39,10 +43,18 @@ rusoto_sts = { version = "0.46" }
 
 deltalake = { version = "0", features = ["s3"] }
 
+# columnq cli
+rustyline = { version = "8", optional = true }
+env_logger = { version = "0", optional = true }
+anyhow = { version = "1", optional = true }
+clap = { version = ">=3.0.0-beta.2,<4", features = ["color"], optional = true }
+
 [dev-dependencies]
 anyhow = "1"
 serde_yaml = "0.8"
 tempdir = "0"
 
 [features]
+default = ["cli"]
 simd = ["arrow/simd", "datafusion/simd"]
+cli = ["rustyline", "env_logger", "anyhow", "clap"]

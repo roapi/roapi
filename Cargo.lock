@@ -593,8 +593,10 @@ dependencies = [
  "anyhow",
  "arrow",
  "bytes",
+ "clap 3.0.0-beta.2",
  "datafusion",
  "deltalake",
+ "env_logger",
  "futures",
  "graphql-parser",
  "lazy_static",
@@ -607,6 +609,7 @@ dependencies = [
  "rusoto_credential",
  "rusoto_s3",
  "rusoto_sts",
+ "rustyline 8.0.0",
  "serde",
  "serde_derive",
  "serde_json",
@@ -759,7 +762,7 @@ dependencies = [
  "paste",
  "pin-project-lite",
  "regex",
- "rustyline",
+ "rustyline 7.1.0",
  "sha2",
  "sqlparser 0.8.0",
  "tokio",
@@ -770,7 +773,7 @@ dependencies = [
 [[package]]
 name = "deltalake"
 version = "0.2.1"
-source = "git+https://github.com/delta-io/delta-rs.git?rev=0d8b23fb3401171f33c2f299335418abff4df606#0d8b23fb3401171f33c2f299335418abff4df606"
+source = "git+https://github.com/delta-io/delta-rs.git?rev=38be44cdc8e330a21d9ba31017c29429c2082411#38be44cdc8e330a21d9ba31017c29429c2082411"
 dependencies = [
  "anyhow",
  "arrow",
@@ -782,6 +785,7 @@ dependencies = [
  "env_logger",
  "errno",
  "futures",
+ "glibc_version",
  "lazy_static",
  "libc",
  "log",
@@ -883,6 +887,12 @@ checksum = "80df024fbc5ac80f87dfef0d9f5209a252f2a497f7f42944cff24d8253cac065"
 dependencies = [
  "cfg-if 1.0.0",
 ]
+
+[[package]]
+name = "endian-type"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c34f04666d835ff5d62e058c3995147c06f42fe86ff053337632bca83e42702d"
 
 [[package]]
 name = "env_logger"
@@ -1116,6 +1126,14 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "wasi 0.10.2+wasi-snapshot-preview1",
+]
+
+[[package]]
+name = "glibc_version"
+version = "0.1.0"
+source = "git+https://github.com/delta-io/delta-rs.git?rev=38be44cdc8e330a21d9ba31017c29429c2082411#38be44cdc8e330a21d9ba31017c29429c2082411"
+dependencies = [
+ "regex",
 ]
 
 [[package]]
@@ -1517,10 +1535,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "nibble_vec"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77a5d83df9f36fe23f0c3648c6bbb8b0298bb5f1939c8f2704431371f4b84d43"
+dependencies = [
+ "smallvec",
+]
+
+[[package]]
 name = "nix"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b2ccba0cfe4fdf15982d1674c69b1fd80bad427d293849982668dfe454bd61f2"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cfg-if 1.0.0",
+ "libc",
+]
+
+[[package]]
+name = "nix"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa9b4819da1bc61c0ea48b63b7bc8604064dd43013e7cc325df098d49cd7c18a"
 dependencies = [
  "bitflags",
  "cc",
@@ -1877,6 +1916,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d0b9745dc2debf507c8422de05d7226cc1f0644216dfdfead988f9b1ab32a7"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "radix_trie"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c069c179fcdc6a2fe24d8d18305cf085fdbd4f922c041943e203685d6a1c58fd"
+dependencies = [
+ "endian-type",
+ "nibble_vec",
 ]
 
 [[package]]
@@ -2295,8 +2344,31 @@ dependencies = [
  "libc",
  "log",
  "memchr",
- "nix",
+ "nix 0.19.1",
  "scopeguard",
+ "unicode-segmentation",
+ "unicode-width",
+ "utf8parse",
+ "winapi",
+]
+
+[[package]]
+name = "rustyline"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9e1b597fcd1eeb1d6b25b493538e5aa19629eb08932184b85fef931ba87e893"
+dependencies = [
+ "bitflags",
+ "cfg-if 1.0.0",
+ "dirs-next",
+ "fs2",
+ "libc",
+ "log",
+ "memchr",
+ "nix 0.20.0",
+ "radix_trie",
+ "scopeguard",
+ "smallvec",
  "unicode-segmentation",
  "unicode-width",
  "utf8parse",
