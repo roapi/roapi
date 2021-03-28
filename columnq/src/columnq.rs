@@ -16,7 +16,7 @@ impl ColumnQ {
     pub fn new() -> Self {
         let dfctx = datafusion::execution::context::ExecutionContext::new();
         let schema_map = HashMap::<String, arrow::datatypes::SchemaRef>::new();
-        Self { schema_map, dfctx }
+        Self { dfctx, schema_map }
     }
 
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
