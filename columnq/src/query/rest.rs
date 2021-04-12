@@ -87,7 +87,7 @@ pub fn table_query_to_df(
                         _ => column_sort_expr_asc(val.to_string()),
                     })
                     .collect::<Vec<_>>();
-                df = df.sort(&sort_exprs).map_err(QueryError::invalid_sort)?;
+                df = df.sort(sort_exprs).map_err(QueryError::invalid_sort)?;
             }
             // limit=100
             "limit" => {

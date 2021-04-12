@@ -257,7 +257,7 @@ pub fn query_to_df(
     let field = field.ok_or_else(|| invalid_query("field not found in selection".to_string()))?;
 
     let mut df = dfctx
-        .table(&field.name)
+        .table(field.name)
         .map_err(|e| QueryError::invalid_table(e, &field.name))?;
 
     // apply projection
@@ -297,7 +297,7 @@ pub fn query_to_df(
             "sort" => match value {
                 Value::List(sort_options) => {
                     df = df
-                        .sort(&to_datafusion_sort_columns(sort_options)?)
+                        .sort(to_datafusion_sort_columns(sort_options)?)
                         .map_err(QueryError::invalid_sort)?;
                 }
                 other => {
@@ -379,7 +379,7 @@ mod tests {
 
         let expected_df = dfctx
             .table("properties")?
-            .select(&[col("Address"), col("Bed"), col("Bath")])?
+            .select(vec![col("Address"), col("Bed"), col("Bath")])?
             .filter(col("Bath").gt_eq(lit(2i64)))?
             .filter(col("Bed").gt(lit(3i64)))?;
 
