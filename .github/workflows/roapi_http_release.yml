@@ -6,7 +6,22 @@ on:
     tags: [ 'roapi-http-v*' ]
 
 jobs:
+  validate-release-tag:
+    name: Validate git tag
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: compare git tag with cargo metadata
+        run: |
+          PUSHED_TAG=${GITHUB_REF##*/}
+          CURR_VER=$( grep version roapi-http/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' )
+          if [[ "${PUSHED_TAG}" != "roapi-http-v${CURR_VER}" ]]; then
+            echo "Cargo metadata has version set to ${CURR_VER}, but got pushed tag ${PUSHED_TAG}."
+            exit 1
+          fi
+
   macos:
+    needs: validate-release-tag
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
@@ -52,6 +67,7 @@ jobs:
           tag: ${{ github.ref }}
 
   windows:
+    needs: validate-release-tag
     runs-on: windows-latest
     strategy:
       matrix:
@@ -86,6 +102,7 @@ jobs:
           path: dist
 
   linux:
+    needs: validate-release-tag
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -128,6 +145,7 @@ jobs:
           tag: ${{ github.ref }}
 
   pypi_release:
+    needs: validate-release-tag
     name: PyPI Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
