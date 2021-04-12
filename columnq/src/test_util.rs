@@ -125,12 +125,12 @@ schema:
 }
 
 pub fn register_table_properties(dfctx: &mut ExecutionContext) -> anyhow::Result<()> {
-    dfctx.register_table("properties", Arc::new(properties_table()?));
+    dfctx.register_table("properties", Arc::new(properties_table()?))?;
     Ok(())
 }
 
 pub async fn register_table_ubuntu_ami(dfctx: &mut ExecutionContext) -> anyhow::Result<()> {
-    dfctx.register_table("ubuntu_ami", Arc::new(ubuntu_ami_table().await?));
+    dfctx.register_table("ubuntu_ami", Arc::new(ubuntu_ami_table().await?))?;
     Ok(())
 }
 

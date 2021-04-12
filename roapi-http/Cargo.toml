@@ -38,3 +38,4 @@ simd = ["columnq/simd"]
 
 [dev-dependencies]
 actix-rt = "*"
+pretty_assertions = "*"

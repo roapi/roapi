@@ -22,7 +22,8 @@ impl ColumnQ {
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
         let table = table::load(&t).await?;
         self.schema_map.insert(t.name.clone(), table.schema());
-        self.dfctx.register_table(&t.name, Arc::new(table));
+        self.dfctx
+            .register_table(t.name.as_str(), Arc::new(table))?;
 
         Ok(())
     }
