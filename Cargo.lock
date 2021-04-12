@@ -297,6 +297,7 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 [[package]]
 name = "arrow"
 version = "4.0.0-SNAPSHOT"
+source = "git+https://github.com/houqp/arrow.git?rev=88394d00b91365770e7b791a34b20bd849d678ee#88394d00b91365770e7b791a34b20bd849d678ee"
 dependencies = [
  "cfg_aliases",
  "chrono",
@@ -756,6 +757,7 @@ dependencies = [
 [[package]]
 name = "datafusion"
 version = "4.0.0-SNAPSHOT"
+source = "git+https://github.com/houqp/arrow.git?rev=88394d00b91365770e7b791a34b20bd849d678ee#88394d00b91365770e7b791a34b20bd849d678ee"
 dependencies = [
  "ahash",
  "arrow",
@@ -1802,6 +1804,7 @@ dependencies = [
 [[package]]
 name = "parquet"
 version = "4.0.0-SNAPSHOT"
+source = "git+https://github.com/houqp/arrow.git?rev=88394d00b91365770e7b791a34b20bd849d678ee#88394d00b91365770e7b791a34b20bd849d678ee"
 dependencies = [
  "arrow",
  "base64 0.12.3",

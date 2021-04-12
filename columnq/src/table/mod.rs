@@ -14,7 +14,7 @@ pub mod json;
 pub mod ndjson;
 pub mod parquet;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TableColumn {
     pub name: String,
@@ -29,7 +29,7 @@ impl From<&TableColumn> for arrow::datatypes::Field {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TableSchema {
     pub columns: Vec<TableColumn>,
@@ -59,7 +59,7 @@ pub struct TableOptionGoogleSpreasheet {
 // * update load
 
 #[allow(non_camel_case_types)]
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(tag = "format")]
 #[serde(deny_unknown_fields)]
 pub enum TableLoadOption {
@@ -96,7 +96,7 @@ impl TableLoadOption {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TableSource {
     pub name: String,

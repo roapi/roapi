@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
+use log::debug;
 
 use crate::error::ColumnQError;
 use crate::table::TableSource;
@@ -15,6 +16,7 @@ pub async fn to_mem_table(
     let batch_size = 1024;
     let projection = None;
 
+    debug!("inferring csv table schema...");
     let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
         Some(s) => Arc::new(s.into()),
         None => {
@@ -36,6 +38,7 @@ pub async fn to_mem_table(
         }
     };
 
+    debug!("loading csv table data...");
     let partitions: Vec<Vec<RecordBatch>> =
         partitions_from_table_source!(t, |r| -> Result<Vec<RecordBatch>, ColumnQError> {
             let csv_reader = arrow::csv::Reader::new(
