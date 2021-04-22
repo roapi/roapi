@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        if: "startsWith(github.ref, 'refs/tags/')"
       - name: compare git tag with cargo metadata
+        if: "startsWith(github.ref, 'refs/tags/')"
         run: |
           PUSHED_TAG=${GITHUB_REF##*/}
           CURR_VER=$( grep version roapi-http/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' )
@@ -19,6 +21,9 @@ jobs:
             echo "Cargo metadata has version set to ${CURR_VER}, but got pushed tag ${PUSHED_TAG}."
             exit 1
           fi
+      - name: skip git tag validation
+        if: "! startsWith(github.ref, 'refs/tags/')"
+        run: echo "skip tag version validation on non-release branch run"
 
   macos:
     needs: validate-release-tag
