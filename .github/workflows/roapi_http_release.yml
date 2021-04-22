@@ -145,11 +145,10 @@ jobs:
           tag: ${{ github.ref }}
 
   pypi_release:
-    needs: validate-release-tag
+    needs: [ validate-release-tag, linux, macos, windows ]
     name: PyPI Release
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/')"
-    needs: [ linux, macos, windows ]
     steps:
       - uses: actions/download-artifact@v2
         with:
