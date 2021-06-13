@@ -17,9 +17,9 @@ columnq = { path = "../columnq" }
 arrow  = "4.3.0"
 
 # all actix dependencies are patched to use git source until actix-web 4.x lands
-actix-web = "4.0.0-beta"
-actix-http = "3.0.0-beta"
-actix-service = "2.0.0-beta"
+actix-web = "4.0.0-beta.4"
+actix-http = "3.0.0-beta.4"
+actix-service = "2.0.0-beta.3"
 # see https://github.com/actix/actix-extras/pull/144 for cors tokio 1 upgrade
 actix-cors = "*"
 
