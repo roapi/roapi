@@ -5,18 +5,13 @@ members = [
     "roapi-http",
 ]
 
-[patch."https://github.com/apache/arrow.git"]
-arrow = { git = "https://github.com/houqp/arrow.git", rev = "88394d00b91365770e7b791a34b20bd849d678ee" }
-parquet = { git = "https://github.com/houqp/arrow.git", rev = "88394d00b91365770e7b791a34b20bd849d678ee" }
-datafusion = { git = "https://github.com/houqp/arrow.git", rev = "88394d00b91365770e7b791a34b20bd849d678ee" }
-
 [patch.crates-io]
-arrow = { git = "https://github.com/houqp/arrow.git", rev = "88394d00b91365770e7b791a34b20bd849d678ee" }
-parquet = { git = "https://github.com/houqp/arrow.git", rev = "88394d00b91365770e7b791a34b20bd849d678ee" }
-datafusion = { git = "https://github.com/houqp/arrow.git", rev = "88394d00b91365770e7b791a34b20bd849d678ee" }
+arrow = { git = "https://github.com/houqp/arrow-rs.git", rev = "1f7f4bc45afc5189ea0d7d4a588688ae00cceb86" }
+parquet = { git = "https://github.com/houqp/arrow-rs.git", rev = "1f7f4bc45afc5189ea0d7d4a588688ae00cceb86" }
+# datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "88394d00b91365770e7b791a34b20bd849d678ee" }
 
 actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6a5924b6d881d204856199e7539e273d2f" }
-deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "38be44cdc8e330a21d9ba31017c29429c2082411" }
+# deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "38be44cdc8e330a21d9ba31017c29429c2082411" }
 
 
 [profile.dev]
