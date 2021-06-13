@@ -13,8 +13,8 @@ name = "columnq"
 path = "src/bin/main.rs"
 
 [dependencies]
-arrow  = "4"
-parquet  = "4"
+arrow  = "4.3.0"
+parquet  = "4.3.0"
 datafusion  = "4"
 
 log = "0"

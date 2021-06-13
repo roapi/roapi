@@ -296,9 +296,8 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "arrow"
-version = "4.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93811be1c0f60f4b29d80b34dad4e59fdc397a9e580f849df9e2635701498663"
+version = "4.3.0"
+source = "git+https://github.com/houqp/arrow-rs.git?rev=1f7f4bc45afc5189ea0d7d4a588688ae00cceb86#1f7f4bc45afc5189ea0d7d4a588688ae00cceb86"
 dependencies = [
  "cfg_aliases",
  "chrono",
@@ -1787,9 +1786,9 @@ dependencies = [
 
 [[package]]
 name = "packed_simd_2"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3278e0492f961fd4ae70909f56b2723a7e8d01a228427294e19cdfdebda89a17"
+checksum = "0e64858a2d3733fdd61adfdd6da89aa202f7ff0e741d2fc7ed1e452ba9dc99d7"
 dependencies = [
  "cfg-if 0.1.10",
  "libm",
@@ -1822,9 +1821,8 @@ dependencies = [
 
 [[package]]
 name = "parquet"
-version = "4.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9275a7f8eab04e6ab6918b4fdd50e00aeba3c288e0f91bdc5da87a2c8ff288a6"
+version = "4.3.0"
+source = "git+https://github.com/houqp/arrow-rs.git?rev=1f7f4bc45afc5189ea0d7d4a588688ae00cceb86#1f7f4bc45afc5189ea0d7d4a588688ae00cceb86"
 dependencies = [
  "arrow",
  "base64",
