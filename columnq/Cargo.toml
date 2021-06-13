@@ -13,9 +13,9 @@ name = "columnq"
 path = "src/bin/main.rs"
 
 [dependencies]
-arrow  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
-parquet  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
-datafusion  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
+arrow  = "4"
+parquet  = "4"
+datafusion  = "4"
 
 log = "0"
 regex = "1"

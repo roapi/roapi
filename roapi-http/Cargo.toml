@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 columnq = { path = "../columnq" }
-arrow  = "4.0.0-SNAPSHOT"  # patched to use git source until 4.x release is out
+arrow  = "4"
 
 # all actix dependencies are patched to use git source until actix-web 4.x lands
 actix-web = "4.0.0-beta"
