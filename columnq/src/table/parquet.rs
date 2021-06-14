@@ -38,6 +38,7 @@ pub async fn to_mem_table(
             let batch_schema = arrow_reader.get_schema().map_err(|_| {
                 ColumnQError::LoadParquet("failed to load schema from partition".to_string())
             })?;
+
             schema = Some(match &schema {
                 Some(s) if s != &batch_schema => Schema::try_merge(vec![s.clone(), batch_schema])?,
                 _ => batch_schema,

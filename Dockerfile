@@ -1,7 +1,7 @@
-FROM rust:1.50 as builder
+FROM rust:1.52 as builder
 WORKDIR /roapi_src
 COPY ./ /roapi_src
-RUN cargo install --path ./roapi-http --bin roapi-http
+RUN cargo install --locked --path ./roapi-http --bin roapi-http
 
 FROM debian:buster-slim
 LABEL org.opencontainers.image.source https://github.com/roapi/roapi
