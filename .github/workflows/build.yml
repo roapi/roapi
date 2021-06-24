@@ -48,8 +48,8 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         profile: default
-        toolchain: nightly
-        # toolchain: nightly-2021-03-23
+        # toolchain: nightly
+        toolchain: nightly-2021-03-24
         override: true
     - name: Run tests
       run: cargo test --features simd
