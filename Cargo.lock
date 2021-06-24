@@ -260,15 +260,6 @@ dependencies = [
 
 [[package]]
 name = "ansi_term"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee49baf6cb617b853aa8d93bf420db2383fab46d314482ca2803b40d5fde979b"
-dependencies = [
- "winapi",
-]
-
-[[package]]
-name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d52a9bb7ec0cf484c551830a7ce27bd20d67eac647e1befb56b0be4ee39a55d2"
@@ -297,7 +288,8 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 [[package]]
 name = "arrow"
 version = "4.3.0"
-source = "git+https://github.com/houqp/arrow-rs.git?rev=1f7f4bc45afc5189ea0d7d4a588688ae00cceb86#1f7f4bc45afc5189ea0d7d4a588688ae00cceb86"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6a567d2855b6e9ce50d9b5161e77bd210e0366b2e779ac77d4e6def06473b6d"
 dependencies = [
  "cfg_aliases",
  "chrono",
@@ -539,21 +531,6 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "2.33.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37e58ac78573c40708d45522f0d80fa2f01cc4f9b4e2bf749807255454312002"
-dependencies = [
- "ansi_term 0.11.0",
- "atty",
- "bitflags",
- "strsim 0.8.0",
- "textwrap 0.11.0",
- "unicode-width",
- "vec_map",
-]
-
-[[package]]
-name = "clap"
 version = "3.0.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4bd1061998a501ee7d4b6d449020df3266ca3124b941ec56cf2005c3779ca142"
@@ -564,9 +541,9 @@ dependencies = [
  "indexmap",
  "lazy_static",
  "os_str_bytes",
- "strsim 0.10.0",
+ "strsim",
  "termcolor",
- "textwrap 0.12.1",
+ "textwrap",
  "unicode-width",
  "vec_map",
 ]
@@ -591,7 +568,7 @@ dependencies = [
  "anyhow",
  "arrow",
  "bytes",
- "clap 3.0.0-beta.2",
+ "clap",
  "datafusion",
  "deltalake",
  "env_logger",
@@ -607,7 +584,7 @@ dependencies = [
  "rusoto_credential",
  "rusoto_s3",
  "rusoto_sts",
- "rustyline 8.0.0",
+ "rustyline",
  "serde",
  "serde_derive",
  "serde_json",
@@ -751,15 +728,13 @@ dependencies = [
 
 [[package]]
 name = "datafusion"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9d28e885465d9c4ce7154b52511a3d3263c1a484010145dc84eb686abc56c2d"
+version = "4.0.0-SNAPSHOT"
+source = "git+https://github.com/apache/arrow-datafusion.git?rev=d55a10569b3a24195bed2d67cc6414c63b6b2336#d55a10569b3a24195bed2d67cc6414c63b6b2336"
 dependencies = [
  "ahash",
  "arrow",
  "async-trait",
  "chrono",
- "clap 2.33.3",
  "futures",
  "hashbrown 0.11.2",
  "lazy_static",
@@ -770,8 +745,8 @@ dependencies = [
  "parquet",
  "paste",
  "pin-project-lite",
+ "rand 0.8.3",
  "regex",
- "rustyline 7.1.0",
  "sha2",
  "smallvec",
  "sqlparser 0.9.0",
@@ -792,7 +767,7 @@ dependencies = [
  "bytes",
  "cfg-if 1.0.0",
  "chrono",
- "clap 3.0.0-beta.2",
+ "clap",
  "env_logger",
  "errno",
  "futures",
@@ -1589,18 +1564,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.19.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2ccba0cfe4fdf15982d1674c69b1fd80bad427d293849982668dfe454bd61f2"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if 1.0.0",
- "libc",
-]
-
-[[package]]
-name = "nix"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fa9b4819da1bc61c0ea48b63b7bc8604064dd43013e7cc325df098d49cd7c18a"
@@ -1822,7 +1785,8 @@ dependencies = [
 [[package]]
 name = "parquet"
 version = "4.3.0"
-source = "git+https://github.com/houqp/arrow-rs.git?rev=1f7f4bc45afc5189ea0d7d4a588688ae00cceb86#1f7f4bc45afc5189ea0d7d4a588688ae00cceb86"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61d1e65cabce160ad7dbced3f0f4842af2b3d7b5e9acedce35661d2c58183c83"
 dependencies = [
  "arrow",
  "base64",
@@ -1909,7 +1873,7 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f297542c27a7df8d45de2b0e620308ab883ad232d06c14b76ac3e144bda50184"
 dependencies = [
- "ansi_term 0.12.1",
+ "ansi_term",
  "ctor",
  "diff",
  "output_vt100",
@@ -2243,7 +2207,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "arrow",
- "clap 3.0.0-beta.2",
+ "clap",
  "columnq",
  "env_logger",
  "log",
@@ -2399,27 +2363,6 @@ dependencies = [
 
 [[package]]
 name = "rustyline"
-version = "7.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8227301bfc717136f0ecbd3d064ba8199e44497a0bdd46bb01ede4387cfd2cec"
-dependencies = [
- "bitflags",
- "cfg-if 1.0.0",
- "dirs-next",
- "fs2",
- "libc",
- "log",
- "memchr",
- "nix 0.19.1",
- "scopeguard",
- "unicode-segmentation",
- "unicode-width",
- "utf8parse",
- "winapi",
-]
-
-[[package]]
-name = "rustyline"
 version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e1b597fcd1eeb1d6b25b493538e5aa19629eb08932184b85fef931ba87e893"
@@ -2431,7 +2374,7 @@ dependencies = [
  "libc",
  "log",
  "memchr",
- "nix 0.20.0",
+ "nix",
  "radix_trie",
  "scopeguard",
  "smallvec",
@@ -2751,12 +2694,6 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 
 [[package]]
 name = "strsim"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
-
-[[package]]
-name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
@@ -2820,15 +2757,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "textwrap"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
-dependencies = [
- "unicode-width",
 ]
 
 [[package]]

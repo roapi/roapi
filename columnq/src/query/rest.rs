@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
-use datafusion::logical_plan::{Expr, Operator};
+use datafusion::logical_plan::{Column, Expr, Operator};
 use datafusion::scalar::ScalarValue;
 use regex::Regex;
 
@@ -100,7 +100,9 @@ pub fn table_query_to_df(
             _ if key.starts_with("filter[") => match RE_REST_FILTER.captures(&key) {
                 Some(caps) => {
                     let col_expr: Box<Expr> = Box::new(match caps.name("column") {
-                        Some(column) => Expr::Column(column.as_str().to_string()),
+                        Some(column) => {
+                            Expr::Column(Column::from_name(column.as_str().to_string()))
+                        }
                         None => {
                             return Err(QueryError {
                                 error: "rest_query".to_string(),
