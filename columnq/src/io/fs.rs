@@ -38,10 +38,9 @@ where
     F: FnMut(std::fs::File) -> Result<T, ColumnQError>,
 {
     let fs_path = uri.path().to_string();
-    let mut files = vec![];
     let mut file_ext = ".".to_string();
     file_ext.push_str(t.extension()?);
-    build_file_list(&fs_path, &mut files, &file_ext)?;
+    let files = build_file_list(&fs_path, &file_ext)?;
 
     debug!("loading file partitions: {:?}", files);
     partitions_from_iterator(files.iter().map(|s| s.as_str()), partition_reader)
