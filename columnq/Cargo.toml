@@ -13,8 +13,8 @@ name = "columnq"
 path = "src/bin/main.rs"
 
 [dependencies]
-arrow  = "4.3"
-parquet  = "4.3"
+arrow  = "4"
+parquet  = "4"
 datafusion = { git = "https://github.com/apache/arrow-datafusion.git", rev = "d55a10569b3a24195bed2d67cc6414c63b6b2336" }
 
 log = "0"
