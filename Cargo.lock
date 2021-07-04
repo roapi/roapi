@@ -287,9 +287,8 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "arrow"
-version = "4.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6a567d2855b6e9ce50d9b5161e77bd210e0366b2e779ac77d4e6def06473b6d"
+version = "4.4.0"
+source = "git+https://github.com/houqp/arrow-rs.git?rev=32b835e5bee228d8a52015190596f4c33765849a#32b835e5bee228d8a52015190596f4c33765849a"
 dependencies = [
  "cfg_aliases",
  "chrono",
@@ -563,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "columnq"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "arrow",
@@ -2198,7 +2197,7 @@ dependencies = [
 
 [[package]]
 name = "roapi-http"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -3322,3 +3321,8 @@ dependencies = [
  "cc",
  "libc",
 ]
+
+[[patch.unused]]
+name = "parquet"
+version = "4.4.0"
+source = "git+https://github.com/houqp/arrow-rs.git?rev=32b835e5bee228d8a52015190596f4c33765849a#32b835e5bee228d8a52015190596f4c33765849a"
