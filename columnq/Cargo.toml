@@ -15,7 +15,7 @@ path = "src/bin/main.rs"
 [dependencies]
 arrow  = "4"
 parquet  = "4"
-datafusion = { git = "https://github.com/apache/arrow-datafusion.git", rev = "d55a10569b3a24195bed2d67cc6414c63b6b2336" }
+datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "e97b86a8bc410983a73b5802ae44eb7a55faecd3" }
 
 log = "0"
 regex = "1"
