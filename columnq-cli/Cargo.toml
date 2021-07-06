@@ -1,0 +1,21 @@
+[package]
+name = "columnq-cli"
+version = "0.1.0"
+authors = ["Qingping Hou <dave2008713@gmail.com>"]
+edition = "2018"
+
+[[bin]]
+name = "columnq"
+path = "src/main.rs"
+
+[dependencies]
+columnq = { path = "../columnq" }
+
+log = "0"
+arrow  = "4"
+tokio = "1"
+rustyline = { version = "8" }
+env_logger = { version = "0" }
+anyhow = { version = "1" }
+clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }
+dirs = { version = "3" }

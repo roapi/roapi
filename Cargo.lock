@@ -567,11 +567,8 @@ dependencies = [
  "anyhow",
  "arrow",
  "bytes",
- "clap",
  "datafusion",
  "deltalake",
- "dirs 3.0.2",
- "env_logger",
  "futures",
  "graphql-parser",
  "lazy_static",
@@ -584,7 +581,6 @@ dependencies = [
  "rusoto_credential",
  "rusoto_s3",
  "rusoto_sts",
- "rustyline",
  "serde",
  "serde_derive",
  "serde_json",
@@ -595,6 +591,21 @@ dependencies = [
  "tokio",
  "uriparse",
  "yup-oauth2",
+]
+
+[[package]]
+name = "columnq-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arrow",
+ "clap",
+ "columnq",
+ "dirs 3.0.2",
+ "env_logger",
+ "log",
+ "rustyline",
+ "tokio",
 ]
 
 [[package]]

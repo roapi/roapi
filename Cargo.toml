@@ -2,6 +2,7 @@
 
 members = [
     "columnq",
+    "columnq-cli",
     "roapi-http",
 ]
 
