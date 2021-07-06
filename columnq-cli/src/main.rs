@@ -94,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = clap::App::new("Columnq")
         .version("0.0.1")
-        .about("ETL for local datasets the Unix way.")
+        .about("OLTP the Unix way.")
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
         .setting(clap::AppSettings::VersionlessSubcommands)
         .subcommand(
