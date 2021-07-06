@@ -1,20 +1,42 @@
+use anyhow::{anyhow, Context};
 use arrow::util::pretty;
+use log::debug;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::path::PathBuf;
 
 use columnq::table::TableSource;
 use columnq::{ColumnQ, ExecutionConfig};
 
+fn config_path() -> anyhow::Result<PathBuf> {
+    let mut home =
+        dirs::home_dir().ok_or_else(|| anyhow!("Failed to locate user home directory"))?;
+
+    home.push(".config");
+    home.push("columnq");
+
+    Ok(home)
+}
+
 async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
-    let mut rl = Editor::<()>::new();
-    // if rl.load_history("history.txt").is_err() {
-    //     println!("No previous history.");
-    // }
+    let mut path = config_path()?;
+    if !path.as_path().exists() {
+        std::fs::create_dir(path.as_path())
+            .with_context(|| format!("Failed to create columnq config directory: {:?}", path))?;
+    }
+
+    path.push("history.txt");
+    let rl_history = path.as_path();
+
+    let mut readline = Editor::<()>::new();
+    if let Err(e) = readline.load_history(rl_history) {
+        debug!("no query history loaded: {:?}", e);
+    }
+
     loop {
-        let readline = rl.readline("columnq(sql)> ");
-        match readline {
+        match readline.readline("columnq(sql)> ") {
             Ok(line) => {
-                // rl.add_history_entry(line.as_str());
+                readline.add_history_entry(line.as_str());
                 match cq.query_sql(&line).await {
                     Ok(batches) => {
                         pretty::print_batches(&batches)?;
@@ -38,9 +60,10 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
             }
         }
     }
-    // rl.save_history("history.txt").unwrap();
 
-    Ok(())
+    readline
+        .save_history(rl_history)
+        .context("Failed to save query history")
 }
 
 async fn cmd_console(args: &clap::ArgMatches) -> anyhow::Result<()> {
