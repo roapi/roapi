@@ -17,3 +17,6 @@ actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6
 
 [profile.dev]
 split-debuginfo = "unpacked"
+
+[profile.release]
+lto = true
