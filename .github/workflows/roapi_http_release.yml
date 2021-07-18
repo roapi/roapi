@@ -41,7 +41,7 @@ jobs:
           profile: minimal
           default: true
       - name: Install maturin
-        run: pip install maturin
+        run: pip install maturin<0.12
       - name: Build wheels - x86_64
         run: |
           maturin build -m roapi-http/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
@@ -94,7 +94,7 @@ jobs:
           profile: minimal
           default: true
       - name: Install maturin
-        run: pip install maturin
+        run: pip install maturin<0.12
       - name: Build wheels
         run: |
           maturin build -m roapi-http/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
@@ -131,7 +131,7 @@ jobs:
           rustup default nightly
       - name: Build Wheels
         run: |
-          pip3 install maturin
+          pip3 install maturin<0.12
           maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
       - name: Upload wheels
         uses: actions/upload-artifact@v2
