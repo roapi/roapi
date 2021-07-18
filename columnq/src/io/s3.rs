@@ -202,7 +202,8 @@ where
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
     let client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
-    let (bucket, key) = parse_uri(&t.uri)?;
+    // TODO: use host and path from URIReference instead
+    let (bucket, key) = parse_uri(&t.get_uri_str())?;
 
     let mut partitions = vec![];
 

@@ -5,16 +5,22 @@ use arrow::record_batch::RecordBatch;
 use log::debug;
 
 use crate::error::ColumnQError;
-use crate::table::TableSource;
+use crate::table::{TableLoadOption, TableOptionCsv, TableSource};
 
 pub async fn to_mem_table(
     t: &TableSource,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
-    // TODO: read csv option from config
-    let has_header = true;
-    let delimiter = b',';
+    let opt = t
+        .option
+        .clone()
+        .unwrap_or_else(|| TableLoadOption::csv(TableOptionCsv::default()));
+    let opt = opt.as_csv()?;
+
+    let has_header = opt.has_header;
+    let delimiter = opt.delimiter;
+    let projection = opt.projection.as_ref();
+
     let batch_size = 1024;
-    let projection = None;
 
     debug!("inferring csv table schema...");
     let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
@@ -48,7 +54,7 @@ pub async fn to_mem_table(
                 Some(delimiter),
                 batch_size,
                 None,
-                projection.clone(),
+                projection.cloned(),
             );
 
             csv_reader
@@ -70,7 +76,7 @@ mod tests {
 
     use datafusion::datasource::TableProvider;
 
-    use crate::table::TableLoadOption;
+    use crate::table::{TableIoSource, TableLoadOption};
     use crate::test_util::*;
 
     #[tokio::test]
@@ -83,15 +89,39 @@ mod tests {
         assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-02.csv"))? > 0);
         assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-03.csv"))? > 0);
 
-        let t = to_mem_table(&TableSource {
-            name: "uk_cities".to_string(),
-            uri: tmp_dir_path.to_string_lossy().to_string(),
-            schema: None,
-            option: Some(TableLoadOption::csv {}),
-        })
+        let t = to_mem_table(
+            &TableSource::new(
+                "uk_cities".to_string(),
+                tmp_dir_path.to_string_lossy().to_string(),
+            )
+            .with_option(TableLoadOption::csv(
+                TableOptionCsv::default().with_has_header(true),
+            )),
+        )
         .await?;
 
         assert_eq!(t.statistics().num_rows, Some(37 * 3));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn load_from_memory() -> anyhow::Result<()> {
+        let csv_content = r#"
+c1,c2,c3
+1,"hello",true
+2,"world",true
+100,"!",false
+"#
+        .to_string();
+
+        let source = TableSource::new("test", TableIoSource::Memory(csv_content.into_bytes()))
+            .with_option(TableLoadOption::csv(
+                TableOptionCsv::default().with_has_header(true),
+            ));
+        let t = to_mem_table(&source).await?;
+
+        assert_eq!(t.statistics().num_rows, Some(3));
 
         Ok(())
     }

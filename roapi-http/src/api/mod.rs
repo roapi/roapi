@@ -22,9 +22,9 @@ impl HandlerContext {
         }
 
         for t in config.tables.iter() {
-            info!("loading `{}` as table `{}`", t.uri, t.name);
+            info!("loading `{}` as table `{}`", t.io_source, t.name);
             cq.load_table(t).await?;
-            info!("registered `{}` as table `{}`", t.uri, t.name);
+            info!("registered `{}` as table `{}`", t.io_source, t.name);
         }
 
         Ok(Self { cq })

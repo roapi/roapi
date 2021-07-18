@@ -2,6 +2,7 @@ use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::path::Path;
 
+use serde::de::{Deserialize, Deserializer};
 use serde_derive::Deserialize;
 use uriparse::URIReference;
 
@@ -52,6 +53,70 @@ pub struct TableOptionGoogleSpreasheet {
     sheet_title: Option<String>,
 }
 
+/// CSV table load option
+#[derive(Deserialize, Debug, Clone)]
+pub struct TableOptionCsv {
+    #[serde(default = "TableOptionCsv::default_has_header")]
+    has_header: bool,
+    #[serde(default = "TableOptionCsv::default_delimiter")]
+    #[serde(deserialize_with = "TableOptionCsv::deserialize_delimiter")]
+    delimiter: u8,
+    #[serde(default = "TableOptionCsv::default_projection")]
+    projection: Option<Vec<usize>>,
+}
+
+impl TableOptionCsv {
+    #[inline]
+    pub fn default_has_header() -> bool {
+        true
+    }
+
+    #[inline]
+    pub fn default_delimiter() -> u8 {
+        b','
+    }
+
+    #[inline]
+    pub fn default_projection() -> Option<Vec<usize>> {
+        None
+    }
+
+    #[inline]
+    pub fn with_delimiter(mut self, d: u8) -> Self {
+        self.delimiter = d;
+        self
+    }
+
+    #[inline]
+    pub fn with_has_header(mut self, has_header: bool) -> Self {
+        self.has_header = has_header;
+        self
+    }
+
+    fn deserialize_delimiter<'de, D>(deserializer: D) -> Result<u8, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let buf = String::deserialize(deserializer)?;
+        match buf.len() {
+            1 => Ok(buf.into_bytes()[0]),
+            _ => Err(serde::de::Error::custom(
+                "CSV delimiter should be a single character",
+            )),
+        }
+    }
+}
+
+impl Default for TableOptionCsv {
+    fn default() -> Self {
+        Self {
+            has_header: Self::default_has_header(),
+            delimiter: Self::default_delimiter(),
+            projection: Self::default_projection(),
+        }
+    }
+}
+
 // Adding new table format:
 // * update TableLoadOption enum to add the new variant
 // * update TableLoadOption.extension
@@ -68,7 +133,7 @@ pub enum TableLoadOption {
         pointer: Option<String>,
         array_encoded: Option<bool>,
     },
-    csv {},
+    csv(TableOptionCsv),
     ndjson {},
     parquet {},
     google_spreadsheet(TableOptionGoogleSpreasheet),
@@ -76,22 +141,63 @@ pub enum TableLoadOption {
 }
 
 impl TableLoadOption {
-    fn as_google_spreadsheet_opt(&self) -> Result<&TableOptionGoogleSpreasheet, ColumnQError> {
+    fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreasheet, ColumnQError> {
         match self {
-            TableLoadOption::google_spreadsheet(opt) => Ok(&opt),
+            Self::google_spreadsheet(opt) => Ok(&opt),
             _ => Err(ColumnQError::ExpectFormatOption(
                 "google_spreadsheets".to_string(),
             )),
         }
     }
 
+    fn as_csv(&self) -> Result<&TableOptionCsv, ColumnQError> {
+        match self {
+            Self::csv(opt) => Ok(&opt),
+            _ => Err(ColumnQError::ExpectFormatOption("csv".to_string())),
+        }
+    }
+
     pub fn extension<'a>(&'a self) -> &'static str {
         match self {
-            TableLoadOption::json { .. } => "json",
-            TableLoadOption::ndjson { .. } => "ndjson",
-            TableLoadOption::csv { .. } => "csv",
-            TableLoadOption::parquet { .. } => "parquet",
-            TableLoadOption::google_spreadsheet(_) | TableLoadOption::delta { .. } => "",
+            Self::json { .. } => "json",
+            Self::ndjson { .. } => "ndjson",
+            Self::csv { .. } => "csv",
+            Self::parquet { .. } => "parquet",
+            Self::google_spreadsheet(_) | Self::delta { .. } => "",
+        }
+    }
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TableIoSource {
+    Uri(String),
+    Memory(Vec<u8>),
+}
+
+impl<T: Into<String>> From<T> for TableIoSource {
+    fn from(s: T) -> Self {
+        Self::Uri(s.into())
+    }
+}
+
+impl TableIoSource {
+    pub fn as_memory(&self) -> Result<&[u8], ColumnQError> {
+        match self {
+            Self::Memory(data) => Ok(&data),
+            other => Err(ColumnQError::Generic(format!(
+                "expect memory IO source, got: {:?}",
+                other
+            ))),
+        }
+    }
+}
+
+impl std::fmt::Display for TableIoSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            TableIoSource::Uri(uri) => write!(f, "uri({})", uri),
+            TableIoSource::Memory(_) => write!(f, "memory"),
         }
     }
 }
@@ -100,38 +206,81 @@ impl TableLoadOption {
 #[serde(deny_unknown_fields)]
 pub struct TableSource {
     pub name: String,
-    pub uri: String,
+    #[serde(flatten)]
+    pub io_source: TableIoSource,
     pub schema: Option<TableSchema>,
     pub option: Option<TableLoadOption>,
 }
 
 impl TableSource {
-    pub fn new(name: String, uri: String) -> Self {
-        // TODO: parse table format from uri during initializeion?
+    pub fn new(name: impl Into<String>, source: impl Into<TableIoSource>) -> Self {
         Self {
-            name,
-            uri,
+            name: name.into(),
+            io_source: source.into(),
             schema: None,
             option: None,
         }
     }
 
+    pub fn new_with_uri(name: impl Into<String>, uri: impl Into<String>) -> Self {
+        Self::new(name, uri.into())
+    }
+
+    pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
+        self.option = Some(option.into());
+        self
+    }
+
+    pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
+        self.schema = Some(schema.into());
+        self
+    }
+
+    pub fn get_uri_str(&self) -> &str {
+        match &self.io_source {
+            TableIoSource::Uri(uri) => uri.as_str(),
+            TableIoSource::Memory(_) => "memory",
+        }
+    }
+
     pub fn parsed_uri(&self) -> Result<URIReference, ColumnQError> {
-        URIReference::try_from(self.uri.as_str())
-            .map_err(|_| ColumnQError::InvalidUri(self.uri.clone()))
+        match &self.io_source {
+            TableIoSource::Uri(uri) => URIReference::try_from(uri.as_str())
+                .map_err(|_| ColumnQError::InvalidUri(uri.to_string())),
+            TableIoSource::Memory(_) => URIReference::builder()
+                .with_scheme(Some(uriparse::Scheme::try_from("memory").map_err(|e| {
+                    ColumnQError::Generic(format!(
+                        "failed to create uri scheme for memory IO source: {:?}",
+                        e
+                    ))
+                })?))
+                .with_path(uriparse::Path::try_from("data").map_err(|e| {
+                    ColumnQError::Generic(format!(
+                        "failed to create uri path for memory IO source: {:?}",
+                        e
+                    ))
+                })?)
+                .build()
+                .map_err(|e| {
+                    ColumnQError::Generic(format!(
+                        "failed to create uri for memory IO source: {:?}",
+                        e
+                    ))
+                }),
+        }
     }
 
     pub fn extension(&self) -> Result<&str, ColumnQError> {
-        Ok(match &self.option {
-            Some(opt) => opt.extension(),
-            None => {
-                let ext = Path::new(&self.uri)
+        Ok(match (&self.option, &self.io_source) {
+            (Some(opt), _) => opt.extension(),
+            (None, TableIoSource::Uri(uri)) => {
+                let ext = Path::new(uri)
                     .extension()
                     .and_then(OsStr::to_str)
                     .ok_or_else(|| {
                         ColumnQError::InvalidUri(format!(
                             "cannot detect table extension from uri: {}",
-                            self.uri
+                            uri
                         ))
                     })?;
 
@@ -140,10 +289,15 @@ impl TableSource {
                     _ => {
                         return Err(ColumnQError::InvalidUri(format!(
                             "unsupported extension in uri: {}",
-                            self.uri
+                            uri
                         )));
                     }
                 }
+            }
+            (None, TableIoSource::Memory(_)) => {
+                return Err(ColumnQError::Generic(
+                    "cannot detect table extension from memory IO source, please specify a format option".to_string()
+               ));
             }
         })
     }
@@ -162,24 +316,50 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
     }
 
     // no format specified explictly, try to guess from file path
-    Ok(
-        match Path::new(&t.uri).extension().and_then(OsStr::to_str) {
-            Some("csv") => csv::to_mem_table(t).await?,
-            Some("json") => json::to_mem_table(t).await?,
-            Some("ndjson") => ndjson::to_mem_table(t).await?,
-            Some("parquet") => parquet::to_mem_table(t).await?,
-            Some(ext) => {
-                return Err(ColumnQError::InvalidUri(format!(
-                    "failed to register `{}` as table `{}`, unsupported table format `{}`",
-                    t.uri, t.name, ext,
-                )));
-            }
-            None => {
-                return Err(ColumnQError::InvalidUri(format!(
-                    "failed to register `{}` as table `{}`, cannot detect table format",
-                    t.uri, t.name
-                )));
-            }
-        },
-    )
+    let t = match t.extension()? {
+        "csv" => csv::to_mem_table(t).await?,
+        "json" => json::to_mem_table(t).await?,
+        "ndjson" => ndjson::to_mem_table(t).await?,
+        "parquet" => parquet::to_mem_table(t).await?,
+        ext => {
+            return Err(ColumnQError::InvalidUri(format!(
+                "failed to register `{}` as table `{}`, unsupported table format `{}`",
+                t.io_source, t.name, ext,
+            )));
+        }
+    };
+
+    Ok(t)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uri_deserialization() -> anyhow::Result<()> {
+        let table_source: TableSource = serde_yaml::from_str(
+            r#"
+name: "ubuntu_ami"
+uri: "test_data/ubuntu-ami.json"
+option:
+  format: "json"
+  pointer: "/aaData"
+  array_encoded: true
+schema:
+  columns:
+    - name: "zone"
+      data_type: "Utf8"
+    - name: "name"
+      data_type: "Utf8"
+"#,
+        )?;
+
+        assert_eq!(
+            table_source.io_source,
+            TableIoSource::Uri("test_data/ubuntu-ami.json".to_string())
+        );
+
+        Ok(())
+    }
 }

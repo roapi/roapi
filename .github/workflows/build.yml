@@ -49,7 +49,7 @@ jobs:
       with:
         profile: default
         # toolchain: nightly
-        toolchain: nightly-2021-03-24
+        toolchain: nightly-2021-07-17
         override: true
     - name: Run tests
       run: cargo test --features simd

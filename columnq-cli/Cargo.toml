@@ -11,6 +11,7 @@ path = "src/main.rs"
 [dependencies]
 columnq = { path = "../columnq" }
 
+serde_json = "*"
 log = "0"
 arrow  = "4"
 tokio = "1"

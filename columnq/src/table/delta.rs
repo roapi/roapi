@@ -36,7 +36,8 @@ pub async fn to_mem_table(
     // TODO: make batch size configurable
     let batch_size = 1024;
 
-    let delta_table = deltalake::open_table(&t.uri).await?;
+    let uri_str = t.get_uri_str();
+    let delta_table = deltalake::open_table(uri_str).await?;
 
     if delta_table.get_files().is_empty() {
         return Err(ColumnQError::LoadDelta("empty delta table".to_string()));
@@ -67,8 +68,8 @@ pub async fn to_mem_table(
         }
         _ => {
             return Err(ColumnQError::InvalidUri(format!(
-                "Scheme in table uri not supported for delta table: {:?}",
-                t.uri
+                "Scheme in table uri not supported for delta table: {}",
+                uri_str,
             )));
         }
     };

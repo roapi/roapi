@@ -307,18 +307,19 @@ pub async fn to_mem_table(
         static ref RE_GOOGLE_SHEET: Regex =
             Regex::new(r"https://docs.google.com/spreadsheets/d/(.+)").unwrap();
     }
-    if RE_GOOGLE_SHEET.captures(&t.uri).is_none() {
-        return Err(ColumnQError::InvalidUri(t.uri.to_string()));
+    let uri_str = t.get_uri_str();
+    if RE_GOOGLE_SHEET.captures(uri_str).is_none() {
+        return Err(ColumnQError::InvalidUri(uri_str.to_string()));
     }
 
-    let uri = URIReference::try_from(t.uri.as_str())?;
+    let uri = URIReference::try_from(uri_str)?;
     let spreadsheet_id = uri.path().segments()[2].as_str();
 
     let opt = t
         .option
         .as_ref()
         .ok_or(ColumnQError::MissingOption)?
-        .as_google_spreadsheet_opt()?;
+        .as_google_spreadsheet()?;
 
     let token = fetch_auth_token(&opt).await?;
     let token_str = token.as_str();
