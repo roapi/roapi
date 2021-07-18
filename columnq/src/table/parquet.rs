@@ -77,12 +77,10 @@ mod tests {
 
     #[tokio::test]
     async fn load_simple_parquet() -> Result<(), ColumnQError> {
-        let t = to_mem_table(&TableSource {
-            name: "blogs".to_string(),
-            uri: test_data_path("blogs.parquet"),
-            schema: None,
-            option: None,
-        })
+        let t = to_mem_table(&TableSource::new(
+            "blogs".to_string(),
+            test_data_path("blogs.parquet"),
+        ))
         .await?;
 
         let schema = t.schema();
@@ -109,12 +107,10 @@ mod tests {
         assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-02.parquet"))? > 0);
         assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-03.parquet"))? > 0);
 
-        let t = to_mem_table(&TableSource {
-            name: "blogs".to_string(),
-            uri: tmp_dir_path.to_string_lossy().to_string(),
-            schema: None,
-            option: Some(TableLoadOption::parquet {}),
-        })
+        let t = to_mem_table(
+            &TableSource::new_with_uri("blogs", tmp_dir_path.to_string_lossy())
+                .with_option(TableLoadOption::parquet {}),
+        )
         .await?;
 
         assert_eq!(

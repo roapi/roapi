@@ -44,12 +44,10 @@ mod tests {
         web::Data::new(
             HandlerContext::new(&Config {
                 addr: None,
-                tables: vec![TableSource {
-                    name: "uk_cities".to_string(),
-                    uri: test_data_path("uk_cities_with_headers.csv"),
-                    schema: None,
-                    option: None,
-                }],
+                tables: vec![TableSource::new(
+                    "uk_cities",
+                    test_data_path("uk_cities_with_headers.csv"),
+                )],
             })
             .await
             .unwrap(),
@@ -60,58 +58,57 @@ mod tests {
         web::Data::new(
             HandlerContext::new(&Config {
                 addr: None,
-                tables: vec![TableSource {
-                    name: "ubuntu_ami".to_string(),
-                    uri: test_data_path("ubuntu-ami.json"),
-                    option: Some(TableLoadOption::json {
-                        pointer: Some("/aaData".to_string()),
-                        array_encoded: Some(true),
-                    }),
-                    schema: Some(TableSchema {
-                        columns: vec![
-                            TableColumn {
-                                name: "zone".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                            TableColumn {
-                                name: "name".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                            TableColumn {
-                                name: "version".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                            TableColumn {
-                                name: "arch".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                            TableColumn {
-                                name: "instance_type".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                            TableColumn {
-                                name: "release".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                            TableColumn {
-                                name: "ami_id".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                            TableColumn {
-                                name: "aki_id".to_string(),
-                                data_type: arrow::datatypes::DataType::Utf8,
-                                nullable: true,
-                            },
-                        ],
-                    }),
-                }],
+                tables: vec![
+                    TableSource::new("ubuntu_ami", test_data_path("ubuntu-ami.json"))
+                        .with_option(TableLoadOption::json {
+                            pointer: Some("/aaData".to_string()),
+                            array_encoded: Some(true),
+                        })
+                        .with_schema(TableSchema {
+                            columns: vec![
+                                TableColumn {
+                                    name: "zone".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                                TableColumn {
+                                    name: "name".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                                TableColumn {
+                                    name: "version".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                                TableColumn {
+                                    name: "arch".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                                TableColumn {
+                                    name: "instance_type".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                                TableColumn {
+                                    name: "release".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                                TableColumn {
+                                    name: "ami_id".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                                TableColumn {
+                                    name: "aki_id".to_string(),
+                                    data_type: arrow::datatypes::DataType::Utf8,
+                                    nullable: true,
+                                },
+                            ],
+                        }),
+                ],
             })
             .await
             .unwrap(),

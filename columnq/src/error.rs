@@ -55,6 +55,9 @@ pub enum ColumnQError {
         #[from]
         source: datafusion::error::DataFusionError,
     },
+
+    #[error("Generic error: {0}")]
+    Generic(String),
 }
 
 impl ColumnQError {

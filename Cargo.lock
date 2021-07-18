@@ -605,6 +605,7 @@ dependencies = [
  "env_logger",
  "log",
  "rustyline",
+ "serde_json",
  "tokio",
 ]
 
@@ -740,7 +741,7 @@ dependencies = [
 [[package]]
 name = "datafusion"
 version = "4.0.0-SNAPSHOT"
-source = "git+https://github.com/houqp/arrow-datafusion.git?rev=e97b86a8bc410983a73b5802ae44eb7a55faecd3#e97b86a8bc410983a73b5802ae44eb7a55faecd3"
+source = "git+https://github.com/houqp/arrow-datafusion.git?rev=d5427d8dd1fd8bd6fb2541c1c9386802da7783de#d5427d8dd1fd8bd6fb2541c1c9386802da7783de"
 dependencies = [
  "ahash",
  "arrow",

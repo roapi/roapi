@@ -3,9 +3,11 @@ use arrow::util::pretty;
 use log::debug;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use serde_json;
+use std::io::Read;
 use std::path::PathBuf;
 
-use columnq::table::TableSource;
+use columnq::table::{TableIoSource, TableLoadOption, TableSource};
 use columnq::{ColumnQ, ExecutionConfig};
 
 fn config_path() -> anyhow::Result<PathBuf> {
@@ -16,6 +18,61 @@ fn config_path() -> anyhow::Result<PathBuf> {
     home.push("columnq");
 
     Ok(home)
+}
+
+fn table_arg() -> clap::Arg<'static> {
+    clap::Arg::new("table")
+        .about("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: blogs:s3://bucket/key,format=delta. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe.")
+        .takes_value(true)
+        .required(false)
+        .number_of_values(1)
+        .multiple(true)
+        .value_name("table_name:uri[,option_key=option_value]")
+        .long("table")
+        .short('t')
+}
+
+fn parse_table_uri_arg(uri_arg: &str) -> anyhow::Result<TableSource> {
+    let mut split = uri_arg.splitn(2, ':');
+    let table_name = split
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", uri_arg))?;
+    let uri = split
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", uri_arg))?;
+
+    // separate uri from table load options
+    let mut uri_parts = uri.split(',');
+    let uri = uri_parts
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("invalid table URI: {}", uri))?;
+
+    let t = if uri == "stdin" {
+        let mut buffer = String::new();
+        std::io::stdin().read_to_string(&mut buffer)?;
+        TableSource::new(table_name, TableIoSource::Memory(buffer.into_bytes()))
+    } else {
+        TableSource::new(table_name, uri.to_string())
+    };
+
+    // parse extra options from table uri
+    let mut option_json = serde_json::map::Map::new();
+    for opt_str in uri_parts.into_iter() {
+        let mut parts = opt_str.splitn(2, '=');
+        let opt_key = parts
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("invalid table option: {:?}", opt_str))?;
+        let opt_value = parts
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("invalid table option: {:?}", opt_str))?;
+        option_json.insert(
+            opt_key.to_string(),
+            serde_json::from_str(opt_value).unwrap_or_else(|_| opt_value.into()),
+        );
+    }
+
+    let opt: TableLoadOption = serde_json::from_value(serde_json::Value::Object(option_json))?;
+    Ok(t.with_option(opt))
 }
 
 async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
@@ -72,20 +129,39 @@ async fn cmd_console(args: &clap::ArgMatches) -> anyhow::Result<()> {
 
     if let Some(tables) = args.values_of("table") {
         for v in tables {
-            let mut split = v.splitn(2, ':');
-            let table_name = split
-                .next()
-                .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", v))?;
-            let uri = split
-                .next()
-                .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", v))?;
-
-            let t = TableSource::new(table_name.to_string(), uri.to_string());
-            cq.load_table(&t).await?;
+            cq.load_table(&parse_table_uri_arg(v)?).await?;
         }
     }
 
     console_loop(&cq).await
+}
+
+async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
+    let config = ExecutionConfig::default().with_information_schema(true);
+    let mut cq = ColumnQ::new_with_config(config);
+
+    if let Some(tables) = args.values_of("table") {
+        for v in tables {
+            cq.load_table(&parse_table_uri_arg(v)?).await?;
+        }
+    }
+
+    match args.value_of("SQL") {
+        Some(query) => match cq.query_sql(&query).await {
+            Ok(batches) => match args.value_of("output").unwrap_or("table") {
+                "table" => pretty::print_batches(&batches)?,
+                other => anyhow::bail!("unsupported output format: {}", other),
+            },
+            Err(e) => {
+                println!("Error: {}", e);
+            }
+        },
+        None => {
+            unreachable!();
+        }
+    }
+
+    Ok(())
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -98,23 +174,40 @@ async fn main() -> anyhow::Result<()> {
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
         .setting(clap::AppSettings::VersionlessSubcommands)
         .subcommand(
-            clap::App::new("console")
-                .about("dump table metadata info")
+            clap::App::new("sql")
+                .about("Query tables with SQL")
                 .setting(clap::AppSettings::ArgRequiredElseHelp)
-                .args(&[clap::Arg::new("table")
-                    .about("table sources to load")
-                    .takes_value(true)
-                    .required(false)
-                    .number_of_values(1)
-                    .multiple(true)
-                    .value_name("table_name:uri")
-                    .long("table")
-                    .short('t')]),
+                .args(&[
+                    clap::Arg::new("SQL")
+                        .about("SQL query to execute")
+                        .index(1)
+                        .required(true)
+                        .takes_value(true)
+                        .number_of_values(1),
+                    clap::Arg::new("output")
+                        .about("Query output format")
+                        .long("output")
+                        .short('o')
+                        .required(false)
+                        .takes_value(true)
+                        .number_of_values(1)
+                        .default_value("table")
+                        // TODO: add yaml
+                        .possible_values(&["table", "json", "csv"]),
+                    table_arg(),
+                ]),
+        )
+        .subcommand(
+            clap::App::new("console")
+                .about("Query tables through an interactive console")
+                .setting(clap::AppSettings::ArgRequiredElseHelp)
+                .args(&[table_arg()]),
         );
     let matches = app.get_matches();
 
     match matches.subcommand() {
         Some(("console", console_matches)) => cmd_console(console_matches).await?,
+        Some(("sql", console_matches)) => cmd_sql(console_matches).await?,
         _ => unreachable!(),
     }
 

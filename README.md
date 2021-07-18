@@ -216,8 +216,8 @@ Query layer:
   - [x] REST API GET
   - [x] GraphQL
   - [x] SQL
-  - [ ] join between tables
-  - [ ] support filter on nested struct fields
+  - [x] join between tables
+  - [ ] support query on nested struct fields
   - [ ] index
   - protocol
     - [ ] gRPC

@@ -119,7 +119,8 @@ schema:
 "#,
     )?;
 
-    table_source.uri = test_data_path("ubuntu-ami.json");
+    // patch uri path with the correct test data path
+    table_source.io_source = table::TableIoSource::Uri(test_data_path("ubuntu-ami.json"));
 
     Ok(table::load(&table_source).await?)
 }

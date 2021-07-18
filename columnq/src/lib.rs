@@ -21,6 +21,9 @@ macro_rules! partitions_from_table_source {
             io::BlobStoreType::S3 => {
                 io::s3::partitions_from_uri(&$table_source, uri, $call_with_r).await
             }
+            io::BlobStoreType::Memory => {
+                io::memory::partitions_from_memory(&$table_source, $call_with_r).await
+            }
         }
     }};
 }
