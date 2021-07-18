@@ -272,5 +272,3 @@ Building ROAPI with `simd` optimization requires nightly rust toolchain.
 ```bash
 docker build --rm -t ghcr.io/roapi/roapi-http:latest .
 ```
-
-You can set `RELEASE` variable to any git reference to build for a specific version.
