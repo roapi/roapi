@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "columnq"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "arrow",
@@ -769,9 +769,9 @@ dependencies = [
 
 [[package]]
 name = "deltalake"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd9095a57b95a232cbefa0a579d026fda7641005e551d8c5e9b9d9480184bd57"
+checksum = "5ea3b27fce289e035e01e9d28313abcb829e5f02b388dc71571a57ac7e4f3c5a"
 dependencies = [
  "anyhow",
  "arrow",
@@ -787,10 +787,13 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
+ "maplit",
  "parquet",
+ "parquet-format",
  "regex",
  "rusoto_core",
  "rusoto_credential",
+ "rusoto_dynamodb",
  "rusoto_s3",
  "rusoto_sts",
  "serde",
@@ -1478,6 +1481,12 @@ dependencies = [
  "cc",
  "libc",
 ]
+
+[[package]]
+name = "maplit"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 
 [[package]]
 name = "matches"
@@ -2229,7 +2238,7 @@ dependencies = [
 
 [[package]]
 name = "roapi-http"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -2291,6 +2300,20 @@ dependencies = [
  "shlex",
  "tokio",
  "zeroize",
+]
+
+[[package]]
+name = "rusoto_dynamodb"
+version = "0.46.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f26af40f36409cb8fae3069690f78f638f747b55c7b90f338d5ed36016b0cda"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures",
+ "rusoto_core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
