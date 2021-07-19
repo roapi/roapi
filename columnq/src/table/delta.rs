@@ -47,7 +47,7 @@ pub async fn to_mem_table(
     let uri = t.parsed_uri()?;
     let blob_type = io::BlobStoreType::try_from(uri.scheme())?;
 
-    let paths = delta_table.get_file_paths();
+    let paths = delta_table.get_file_uris();
     let path_iter = paths.iter().map(|s| s.as_str());
 
     let partitions: Vec<Vec<RecordBatch>> = match blob_type {
