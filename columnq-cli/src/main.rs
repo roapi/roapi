@@ -8,7 +8,7 @@ use std::io::Read;
 use std::path::PathBuf;
 
 use columnq::table::{TableIoSource, TableLoadOption, TableSource};
-use columnq::{ColumnQ, ExecutionConfig};
+use columnq::{encoding, ColumnQ, ExecutionConfig};
 
 fn config_path() -> anyhow::Result<PathBuf> {
     let mut home =
@@ -150,6 +150,10 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
         Some(query) => match cq.query_sql(&query).await {
             Ok(batches) => match args.value_of("output").unwrap_or("table") {
                 "table" => pretty::print_batches(&batches)?,
+                "json" => {
+                    let bytes = encoding::json::record_batches_to_bytes(&batches)?;
+                    println!("{}", String::from_utf8(bytes)?);
+                }
                 other => anyhow::bail!("unsupported output format: {}", other),
             },
             Err(e) => {

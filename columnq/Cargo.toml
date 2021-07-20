@@ -43,6 +43,7 @@ deltalake = { version = "0", features = ["s3"] }
 anyhow = "1"
 serde_yaml = "0.8"
 tempdir = "0"
+pretty_assertions = "*"
 
 [features]
 simd = ["arrow/simd", "datafusion/simd"]

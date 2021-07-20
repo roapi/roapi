@@ -1,11 +1,11 @@
 use std::convert::TryFrom;
 
 use actix_web::{http, HttpRequest, HttpResponse};
+use columnq::encoding;
 use columnq::ColumnQ;
 use log::info;
 
 use crate::config::Config;
-use crate::encoding;
 use crate::error::ApiErrResp;
 
 pub struct HandlerContext {
