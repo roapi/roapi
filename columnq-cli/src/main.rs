@@ -3,7 +3,6 @@ use arrow::util::pretty;
 use log::debug;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use serde_json;
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -71,8 +70,12 @@ fn parse_table_uri_arg(uri_arg: &str) -> anyhow::Result<TableSource> {
         );
     }
 
-    let opt: TableLoadOption = serde_json::from_value(serde_json::Value::Object(option_json))?;
-    Ok(t.with_option(opt))
+    if option_json.len() > 0 {
+        let opt: TableLoadOption = serde_json::from_value(serde_json::Value::Object(option_json))?;
+        Ok(t.with_option(opt))
+    } else {
+        Ok(t)
+    }
 }
 
 async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
@@ -152,6 +155,10 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
                 "table" => pretty::print_batches(&batches)?,
                 "json" => {
                     let bytes = encoding::json::record_batches_to_bytes(&batches)?;
+                    println!("{}", String::from_utf8(bytes)?);
+                }
+                "csv" => {
+                    let bytes = encoding::csv::record_batches_to_bytes(&batches)?;
                     println!("{}", String::from_utf8(bytes)?);
                 }
                 other => anyhow::bail!("unsupported output format: {}", other),
