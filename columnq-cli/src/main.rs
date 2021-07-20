@@ -47,9 +47,9 @@ fn parse_table_uri_arg(uri_arg: &str) -> anyhow::Result<TableSource> {
         .ok_or_else(|| anyhow::anyhow!("invalid table URI: {}", uri))?;
 
     let t = if uri == "stdin" {
-        let mut buffer = String::new();
-        std::io::stdin().read_to_string(&mut buffer)?;
-        TableSource::new(table_name, TableIoSource::Memory(buffer.into_bytes()))
+        let mut buffer = Vec::new();
+        std::io::stdin().read_to_end(&mut buffer)?;
+        TableSource::new(table_name, TableIoSource::Memory(buffer))
     } else {
         TableSource::new(table_name, uri.to_string())
     };
