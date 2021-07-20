@@ -26,7 +26,15 @@ impl ApiErrResp {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,
             error: "json_serialization".to_string(),
-            message: "Failed to serialize record batches into json".to_string(),
+            message: "Failed to serialize record batches into JSON".to_string(),
+        }
+    }
+
+    pub fn csv_serialization(_: arrow::error::ArrowError) -> Self {
+        Self {
+            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+            error: "csv_serialization".to_string(),
+            message: "Failed to serialize record batches into CSV".to_string(),
         }
     }
 
