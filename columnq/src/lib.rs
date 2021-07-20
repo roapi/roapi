@@ -29,6 +29,7 @@ macro_rules! partitions_from_table_source {
 }
 
 pub mod columnq;
+pub mod encoding;
 pub mod io;
 pub mod query;
 pub mod table;
