@@ -5,6 +5,10 @@ on:
     branches: [ main ]
     tags: [ 'roapi-http-v*' ]
 
+env:
+  # NOTE: this env is also defined in build.yml
+  RUST_TC_NIGHTLY_VER: "2021-07-17"
+
 jobs:
   validate-release-tag:
     name: Validate git tag
@@ -36,7 +40,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
           target: aarch64-apple-darwin
           profile: minimal
           default: true
@@ -89,7 +93,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-07-17
+          toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
           target: ${{ matrix.platform.target }}
           profile: minimal
           default: true
@@ -126,11 +130,11 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
         run: |
-          rustup update nightly-2021-07-17
+          rustup update nightly-${{ env.RUST_TC_NIGHTLY_VER }}
           rustup target add \
-            --toolchain nightly-2021-07-17 \
+            --toolchain nightly-${{ env.RUST_TC_NIGHTLY_VER }} \
             ${{ matrix.platform.target }}
-          rustup default nightly-2021-07-17
+          rustup default nightly-${{ env.RUST_TC_NIGHTLY_VER }}
       - name: Build Wheels
         run: |
           pip3 install 'maturin<0.12'
