@@ -89,7 +89,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2021-07-17
           target: ${{ matrix.platform.target }}
           profile: minimal
           default: true
@@ -127,8 +127,10 @@ jobs:
       - name: Install Rust toolchain
         run: |
           rustup update nightly
-          rustup target add --toolchain nightly ${{ matrix.platform.target }}
-          rustup default nightly
+          rustup target add \
+            --toolchain nightly-2021-07-17 \
+            ${{ matrix.platform.target }}
+          rustup default nightly-2021-07-17
       - name: Build Wheels
         run: |
           pip3 install 'maturin<0.12'
