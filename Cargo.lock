@@ -288,7 +288,7 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 [[package]]
 name = "arrow"
 version = "4.4.0"
-source = "git+https://github.com/houqp/arrow-rs.git?rev=32b835e5bee228d8a52015190596f4c33765849a#32b835e5bee228d8a52015190596f4c33765849a"
+source = "git+https://github.com/houqp/arrow-rs.git?rev=eb0aaf164ba44590b30bac38b92094308acd7733#eb0aaf164ba44590b30bac38b92094308acd7733"
 dependencies = [
  "cfg_aliases",
  "chrono",
@@ -1827,7 +1827,7 @@ dependencies = [
 [[package]]
 name = "parquet"
 version = "4.4.0"
-source = "git+https://github.com/houqp/arrow-rs.git?rev=32b835e5bee228d8a52015190596f4c33765849a#32b835e5bee228d8a52015190596f4c33765849a"
+source = "git+https://github.com/houqp/arrow-rs.git?rev=eb0aaf164ba44590b30bac38b92094308acd7733#eb0aaf164ba44590b30bac38b92094308acd7733"
 dependencies = [
  "arrow",
  "base64",
