@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install Rust toolchain
         run: |
-          rustup update nightly
+          rustup update nightly-2021-07-17
           rustup target add \
             --toolchain nightly-2021-07-17 \
             ${{ matrix.platform.target }}
@@ -196,7 +196,7 @@ jobs:
           flavor: |
             latest=true
           tags: |
-            type=ref,event=tag
+            type=match,pattern=roapi-http-(v.+),group=1
           images: ghcr.io/roapi-http
 
       - name: Build and push Docker image
