@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "columnq"
-version = "0.3.1"
+version = "0.3.3"
 dependencies = [
  "anyhow",
  "arrow",
@@ -605,6 +605,7 @@ dependencies = [
  "dirs 3.0.2",
  "env_logger",
  "log",
+ "pretty_assertions",
  "rustyline",
  "serde_json",
  "tokio",
@@ -2239,7 +2240,7 @@ dependencies = [
 
 [[package]]
 name = "roapi-http"
-version = "0.3.1"
+version = "0.3.3"
 dependencies = [
  "actix-cors",
  "actix-http",

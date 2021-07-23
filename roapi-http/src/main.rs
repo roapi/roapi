@@ -5,11 +5,23 @@ use std::fs;
 use actix_cors::Cors;
 use actix_web::{middleware, web, App, HttpServer};
 use anyhow::Context;
-use columnq::table::TableSource;
+use columnq::table::parse_table_uri_arg;
 
 use roapi_http::api;
 use roapi_http::api::HandlerContext;
 use roapi_http::config::Config;
+
+fn table_arg() -> clap::Arg<'static> {
+    clap::Arg::new("table")
+        .about("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
+        .takes_value(true)
+        .required(false)
+        .number_of_values(1)
+        .multiple(true)
+        .value_name("[table_name=]uri[,option_key=option_value]")
+        .long("table")
+        .short('t')
+}
 
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
@@ -36,15 +48,7 @@ async fn main() -> anyhow::Result<()> {
                 .takes_value(true)
                 .long("config")
                 .short('c'),
-            clap::Arg::new("table")
-                .about("table sources to load")
-                .takes_value(true)
-                .required(false)
-                .number_of_values(1)
-                .multiple(true)
-                .value_name("table_name:uri")
-                .long("table")
-                .short('t'),
+            table_arg(),
         ])
         .get_matches();
 
@@ -60,16 +64,7 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(tables) = matches.values_of("table") {
         for v in tables {
-            let mut split = v.splitn(2, ':');
-            let table_name = split
-                .next()
-                .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", v))?;
-            let uri = split
-                .next()
-                .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", v))?;
-            config
-                .tables
-                .push(TableSource::new(table_name.to_string(), uri.to_string()));
+            config.tables.push(parse_table_uri_arg(v)?);
         }
     }
 
