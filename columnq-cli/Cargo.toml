@@ -20,3 +20,6 @@ env_logger = { version = "0" }
 anyhow = { version = "1" }
 clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }
 dirs = { version = "3" }
+
+[dev-dependencies]
+pretty_assertions = "*"

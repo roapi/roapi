@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::ffi::OsStr;
+use std::io::Read;
 use std::path::Path;
 
 use serde::de::{Deserialize, Deserializer};
@@ -15,7 +16,7 @@ pub mod json;
 pub mod ndjson;
 pub mod parquet;
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct TableColumn {
     pub name: String,
@@ -30,7 +31,7 @@ impl From<&TableColumn> for arrow::datatypes::Field {
     }
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct TableSchema {
     pub columns: Vec<TableColumn>,
@@ -47,14 +48,14 @@ impl From<&TableSchema> for arrow::datatypes::Schema {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TableOptionGoogleSpreasheet {
     application_secret_path: String,
     sheet_title: Option<String>,
 }
 
 /// CSV table load option
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TableOptionCsv {
     #[serde(default = "TableOptionCsv::default_has_header")]
     has_header: bool,
@@ -124,7 +125,7 @@ impl Default for TableOptionCsv {
 // * update load
 
 #[allow(non_camel_case_types)]
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(tag = "format")]
 #[serde(deny_unknown_fields)]
 pub enum TableLoadOption {
@@ -202,7 +203,7 @@ impl std::fmt::Display for TableIoSource {
     }
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct TableSource {
     pub name: String,
@@ -332,9 +333,75 @@ pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, C
     Ok(t)
 }
 
+/// For parsing table URI arg in CLI
+pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
+    // separate uri from table load options
+    let mut uri_args = uri_arg.split(',');
+
+    let uri = uri_args
+        .next()
+        .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI argument: {}", uri_arg)))?;
+    let split = uri.splitn(2, '=').collect::<Vec<&str>>();
+
+    let (table_name, uri) = match split.len() {
+        1 => {
+            let uri = split[0];
+            let table_name = match Path::new(uri).file_stem() {
+                Some(s) => Ok(s),
+                None => Path::new(uri)
+                    .file_name()
+                    .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI: {}", uri))),
+            }?
+            .to_str()
+            .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI string: {}", uri)))?;
+
+            (table_name, uri)
+        }
+        2 => (split[0], split[1]),
+        _ => unreachable!(),
+    };
+
+    let t = if uri == "stdin" {
+        let mut buffer = Vec::new();
+        std::io::stdin().read_to_end(&mut buffer).map_err(|e| {
+            ColumnQError::Generic(format!("Failed to read table data from stdin: {:?}", e))
+        })?;
+        TableSource::new(table_name, TableIoSource::Memory(buffer))
+    } else {
+        TableSource::new(table_name, uri.to_string())
+    };
+
+    // parse extra options from table uri
+    let mut option_json = serde_json::map::Map::new();
+    for opt_str in uri_args.into_iter() {
+        let mut parts = opt_str.splitn(2, '=');
+        let opt_key = parts
+            .next()
+            .ok_or_else(|| ColumnQError::Generic(format!("invalid table option: {:?}", opt_str)))?;
+        let opt_value = parts
+            .next()
+            .ok_or_else(|| ColumnQError::Generic(format!("invalid table option: {:?}", opt_str)))?;
+        option_json.insert(
+            opt_key.to_string(),
+            serde_json::from_str(opt_value).unwrap_or_else(|_| opt_value.into()),
+        );
+    }
+
+    if !option_json.is_empty() {
+        let opt: TableLoadOption = serde_json::from_value(serde_json::Value::Object(option_json))
+            .map_err(|e| {
+            ColumnQError::Generic(format!("Failed to parse table option: {:?}", e))
+        })?;
+        Ok(t.with_option(opt))
+    } else {
+        Ok(t)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn uri_deserialization() -> anyhow::Result<()> {
@@ -361,5 +428,29 @@ schema:
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_parse_table_uri() {
+        let t = parse_table_uri_arg("t=a/b/c").unwrap();
+        assert_eq!(TableSource::new("t", "a/b/c"), t);
+
+        let t = parse_table_uri_arg("t=s3://a/b/c,format=csv,has_header=true").unwrap();
+        assert_eq!(
+            TableSource::new("t", "s3://a/b/c").with_option(TableLoadOption::csv(
+                TableOptionCsv::default().with_has_header(true),
+            )),
+            t
+        );
+
+        let t = parse_table_uri_arg("s3://a/b/foo.csv").unwrap();
+        assert_eq!(TableSource::new("foo", "s3://a/b/foo.csv"), t);
+
+        let t = parse_table_uri_arg("s3://a/b/foo.csv,format=csv").unwrap();
+        assert_eq!(
+            TableSource::new("foo", "s3://a/b/foo.csv")
+                .with_option(TableLoadOption::csv(TableOptionCsv::default())),
+            t
+        );
     }
 }

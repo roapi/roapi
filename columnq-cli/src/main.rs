@@ -3,10 +3,9 @@ use arrow::util::pretty;
 use log::debug;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use std::io::Read;
 use std::path::PathBuf;
 
-use columnq::table::{TableIoSource, TableLoadOption, TableSource};
+use columnq::table::parse_table_uri_arg;
 use columnq::{encoding, ColumnQ, ExecutionConfig};
 
 fn config_path() -> anyhow::Result<PathBuf> {
@@ -21,61 +20,14 @@ fn config_path() -> anyhow::Result<PathBuf> {
 
 fn table_arg() -> clap::Arg<'static> {
     clap::Arg::new("table")
-        .about("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: blogs:s3://bucket/key,format=delta. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe.")
+        .about("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
         .takes_value(true)
         .required(false)
         .number_of_values(1)
         .multiple(true)
-        .value_name("table_name:uri[,option_key=option_value]")
+        .value_name("[table_name=]uri[,option_key=option_value]")
         .long("table")
         .short('t')
-}
-
-fn parse_table_uri_arg(uri_arg: &str) -> anyhow::Result<TableSource> {
-    let mut split = uri_arg.splitn(2, ':');
-    let table_name = split
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", uri_arg))?;
-    let uri = split
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("invalid table config: {}", uri_arg))?;
-
-    // separate uri from table load options
-    let mut uri_parts = uri.split(',');
-    let uri = uri_parts
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("invalid table URI: {}", uri))?;
-
-    let t = if uri == "stdin" {
-        let mut buffer = Vec::new();
-        std::io::stdin().read_to_end(&mut buffer)?;
-        TableSource::new(table_name, TableIoSource::Memory(buffer))
-    } else {
-        TableSource::new(table_name, uri.to_string())
-    };
-
-    // parse extra options from table uri
-    let mut option_json = serde_json::map::Map::new();
-    for opt_str in uri_parts.into_iter() {
-        let mut parts = opt_str.splitn(2, '=');
-        let opt_key = parts
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("invalid table option: {:?}", opt_str))?;
-        let opt_value = parts
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("invalid table option: {:?}", opt_str))?;
-        option_json.insert(
-            opt_key.to_string(),
-            serde_json::from_str(opt_value).unwrap_or_else(|_| opt_value.into()),
-        );
-    }
-
-    if option_json.len() > 0 {
-        let opt: TableLoadOption = serde_json::from_value(serde_json::Value::Object(option_json))?;
-        Ok(t.with_option(opt))
-    } else {
-        Ok(t)
-    }
 }
 
 async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
