@@ -201,7 +201,7 @@ jobs:
             latest=true
           tags: |
             type=match,pattern=roapi-http-(v.+),group=1
-          images: ghcr.io/roapi-http
+          images: ghcr.io/${{ github.repository_owner }}/roapi-http
 
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
