@@ -177,7 +177,7 @@ mod tests {
     async fn nested_struct_and_lists() -> Result<(), ColumnQError> {
         let t = to_mem_table(&TableSource::new(
             "spacex_launches".to_string(),
-            test_data_path("spacex-launches.json"),
+            test_data_path("spacex_launches.json"),
         ))
         .await?;
 
