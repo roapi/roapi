@@ -36,5 +36,8 @@ pub mod table;
 
 pub use crate::columnq::*;
 
+/// export datafusion so downstream won't need to declare its own datafusion dependency
+pub use datafusion;
+
 #[cfg(test)]
 pub mod test_util;

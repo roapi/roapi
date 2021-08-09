@@ -9,9 +9,10 @@ name = "columnq"
 path = "src/lib.rs"
 
 [dependencies]
-arrow  = "4"
-parquet  = "4"
-datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "d5427d8dd1fd8bd6fb2541c1c9386802da7783de" }
+arrow = "5"
+parquet = "5"
+# datafusion = "5"
+datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "4ddd2f5e7582ffe662aea27bbb74c58cd0715152" }
 
 log = "0"
 regex = "1"

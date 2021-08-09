@@ -97,7 +97,7 @@ pub fn table_query_to_df(
             }
             // filter[col1]eq='foo'
             // filter[col2]lt=2
-            _ if key.starts_with("filter[") => match RE_REST_FILTER.captures(&key) {
+            _ if key.starts_with("filter[") => match RE_REST_FILTER.captures(key) {
                 Some(caps) => {
                     let col_expr: Box<Expr> = Box::new(match caps.name("column") {
                         Some(column) => {
@@ -115,33 +115,33 @@ pub fn table_query_to_df(
                         None => Expr::BinaryExpr {
                             left: col_expr,
                             op: Operator::Eq,
-                            right: Box::new(rest_query_value_to_expr(&val)?),
+                            right: Box::new(rest_query_value_to_expr(val)?),
                         },
                         Some(m) => match m.as_str() {
                             "eq" | "" => Expr::BinaryExpr {
                                 left: col_expr,
                                 op: Operator::Eq,
-                                right: Box::new(rest_query_value_to_expr(&val)?),
+                                right: Box::new(rest_query_value_to_expr(val)?),
                             },
                             "lt" => Expr::BinaryExpr {
                                 left: col_expr,
                                 op: Operator::Lt,
-                                right: Box::new(rest_query_value_to_expr(&val)?),
+                                right: Box::new(rest_query_value_to_expr(val)?),
                             },
                             "lte" | "lteq" => Expr::BinaryExpr {
                                 left: col_expr,
                                 op: Operator::LtEq,
-                                right: Box::new(rest_query_value_to_expr(&val)?),
+                                right: Box::new(rest_query_value_to_expr(val)?),
                             },
                             "gt" => Expr::BinaryExpr {
                                 left: col_expr,
                                 op: Operator::Gt,
-                                right: Box::new(rest_query_value_to_expr(&val)?),
+                                right: Box::new(rest_query_value_to_expr(val)?),
                             },
                             "gte" | "gteq" => Expr::BinaryExpr {
                                 left: col_expr,
                                 op: Operator::GtEq,
-                                right: Box::new(rest_query_value_to_expr(&val)?),
+                                right: Box::new(rest_query_value_to_expr(val)?),
                             },
                             _ => {
                                 return Err(QueryError {

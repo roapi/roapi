@@ -11,7 +11,7 @@ pub async fn post(
     let encode_type = encode_type_from_req(req)?;
 
     let graphq = std::str::from_utf8(&query).map_err(ApiErrResp::read_query)?;
-    let batches = data.cq.query_graphql(&graphq).await?;
+    let batches = data.cq.query_graphql(graphq).await?;
 
     encode_record_batches(encode_type, &batches)
 }
