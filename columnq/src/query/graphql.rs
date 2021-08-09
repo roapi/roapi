@@ -258,7 +258,7 @@ pub fn query_to_df(
 
     let mut df = dfctx
         .table(field.name)
-        .map_err(|e| QueryError::invalid_table(e, &field.name))?;
+        .map_err(|e| QueryError::invalid_table(e, field.name))?;
 
     // apply projection
     let column_names = field

@@ -15,7 +15,7 @@ pub fn record_batches_to_stream_bytes(
         let schema = batches[0].schema();
         let mut writer = StreamWriter::try_new(&mut buf, &schema)?;
         for batch in batches {
-            writer.write(&batch)?;
+            writer.write(batch)?;
         }
     }
 

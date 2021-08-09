@@ -321,7 +321,7 @@ pub async fn to_mem_table(
         .ok_or(ColumnQError::MissingOption)?
         .as_google_spreadsheet()?;
 
-    let token = fetch_auth_token(&opt).await?;
+    let token = fetch_auth_token(opt).await?;
     let token_str = token.as_str();
 
     let sheet_title = match &opt.sheet_title {
