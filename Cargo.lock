@@ -557,7 +557,7 @@ dependencies = [
 
 [[package]]
 name = "columnq"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "arrow",
@@ -2188,7 +2188,7 @@ dependencies = [
 
 [[package]]
 name = "roapi-http"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "actix-cors",
  "actix-http",
