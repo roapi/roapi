@@ -15,22 +15,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    # the whole target dir is over 400MB cache limit, so we have to split up
-    # the cache step to avoid caching deps dir
-    - name: Cache Rust build
-      uses: actions/cache@v1.0.1
+    - uses: actions/cache@v2
       with:
-        path: target/debug/build
-        key: ${{ runner.OS }}-target-build-${{ hashFiles('**/Cargo.lock') }}
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
         restore-keys: |
-          ${{ runner.OS }}-target-build-
-    - name: Cache Rust incremental build
-      uses: actions/cache@v1.0.1
-      with:
-        path: target/debug/incremental
-        key: ${{ runner.OS }}-target-incremental-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.OS }}-target-incremental-
+          ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          ${{ runner.os }}-cargo-
     - name: Install minimal stable with clippy and rustfmt
       uses: actions-rs/toolchain@v1
       with:
@@ -48,6 +44,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          ${{ runner.os }}-cargo-
     - name: Install nightly rust
       uses: actions-rs/toolchain@v1
       with:
