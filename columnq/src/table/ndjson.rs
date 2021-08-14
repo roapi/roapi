@@ -1,9 +1,9 @@
 use std::io::BufReader;
 use std::sync::Arc;
 
-use arrow::datatypes::{Schema, SchemaRef};
-use arrow::json::reader::{infer_json_schema, Decoder, ValueIter};
-use arrow::record_batch::RecordBatch;
+use datafusion::arrow::datatypes::{Schema, SchemaRef};
+use datafusion::arrow::json::reader::{infer_json_schema, Decoder, ValueIter};
+use datafusion::arrow::record_batch::RecordBatch;
 
 use crate::error::ColumnQError;
 use crate::table::TableSource;

@@ -2,10 +2,10 @@ use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::sync::Arc;
 
-use arrow::array::{ArrayRef, BooleanArray, PrimitiveArray, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
-use arrow::datatypes::{Float64Type, Int64Type};
-use arrow::record_batch::RecordBatch;
+use datafusion::arrow::array::{ArrayRef, BooleanArray, PrimitiveArray, StringArray};
+use datafusion::arrow::datatypes::{DataType, Field, Schema};
+use datafusion::arrow::datatypes::{Float64Type, Int64Type};
+use datafusion::arrow::record_batch::RecordBatch;
 use regex::Regex;
 use reqwest::Client;
 use serde_derive::Deserialize;
@@ -360,7 +360,7 @@ pub async fn to_mem_table(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use arrow::array::{BooleanArray, Int64Array};
+    use datafusion::arrow::array::{BooleanArray, Int64Array};
 
     fn row(raw: &[&str]) -> Vec<String> {
         raw.iter().map(|s| s.to_string()).collect()

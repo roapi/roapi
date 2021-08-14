@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use datafusion::arrow;
+
 use crate::error::QueryError;
 
 pub async fn exec_query(

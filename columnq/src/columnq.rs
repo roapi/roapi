@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use datafusion::arrow;
 pub use datafusion::execution::context::ExecutionConfig;
 use datafusion::{datasource::TableProvider, execution::context::ExecutionContext};
 

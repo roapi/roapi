@@ -1,5 +1,6 @@
-use arrow::error::ArrowError;
-use arrow::ipc::writer::StreamWriter;
+use datafusion::arrow;
+use datafusion::arrow::error::ArrowError;
+use datafusion::arrow::ipc::writer::StreamWriter;
 
 // streaming format spec:
 // https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format

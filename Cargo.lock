@@ -560,7 +560,6 @@ name = "columnq"
 version = "0.3.4"
 dependencies = [
  "anyhow",
- "arrow",
  "bytes",
  "datafusion",
  "deltalake",
@@ -569,7 +568,6 @@ dependencies = [
  "lazy_static",
  "lexical-core",
  "log",
- "parquet",
  "pretty_assertions",
  "regex",
  "reqwest",
