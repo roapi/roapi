@@ -34,6 +34,7 @@ mod tests {
     use super::*;
 
     use actix_web::{http, test, web, App};
+    use columnq::arrow;
     use columnq::table::*;
 
     use crate::api::HandlerContext;

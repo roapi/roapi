@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 use std::sync::Arc;
 
+use datafusion::arrow;
 use datafusion::logical_plan::{Column, Expr, Operator};
 use datafusion::scalar::ScalarValue;
 use graphql_parser::query::{parse_query, Definition, OperationDefinition, Selection, Value};
@@ -349,7 +350,7 @@ pub async fn exec_query(
 
 #[cfg(test)]
 mod tests {
-    use arrow::array::*;
+    use datafusion::arrow::array::*;
     use datafusion::execution::context::ExecutionContext;
     use datafusion::logical_plan::{col, lit};
 

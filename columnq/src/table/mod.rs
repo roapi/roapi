@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 use std::io::Read;
 use std::path::Path;
 
+use datafusion::arrow;
 use serde::de::{Deserialize, Deserializer};
 use serde_derive::Deserialize;
 use uriparse::URIReference;

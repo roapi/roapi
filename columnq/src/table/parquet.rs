@@ -1,11 +1,12 @@
 use std::io::Read;
 use std::sync::Arc;
 
-use arrow::datatypes::Schema;
-use arrow::record_batch::RecordBatch;
-use parquet::arrow::{ArrowReader, ParquetFileArrowReader};
-use parquet::file::reader::SerializedFileReader;
-use parquet::file::serialized_reader::SliceableCursor;
+use datafusion::arrow;
+use datafusion::arrow::datatypes::Schema;
+use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::parquet::arrow::{ArrowReader, ParquetFileArrowReader};
+use datafusion::parquet::file::reader::SerializedFileReader;
+use datafusion::parquet::file::serialized_reader::SliceableCursor;
 
 use crate::error::ColumnQError;
 use crate::table::TableSource;

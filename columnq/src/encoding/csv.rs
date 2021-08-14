@@ -1,4 +1,5 @@
-use arrow::error::ArrowError;
+use datafusion::arrow;
+use datafusion::arrow::error::ArrowError;
 
 pub fn record_batches_to_bytes(
     batches: &[arrow::record_batch::RecordBatch],

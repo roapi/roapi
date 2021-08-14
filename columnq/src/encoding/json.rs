@@ -1,3 +1,5 @@
+use datafusion::arrow;
+
 pub fn record_batches_to_bytes(
     batches: &[arrow::record_batch::RecordBatch],
 ) -> Result<Vec<u8>, serde_json::Error> {
@@ -10,9 +12,9 @@ mod tests {
     use super::*;
     use std::sync::Arc;
 
-    use arrow::array::*;
-    use arrow::datatypes::*;
-    use arrow::record_batch::*;
+    use datafusion::arrow::array::*;
+    use datafusion::arrow::datatypes::*;
+    use datafusion::arrow::record_batch::*;
     use pretty_assertions::assert_eq;
 
     #[test]

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use arrow::record_batch::RecordBatch;
+use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::logical_plan::{Column, Expr, Operator};
 use datafusion::scalar::ScalarValue;
 use regex::Regex;
@@ -183,7 +183,7 @@ pub async fn query_table(
 mod tests {
     use super::*;
 
-    use arrow::array::*;
+    use datafusion::arrow::array::*;
     use datafusion::execution::context::ExecutionContext;
 
     use crate::test_util::*;
