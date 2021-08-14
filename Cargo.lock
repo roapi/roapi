@@ -736,8 +736,9 @@ dependencies = [
 
 [[package]]
 name = "datafusion"
-version = "4.0.0-SNAPSHOT"
-source = "git+https://github.com/houqp/arrow-datafusion.git?rev=4ddd2f5e7582ffe662aea27bbb74c58cd0715152#4ddd2f5e7582ffe662aea27bbb74c58cd0715152"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aab48ee19b13cfe7523ae84ec203a1ca05ce1fda52f1ac0e45d87df90c548732"
 dependencies = [
  "ahash",
  "arrow",
@@ -2196,7 +2197,6 @@ dependencies = [
  "actix-service",
  "actix-web",
  "anyhow",
- "arrow",
  "clap",
  "columnq",
  "env_logger",

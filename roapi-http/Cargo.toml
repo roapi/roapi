@@ -13,8 +13,7 @@ name = "roapi-http"
 path = "src/main.rs"
 
 [dependencies]
-columnq = { path = "../columnq" }
-arrow  = "5"
+columnq = { path = "../columnq", version = "0" }
 
 # all actix dependencies are patched to use git source until actix-web 4.x lands
 actix-web = "4.0.0-beta.4"

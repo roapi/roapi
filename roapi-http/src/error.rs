@@ -1,6 +1,7 @@
 use std::fmt;
 
 use actix_web::{http, HttpResponse};
+use columnq::datafusion::arrow;
 use columnq::error::QueryError;
 use serde::Serializer;
 use serde_derive::Serialize;

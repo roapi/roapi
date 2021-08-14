@@ -9,7 +9,7 @@ name = "columnq"
 path = "src/main.rs"
 
 [dependencies]
-columnq = { path = "../columnq" }
+columnq = { path = "../columnq", version = "0" }
 
 serde_json = "*"
 log = "0"

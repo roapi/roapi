@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 
 use actix_web::{http, HttpRequest, HttpResponse};
+use columnq::datafusion::arrow;
 use columnq::encoding;
 use columnq::ColumnQ;
 use log::info;
