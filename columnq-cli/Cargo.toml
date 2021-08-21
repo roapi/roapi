@@ -9,11 +9,10 @@ name = "columnq"
 path = "src/main.rs"
 
 [dependencies]
-columnq = { path = "../columnq" }
+columnq = { path = "../columnq", version = "0" }
 
 serde_json = "*"
 log = "0"
-arrow  = "4"
 tokio = "1"
 rustyline = { version = "8" }
 env_logger = { version = "0" }

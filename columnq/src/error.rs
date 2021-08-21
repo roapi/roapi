@@ -1,6 +1,7 @@
 use std::fmt;
 
 use datafusion::error::DataFusionError;
+use datafusion::{arrow, parquet};
 use uriparse::uri_reference::URIReferenceError;
 
 #[derive(thiserror::Error, Debug)]

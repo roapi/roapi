@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use datafusion::datasource::TableProvider;
 
+use datafusion::arrow;
 use serde::de::{Deserialize, Deserializer};
 use serde_derive::Deserialize;
 use uriparse::URIReference;
@@ -147,7 +148,7 @@ pub enum TableLoadOption {
 impl TableLoadOption {
     fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreasheet, ColumnQError> {
         match self {
-            Self::google_spreadsheet(opt) => Ok(&opt),
+            Self::google_spreadsheet(opt) => Ok(opt),
             _ => Err(ColumnQError::ExpectFormatOption(
                 "google_spreadsheets".to_string(),
             )),
@@ -156,7 +157,7 @@ impl TableLoadOption {
 
     fn as_csv(&self) -> Result<&TableOptionCsv, ColumnQError> {
         match self {
-            Self::csv(opt) => Ok(&opt),
+            Self::csv(opt) => Ok(opt),
             _ => Err(ColumnQError::ExpectFormatOption("csv".to_string())),
         }
     }
@@ -188,7 +189,7 @@ impl<T: Into<String>> From<T> for TableIoSource {
 impl TableIoSource {
     pub fn as_memory(&self) -> Result<&[u8], ColumnQError> {
         match self {
-            Self::Memory(data) => Ok(&data),
+            Self::Memory(data) => Ok(data),
             other => Err(ColumnQError::Generic(format!(
                 "expect memory IO source, got: {:?}",
                 other

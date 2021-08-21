@@ -36,5 +36,9 @@ pub mod table;
 
 pub use crate::columnq::*;
 
+/// export datafusion and arrow so downstream won't need to declare dependencies on these libraries
+pub use datafusion;
+pub use datafusion::arrow;
+
 #[cfg(test)]
 pub mod test_util;

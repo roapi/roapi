@@ -1,6 +1,6 @@
 [package]
 name = "roapi-http"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Qingping Hou <dave2008713@gmail.com>"]
 edition = "2018"
 
@@ -13,8 +13,7 @@ name = "roapi-http"
 path = "src/main.rs"
 
 [dependencies]
-columnq = { path = "../columnq" }
-arrow  = "4"
+columnq = { path = "../columnq", version = "0" }
 
 # all actix dependencies are patched to use git source until actix-web 4.x lands
 actix-web = "4.0.0-beta.4"

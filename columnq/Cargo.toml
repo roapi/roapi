@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Qingping Hou <dave2008713@gmail.com>"]
 edition = "2018"
 
@@ -9,9 +9,8 @@ name = "columnq"
 path = "src/lib.rs"
 
 [dependencies]
-arrow  = "4"
-parquet  = "4"
-datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "d5427d8dd1fd8bd6fb2541c1c9386802da7783de" }
+datafusion = "5"
+# datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "4ddd2f5e7582ffe662aea27bbb74c58cd0715152" }
 
 log = "0"
 regex = "1"
@@ -46,4 +45,4 @@ tempdir = "0"
 pretty_assertions = "*"
 
 [features]
-simd = ["arrow/simd", "datafusion/simd"]
+simd = ["datafusion/simd"]

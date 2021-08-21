@@ -203,12 +203,12 @@ where
 {
     let client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
     // TODO: use host and path from URIReference instead
-    let (bucket, key) = parse_uri(&t.get_uri_str())?;
+    let (bucket, key) = parse_uri(t.get_uri_str())?;
 
     let mut partitions = vec![];
 
     // first try loading table uri as single object
-    match partition_key_to_reader(&client, bucket, &key).await {
+    match partition_key_to_reader(&client, bucket, key).await {
         Ok(reader) => {
             partitions.push(partition_reader(reader)?);
         }

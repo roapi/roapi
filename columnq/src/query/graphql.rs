@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 use std::sync::Arc;
 
+use datafusion::arrow;
 use datafusion::logical_plan::{Column, Expr, Operator};
 use datafusion::scalar::ScalarValue;
 use graphql_parser::query::{parse_query, Definition, OperationDefinition, Selection, Value};
@@ -258,7 +259,7 @@ pub fn query_to_df(
 
     let mut df = dfctx
         .table(field.name)
-        .map_err(|e| QueryError::invalid_table(e, &field.name))?;
+        .map_err(|e| QueryError::invalid_table(e, field.name))?;
 
     // apply projection
     let column_names = field
@@ -349,7 +350,7 @@ pub async fn exec_query(
 
 #[cfg(test)]
 mod tests {
-    use arrow::array::*;
+    use datafusion::arrow::array::*;
     use datafusion::execution::context::ExecutionContext;
     use datafusion::logical_plan::{col, lit};
 

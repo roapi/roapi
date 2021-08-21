@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Context};
-use arrow::util::pretty;
 use log::debug;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::path::PathBuf;
 
+use columnq::datafusion::arrow::util::pretty;
 use columnq::table::parse_table_uri_arg;
 use columnq::{encoding, ColumnQ, ExecutionConfig};
 
@@ -102,7 +102,7 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
     }
 
     match args.value_of("SQL") {
-        Some(query) => match cq.query_sql(&query).await {
+        Some(query) => match cq.query_sql(query).await {
             Ok(batches) => match args.value_of("output").unwrap_or("table") {
                 "table" => pretty::print_batches(&batches)?,
                 "json" => {
