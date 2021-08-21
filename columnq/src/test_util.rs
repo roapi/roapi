@@ -89,7 +89,7 @@ fn properties_table() -> anyhow::Result<MemTable> {
     Ok(MemTable::try_new(schema, vec![vec![record_batch]])?)
 }
 
-async fn ubuntu_ami_table() -> anyhow::Result<MemTable> {
+async fn ubuntu_ami_table() -> anyhow::Result<Arc<dyn datafusion::datasource::TableProvider>> {
     let mut table_source: table::TableSource = serde_yaml::from_str(
         r#"
 name: "ubuntu_ami"
@@ -131,7 +131,7 @@ pub fn register_table_properties(dfctx: &mut ExecutionContext) -> anyhow::Result
 }
 
 pub async fn register_table_ubuntu_ami(dfctx: &mut ExecutionContext) -> anyhow::Result<()> {
-    dfctx.register_table("ubuntu_ami", Arc::new(ubuntu_ami_table().await?))?;
+    dfctx.register_table("ubuntu_ami", ubuntu_ami_table().await?)?;
     Ok(())
 }
 

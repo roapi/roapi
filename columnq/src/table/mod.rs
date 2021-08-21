@@ -2,6 +2,9 @@ use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
+
+use datafusion::datasource::TableProvider;
 
 use serde::de::{Deserialize, Deserializer};
 use serde_derive::Deserialize;
@@ -304,33 +307,34 @@ impl TableSource {
     }
 }
 
-pub async fn load(t: &TableSource) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     if let Some(opt) = &t.option {
-        return Ok(match opt {
-            TableLoadOption::json { .. } => json::to_mem_table(t).await?,
-            TableLoadOption::ndjson { .. } => ndjson::to_mem_table(t).await?,
-            TableLoadOption::csv { .. } => csv::to_mem_table(t).await?,
-            TableLoadOption::parquet { .. } => parquet::to_mem_table(t).await?,
-            TableLoadOption::google_spreadsheet(_) => google_spreadsheets::to_mem_table(t).await?,
-            TableLoadOption::delta { .. } => delta::to_mem_table(t).await?,
-        });
+        Ok(match opt {
+            TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t).await?),
+            TableLoadOption::ndjson { .. } => Arc::new(ndjson::to_mem_table(t).await?),
+            TableLoadOption::csv { .. } => Arc::new(csv::to_mem_table(t).await?),
+            TableLoadOption::parquet { .. } => Arc::new(parquet::to_mem_table(t).await?),
+            TableLoadOption::google_spreadsheet(_) => {
+                Arc::new(google_spreadsheets::to_mem_table(t).await?)
+            }
+            TableLoadOption::delta { .. } => Arc::new(delta::to_mem_table(t).await?),
+        })
+    } else {
+        let t: Arc<dyn TableProvider> = match t.extension()? {
+            "csv" => Arc::new(csv::to_mem_table(t).await?),
+            "json" => Arc::new(json::to_mem_table(t).await?),
+            "ndjson" => Arc::new(ndjson::to_mem_table(t).await?),
+            "parquet" => Arc::new(parquet::to_mem_table(t).await?),
+            ext => {
+                return Err(ColumnQError::InvalidUri(format!(
+                    "failed to register `{}` as table `{}`, unsupported table format `{}`",
+                    t.io_source, t.name, ext,
+                )));
+            }
+        };
+
+        Ok(t)
     }
-
-    // no format specified explictly, try to guess from file path
-    let t = match t.extension()? {
-        "csv" => csv::to_mem_table(t).await?,
-        "json" => json::to_mem_table(t).await?,
-        "ndjson" => ndjson::to_mem_table(t).await?,
-        "parquet" => parquet::to_mem_table(t).await?,
-        ext => {
-            return Err(ColumnQError::InvalidUri(format!(
-                "failed to register `{}` as table `{}`, unsupported table format `{}`",
-                t.io_source, t.name, ext,
-            )));
-        }
-    };
-
-    Ok(t)
 }
 
 /// For parsing table URI arg in CLI
