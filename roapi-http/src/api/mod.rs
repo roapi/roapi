@@ -68,6 +68,11 @@ pub fn encode_record_batches(
                 .map_err(ApiErrResp::arrow_stream_serialization)?;
             Ok(builder.body(payload))
         }
+        encoding::ContentType::Parquet => {
+            let payload = encoding::parquet::record_batches_to_bytes(batches)
+                .map_err(ApiErrResp::parquet_serialization)?;
+            Ok(builder.body(payload))
+        }
     }
 }
 

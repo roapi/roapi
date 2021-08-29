@@ -4,6 +4,7 @@ pub enum ContentType {
     Json,
     Csv,
     ArrowStream,
+    Parquet,
 }
 
 impl ContentType {
@@ -12,6 +13,7 @@ impl ContentType {
             ContentType::Json => "application/json",
             ContentType::Csv => "application/csv",
             ContentType::ArrowStream => "application/vnd.apache.arrow.stream",
+            ContentType::Parquet => "application/parquet",
         }
     }
 }
@@ -26,6 +28,7 @@ impl TryFrom<&[u8]> for ContentType {
             b"application/arrow.stream" | b"application/vnd.apache.arrow.stream" => {
                 Ok(ContentType::ArrowStream)
             }
+            b"application/parquet" => Ok(ContentType::Parquet),
             _ => Err(()),
         }
     }
@@ -34,3 +37,4 @@ impl TryFrom<&[u8]> for ContentType {
 pub mod arrow;
 pub mod csv;
 pub mod json;
+pub mod parquet;
