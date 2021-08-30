@@ -20,8 +20,6 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
         .unwrap_or_else(|| TableLoadOption::parquet(TableOptionParquet::default()));
     let TableOptionParquet { use_memory_table } = opt.as_parquet()?;
 
-    println!("{}", use_memory_table);
-
     if *use_memory_table {
         to_mem_table(t).await
     } else {
