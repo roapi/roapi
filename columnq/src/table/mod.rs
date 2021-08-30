@@ -316,7 +316,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t).await?),
             TableLoadOption::ndjson { .. } => Arc::new(ndjson::to_mem_table(t).await?),
             TableLoadOption::csv { .. } => Arc::new(csv::to_mem_table(t).await?),
-            TableLoadOption::parquet { .. } => parquet::to_mem_table(t).await?,
+            TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t).await?,
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
@@ -327,7 +327,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             "csv" => Arc::new(csv::to_mem_table(t).await?),
             "json" => Arc::new(json::to_mem_table(t).await?),
             "ndjson" => Arc::new(ndjson::to_mem_table(t).await?),
-            "parquet" => parquet::to_mem_table(t).await?,
+            "parquet" => parquet::to_datafusion_table(t).await?,
             ext => {
                 return Err(ColumnQError::InvalidUri(format!(
                     "failed to register `{}` as table `{}`, unsupported table format `{}`",
