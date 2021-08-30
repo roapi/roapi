@@ -28,7 +28,7 @@ impl TryFrom<&[u8]> for ContentType {
             b"application/arrow.stream" | b"application/vnd.apache.arrow.stream" => {
                 Ok(ContentType::ArrowStream)
             }
-            b"application/parquet" => Ok(ContentType::Parquet),
+            b"application/parquet" | b"application/vnd.apache.parquet" => Ok(ContentType::Parquet),
             _ => Err(()),
         }
     }
