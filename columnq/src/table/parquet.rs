@@ -2,7 +2,7 @@ use std::io::Read;
 use std::sync::Arc;
 
 use crate::error::ColumnQError;
-use crate::table::{TableLoadOption, TableSource};
+use crate::table::{TableLoadOption, TableOptionParquet, TableSource};
 
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
@@ -14,13 +14,22 @@ use datafusion::parquet::file::reader::SerializedFileReader;
 use datafusion::parquet::file::serialized_reader::SliceableCursor;
 
 pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
-    match t.option {
-        Some(TableLoadOption::parquet { lazy }) if lazy == Some(true) => Ok(Arc::new(
+    let opt = t
+        .option
+        .clone()
+        .unwrap_or_else(|| TableLoadOption::parquet(TableOptionParquet::default()));
+    let TableOptionParquet { use_memory_table } = opt.as_parquet()?;
+
+    println!("{}", use_memory_table);
+
+    if *use_memory_table {
+        to_mem_table(t).await
+    } else {
+        Ok(Arc::new(
             ParquetTable::try_new(t.parsed_uri()?, 4).map_err(|err| {
                 ColumnQError::LoadParquet(format!("failed to load parquet: '{}'", err.to_string()))
             })?,
-        )),
-        _ => to_mem_table(t).await,
+        ))
     }
 }
 
@@ -120,7 +129,7 @@ mod tests {
 
         let t = to_mem_table(
             &TableSource::new_with_uri("blogs", tmp_dir_path.to_string_lossy())
-                .with_option(TableLoadOption::parquet { lazy: Some(false) }),
+                .with_option(TableLoadOption::parquet(TableOptionParquet::default())),
         )
         .await?;
 

@@ -122,6 +122,27 @@ impl Default for TableOptionCsv {
     }
 }
 
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct TableOptionParquet {
+    #[serde(default = "TableOptionParquet::default_use_memory_table")]
+    use_memory_table: bool,
+}
+
+impl TableOptionParquet {
+    #[inline]
+    pub fn default_use_memory_table() -> bool {
+        true
+    }
+}
+
+impl Default for TableOptionParquet {
+    fn default() -> Self {
+        Self {
+            use_memory_table: Self::default_use_memory_table(),
+        }
+    }
+}
+
 // Adding new table format:
 // * update TableLoadOption enum to add the new variant
 // * update TableLoadOption.extension
@@ -140,9 +161,7 @@ pub enum TableLoadOption {
     },
     csv(TableOptionCsv),
     ndjson {},
-    parquet {
-        lazy: Option<bool>,
-    },
+    parquet(TableOptionParquet),
     google_spreadsheet(TableOptionGoogleSpreasheet),
     delta {},
 }
@@ -161,6 +180,13 @@ impl TableLoadOption {
         match self {
             Self::csv(opt) => Ok(opt),
             _ => Err(ColumnQError::ExpectFormatOption("csv".to_string())),
+        }
+    }
+
+    fn as_parquet(&self) -> Result<&TableOptionParquet, ColumnQError> {
+        match self {
+            Self::parquet(opt) => Ok(opt),
+            _ => Err(ColumnQError::ExpectFormatOption("parquet".to_string())),
         }
     }
 
