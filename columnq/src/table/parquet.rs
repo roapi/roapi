@@ -94,6 +94,31 @@ mod tests {
     use crate::test_util::*;
 
     #[tokio::test]
+    async fn load_flattened_parquet() -> Result<(), ColumnQError> {
+        let t = to_datafusion_table(
+            &TableSource::new(
+                "blogs".to_string(),
+                test_data_path("blogs_flattened.parquet"),
+            )
+            .with_option(TableLoadOption::parquet(TableOptionParquet {
+                use_memory_table: false,
+            })),
+        )
+        .await?;
+
+        assert_eq!(t.statistics().num_rows, Some(500));
+        let stats = t.statistics().column_statistics.unwrap();
+        assert_eq!(stats[0].null_count, Some(245));
+        assert_eq!(stats[1].null_count, Some(373));
+        assert_eq!(stats[2].null_count, Some(237));
+
+        match t.as_any().downcast_ref::<ParquetTable>() {
+            Some(_) => Ok(()),
+            None => panic!("not read a datafusion::ParquetTable"),
+        }
+    }
+
+    #[tokio::test]
     async fn load_simple_parquet() -> Result<(), ColumnQError> {
         let t = to_mem_table(&TableSource::new(
             "blogs".to_string(),
