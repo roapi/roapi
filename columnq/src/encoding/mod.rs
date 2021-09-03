@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 pub enum ContentType {
     Json,
     Csv,
+    ArrowFile,
     ArrowStream,
     Parquet,
 }
@@ -12,6 +13,7 @@ impl ContentType {
         match self {
             ContentType::Json => "application/json",
             ContentType::Csv => "application/csv",
+            ContentType::ArrowFile => "application/vnd.apache.arrow.file",
             ContentType::ArrowStream => "application/vnd.apache.arrow.stream",
             ContentType::Parquet => "application/parquet",
         }
@@ -25,6 +27,9 @@ impl TryFrom<&[u8]> for ContentType {
         match value {
             b"*/*" | b"application/json" => Ok(ContentType::Json),
             b"application/csv" => Ok(ContentType::Csv),
+            b"application/arrow.file" | b"application/vnd.apache.arrow.file" => {
+                Ok(ContentType::ArrowFile)
+            }
             b"application/arrow.stream" | b"application/vnd.apache.arrow.stream" => {
                 Ok(ContentType::ArrowStream)
             }
