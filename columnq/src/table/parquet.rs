@@ -1,19 +1,37 @@
 use std::io::Read;
 use std::sync::Arc;
 
+use crate::error::ColumnQError;
+use crate::table::{TableLoadOption, TableOptionParquet, TableSource};
+
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::parquet::ParquetTable;
+use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::{ArrowReader, ParquetFileArrowReader};
 use datafusion::parquet::file::reader::SerializedFileReader;
 use datafusion::parquet::file::serialized_reader::SliceableCursor;
 
-use crate::error::ColumnQError;
-use crate::table::TableSource;
+pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+    let opt = t
+        .option
+        .clone()
+        .unwrap_or_else(|| TableLoadOption::parquet(TableOptionParquet::default()));
+    let TableOptionParquet { use_memory_table } = opt.as_parquet()?;
 
-pub async fn to_mem_table(
-    t: &TableSource,
-) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+    if *use_memory_table {
+        to_mem_table(t).await
+    } else {
+        Ok(Arc::new(
+            ParquetTable::try_new(t.parsed_uri()?, 4).map_err(|err| {
+                ColumnQError::LoadParquet(format!("failed to load parquet: '{}'", err.to_string()))
+            })?,
+        ))
+    }
+}
+
+pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     // TODO: make batch size configurable
     let batch_size = 1024;
 
@@ -56,14 +74,15 @@ pub async fn to_mem_table(
         ));
     }
 
-    Ok(datafusion::datasource::MemTable::try_new(
-        Arc::new(
-            schema.ok_or_else(|| {
+    let table =
+        Arc::new(datafusion::datasource::MemTable::try_new(
+            Arc::new(schema.ok_or_else(|| {
                 ColumnQError::LoadParquet("schema not found for table".to_string())
-            })?,
-        ),
-        partitions,
-    )?)
+            })?),
+            partitions,
+        )?);
+
+    Ok(table)
 }
 
 #[cfg(test)]
@@ -71,10 +90,33 @@ mod tests {
     use super::*;
     use std::fs;
 
-    use datafusion::datasource::TableProvider;
-
     use crate::table::TableLoadOption;
     use crate::test_util::*;
+
+    #[tokio::test]
+    async fn load_flattened_parquet() -> Result<(), ColumnQError> {
+        let t = to_datafusion_table(
+            &TableSource::new(
+                "blogs".to_string(),
+                test_data_path("blogs_flattened.parquet"),
+            )
+            .with_option(TableLoadOption::parquet(TableOptionParquet {
+                use_memory_table: false,
+            })),
+        )
+        .await?;
+
+        assert_eq!(t.statistics().num_rows, Some(500));
+        let stats = t.statistics().column_statistics.unwrap();
+        assert_eq!(stats[0].null_count, Some(245));
+        assert_eq!(stats[1].null_count, Some(373));
+        assert_eq!(stats[2].null_count, Some(237));
+
+        match t.as_any().downcast_ref::<ParquetTable>() {
+            Some(_) => Ok(()),
+            None => panic!("not read a datafusion::ParquetTable"),
+        }
+    }
 
     #[tokio::test]
     async fn load_simple_parquet() -> Result<(), ColumnQError> {
@@ -110,7 +152,7 @@ mod tests {
 
         let t = to_mem_table(
             &TableSource::new_with_uri("blogs", tmp_dir_path.to_string_lossy())
-                .with_option(TableLoadOption::parquet {}),
+                .with_option(TableLoadOption::parquet(TableOptionParquet::default())),
         )
         .await?;
 
