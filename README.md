@@ -58,6 +58,13 @@ roapi-http \
     --table 'test_data/spacex_launches.json'
 ```
 
+For windows, full scheme(file:// or filesystem://) must filled, and use double quote(") instead of single quote(') to escape windows cmdline limit:
+```bash
+roapi-http \
+    --table "uk_cities=file://d:/path/to/uk_cities_with_headers.csv" \
+    --table "file://d:/path/to/test_data/spacex_launches.json"
+```
+
 Or using docker:
 
 ```bash
