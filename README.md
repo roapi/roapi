@@ -54,8 +54,8 @@ Spin up APIs for `test_data/uk_cities_with_headers.csv` and
 
 ```bash
 roapi-http \
-    --table 'uk_cities=test_data/uk_cities_with_headers.csv' \
-    --table 'test_data/spacex_launches.json'
+    --table "uk_cities=test_data/uk_cities_with_headers.csv" \
+    --table "test_data/spacex_launches.json"
 ```
 
 For windows, full scheme(file:// or filesystem://) must filled, and use double quote(") instead of single quote(') to escape windows cmdline limit:
@@ -69,8 +69,8 @@ Or using docker:
 
 ```bash
 docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi-http:latest --addr 0.0.0.0:8080 \
-    --table 'uk_cities=test_data/uk_cities_with_headers.csv' \
-    --table 'test_data/spacex_launches.json'
+    --table "uk_cities=test_data/uk_cities_with_headers.csv" \
+    --table "test_data/spacex_launches.json"
 ```
 
 Query tables using SQL, GraphQL or REST:
@@ -234,6 +234,7 @@ Query layer:
 Response serialization:
   - [x] JSON `application/json`
   - [x] Arrow `application/vnd.apache.arrow.stream`
+  - [x] Parquet `application/vnd.apache.parquet`
   - [ ] msgpack
 
 Data layer:

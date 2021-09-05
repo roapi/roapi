@@ -1,17 +1,21 @@
 Columnq
 =======
 
-Easy to use library and CLI to help you query tabular data with support for a
-rich set of growing formats data sources.
+Simple CLI to help you query tabular data with support for a rich set of
+growing formats and data sources.
 
 
 Usage
 -----
 
-### Query once
+### One off query
+
+The `sql` sbucommand execute a provided SQL query against specificed static
+dataset and return the result in stdout on exit. This is usually useful for
+script automation tasks.
 
 ```
-columnq sql --table test_data/spacex_launches.json \
+$ columnq sql --table test_data/spacex_launches.json \
   "SELECT COUNT(id), DATE_TRUNC('year', CAST(date_utc AS TIMESTAMP)) as d FROM spacex_launches WHERE success = true GROUP BY d ORDER BY d DESC"
 +-----------+---------------------+
 | COUNT(id) | d                   |
@@ -32,7 +36,18 @@ columnq sql --table test_data/spacex_launches.json \
 +-----------+---------------------+
 ```
 
-The Columnq CLI can also be used as a handy utility to Convert tabular data
+By default, the `sql` subcommand outputs results in human friendly table
+format. You can change the output format using `--output` option to make it
+more friendly for automations.
+
+```
+$ columnq sql --table test_data/spacex_launches.json --output json "SELECT COUNT(id) AS total_launches FROM spacex_launches"
+[{"total_launches":132}]
+```
+
+### Format conversion
+
+The Columnq CLI can also be used as a handy utility to convert tabular data
 between various formats: `json`, `parquet`, `csv`, `yaml`, `arrow`, etc.
 
 ```
@@ -42,9 +57,13 @@ $ cat test_data/blogs.parquet | columnq sql --table 't=stdin,format=parquet' 'SE
 
 ### Interactive console
 
-Query multiple datasets in an interactive console:
+For dataset exploration, you can use the `console` subcommand to query multiple
+datasets in an interactive console environment:
 
 ```
+$ columnq console \
+    --table "uk_cities=test_data/uk_cities_with_headers.csv" \
+    --table "test_data/spacex_launches.json"
 columnq(sql)> SELECT * FROM uk_cities WHERE lat > 57;
 +-----------------------------+-----------+-----------+
 | city                        | lat       | lng       |
@@ -53,9 +72,15 @@ columnq(sql)> SELECT * FROM uk_cities WHERE lat > 57;
 | Aberdeen, Aberdeen City, UK | 57.149651 | -2.099075 |
 | Inverness, the UK           | 57.477772 | -4.224721 |
 +-----------------------------+-----------+-----------+
+columnq(sql)> SELECT COUNT(*) FROM spacex_launches WHERE success=true AND upcoming=false;
++-----------------+
+| COUNT(UInt8(1)) |
++-----------------+
+| 111             |
++-----------------+
 ```
 
-Show schemas for a specific table:
+Explore in memory catalog and table schemas:
 
 ```
 columnq(sql)> SHOW TABLES;
@@ -76,3 +101,11 @@ columnq(sql)> SHOW COLUMNS FROM uk_cities;
 | datafusion    | public       | uk_cities  | lng         | Float64   | NO          |
 +---------------+--------------+------------+-------------+-----------+-------------+
 ```
+
+Development
+-----------
+
+### Debug mode
+
+Set the `RUST_LOG` environment variable to `info,columnq=debug` to run columnq
+in verbose debug logging.

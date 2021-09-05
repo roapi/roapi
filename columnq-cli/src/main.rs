@@ -133,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = clap::App::new("Columnq")
         .version("0.0.1")
-        .about("OLTP the Unix way.")
+        .about("OLAP the Unix way.")
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
         .setting(clap::AppSettings::VersionlessSubcommands)
         .subcommand(
