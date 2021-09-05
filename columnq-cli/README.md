@@ -45,6 +45,22 @@ $ columnq sql --table test_data/spacex_launches.json --output json "SELECT COUNT
 [{"total_launches":132}]
 ```
 
+### Automate with UNIX pipes
+
+Just like other UNIX tools, columnq supports consuming data stream from stdin
+to integrate with other CLI tools using UNIX pipe:
+
+```
+find . -printf "%M|%n|%u|%s|%P\n" | columnq sql \
+    --table 't=stdin,format=csv,has_header=false,delimiter=|' \
+    "SELECT SUM(column_4) as total_size FROM t"
++------------+
+| total_size |
++------------+
+| 9875017987 |
++------------+
+```
+
 ### Format conversion
 
 The Columnq CLI can also be used as a handy utility to convert tabular data
