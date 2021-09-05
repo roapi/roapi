@@ -11,52 +11,51 @@ use crate::table::TableSource;
 pub async fn to_mem_table(
     t: &TableSource,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
-    debug!("inferring arrow table schema...");
-    let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
+    debug!("loading arrow table data...");
+    let mut schema_and_partitions = partitions_from_table_source!(t, |mut r| {
+        let arrow_file_reader = arrow::ipc::reader::FileReader::try_new(&mut r)?;
+        let schema = (*arrow_file_reader.schema()).clone();
+
+        arrow_file_reader
+            .into_iter()
+            .map(|batch| Ok(batch?))
+            .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
+            .map(|batches| (Some(schema), batches))
+    })?;
+
+    let schema_ref = match &t.schema {
         Some(s) => Arc::new(s.into()),
         None => {
-            let schemas = partitions_from_table_source!(t, |mut r| {
-                let arrow_stream_reader = arrow::ipc::reader::FileReader::try_new(&mut r)?;
-                let schema = (*arrow_stream_reader.schema()).clone();
-                if arrow_stream_reader.into_iter().next().is_some() {
-                    Ok(Some(schema))
-                } else {
-                    Ok(None)
-                }
-            })?
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
-
-            Arc::new(Schema::try_merge(schemas)?)
+            debug!("inferring arrow stream schema...");
+            Arc::new(Schema::try_merge(
+                schema_and_partitions
+                    .iter_mut()
+                    .map(|v| if !(v.1).is_empty() { v.0.take() } else { None })
+                    .flatten()
+                    .collect::<Vec<_>>(),
+            )?)
         }
     };
 
-    debug!("loading arrow table data...");
-    let partitions: Vec<Vec<RecordBatch>> =
-        partitions_from_table_source!(t, |mut r| -> Result<Vec<RecordBatch>, ColumnQError> {
-            let arrow_stream_reader = arrow::ipc::reader::FileReader::try_new(&mut r)?;
-            arrow_stream_reader
-                .into_iter()
-                .map(|batch| Ok(batch?))
-                .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
-        })?;
-
     Ok(datafusion::datasource::MemTable::try_new(
-        schema_ref, partitions,
+        schema_ref,
+        schema_and_partitions
+            .into_iter()
+            .map(|v| v.1)
+            .collect::<Vec<Vec<RecordBatch>>>(),
     )?)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use std::fs;
 
     use datafusion::datasource::TableProvider;
 
     use crate::table::TableLoadOption;
     use crate::test_util::*;
+
+    use super::*;
 
     #[tokio::test]
     async fn load_partitions() -> anyhow::Result<()> {
