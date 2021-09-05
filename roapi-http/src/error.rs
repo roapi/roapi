@@ -40,6 +40,14 @@ impl ApiErrResp {
         }
     }
 
+    pub fn arrow_file_serialization(_: arrow::error::ArrowError) -> Self {
+        Self {
+            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+            error: "arrow_file_serialization".to_string(),
+            message: "Failed to serialize record batches into arrow file".to_string(),
+        }
+    }
+
     pub fn arrow_stream_serialization(_: arrow::error::ArrowError) -> Self {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,

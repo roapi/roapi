@@ -13,6 +13,8 @@ use uriparse::URIReference;
 
 use crate::error::ColumnQError;
 
+pub mod arrow_ipc_file;
+pub mod arrow_ipc_stream;
 pub mod csv;
 pub mod delta;
 pub mod google_spreadsheets;
@@ -164,6 +166,8 @@ pub enum TableLoadOption {
     parquet(TableOptionParquet),
     google_spreadsheet(TableOptionGoogleSpreasheet),
     delta {},
+    arrow {},
+    arrows {},
 }
 
 impl TableLoadOption {
@@ -197,6 +201,8 @@ impl TableLoadOption {
             Self::csv { .. } => "csv",
             Self::parquet { .. } => "parquet",
             Self::google_spreadsheet(_) | Self::delta { .. } => "",
+            Self::arrow { .. } => "arrow",
+            Self::arrows { .. } => "arrows",
         }
     }
 }
@@ -318,7 +324,7 @@ impl TableSource {
                     })?;
 
                 match ext {
-                    "csv" | "json" | "parquet" | "ndjson" => ext,
+                    "csv" | "json" | "parquet" | "ndjson" | "arrow" | "arrows" => ext,
                     _ => {
                         return Err(ColumnQError::InvalidUri(format!(
                             "unsupported extension in uri: {}",
@@ -347,6 +353,8 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
             TableLoadOption::delta { .. } => Arc::new(delta::to_mem_table(t).await?),
+            TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
+            TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
         })
     } else {
         let t: Arc<dyn TableProvider> = match t.extension()? {
@@ -354,6 +362,8 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             "json" => Arc::new(json::to_mem_table(t).await?),
             "ndjson" => Arc::new(ndjson::to_mem_table(t).await?),
             "parquet" => parquet::to_datafusion_table(t).await?,
+            "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
+            "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
             ext => {
                 return Err(ColumnQError::InvalidUri(format!(
                     "failed to register `{}` as table `{}`, unsupported table format `{}`",
