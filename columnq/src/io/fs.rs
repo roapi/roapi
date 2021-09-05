@@ -40,7 +40,13 @@ where
     let fs_path = uri.path().to_string();
     let mut file_ext = ".".to_string();
     file_ext.push_str(t.extension()?);
-    let files = build_file_list(&fs_path, &file_ext)?;
+    debug!("building file list from path {}...", fs_path);
+    let files = build_file_list(&fs_path, &file_ext).map_err(|e| {
+        ColumnQError::FileStore(format!(
+            "Failed to build file list from path `{}`: {}",
+            fs_path, e
+        ))
+    })?;
 
     debug!("loading file partitions: {:?}", files);
     partitions_from_iterator(files.iter().map(|s| s.as_str()), partition_reader)
