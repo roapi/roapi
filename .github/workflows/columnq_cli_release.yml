@@ -1,19 +1,20 @@
-name: roapi-http release
+name: columnq-cli release
 
 on:
   push:
     paths:
       - 'columnq/**'
-      - 'roapi-http/**'
+      - 'columnq-cli/**'
       - 'Cargo.lock'
     branches: [ main ]
-    tags: [ 'roapi-http-v*' ]
+    tags: [ 'columnq-cli-v*' ]
 
 env:
   # NOTE: this env is also defined in build.yml
   RUST_TC_NIGHTLY_VER: "2021-07-17"
 
 jobs:
+  # skip tag version validation on non-release branch run
   validate-release-tag:
     name: Validate git tag
     runs-on: ubuntu-20.04
@@ -24,14 +25,11 @@ jobs:
         if: "startsWith(github.ref, 'refs/tags/')"
         run: |
           PUSHED_TAG=${GITHUB_REF##*/}
-          CURR_VER=$( grep version roapi-http/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' )
-          if [[ "${PUSHED_TAG}" != "roapi-http-v${CURR_VER}" ]]; then
+          CURR_VER=$( grep version columnq-cli/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' )
+          if [[ "${PUSHED_TAG}" != "columnq-cli-v${CURR_VER}" ]]; then
             echo "Cargo metadata has version set to ${CURR_VER}, but got pushed tag ${PUSHED_TAG}."
             exit 1
           fi
-      - name: skip git tag validation
-        if: "! startsWith(github.ref, 'refs/tags/')"
-        run: echo "skip tag version validation on non-release branch run"
 
   macos:
     needs: validate-release-tag
@@ -52,8 +50,8 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels - x86_64
         run: |
-          maturin build -m roapi-http/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
-          pip install roapi-http --no-index --find-links dist --force-reinstall
+          maturin build -m columnq-cli/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
+          pip install columnq-cli --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
         env:
           DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
@@ -61,22 +59,23 @@ jobs:
         run: |
           # set SDKROOT for C dependencies
           export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-          maturin build -m roapi-http/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd"
-          pip install roapi-http --no-index --find-links dist --force-reinstall
+          maturin build -m columnq-cli/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd"
+          pip install columnq-cli --no-index --find-links dist --force-reinstall
+          columnq --help
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
           name: wheels
           path: dist
       - name: Archive binary
-        run: tar czvf target/release/roapi-http.tar.gz -C target/release roapi-http
+        run: tar czvf target/release/columnq-cli.tar.gz -C target/release columnq
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
         if: "startsWith(github.ref, 'refs/tags/')"
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          asset_name: roapi-http-apple-darwin.tar.gz
-          file: target/release/roapi-http.tar.gz
+          asset_name: columnq-cli-apple-darwin.tar.gz
+          file: target/release/columnq-cli.tar.gz
           tag: ${{ github.ref }}
 
   windows:
@@ -105,9 +104,9 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels
         run: |
-          maturin build -m roapi-http/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
-          pip install roapi-http --no-index --find-links dist --force-reinstall
-          roapi-http --help
+          maturin build -m columnq-cli/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
+          pip install columnq-cli --no-index --find-links dist --force-reinstall
+          columnq --help
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -142,21 +141,23 @@ jobs:
       - name: Build Wheels
         run: |
           pip3 install 'maturin<0.12'
-          maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
+          maturin build -m columnq-cli/Cargo.toml -b bin --no-sdist --release -o dist \
+            --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
+            --cargo-extra-args="--features=${{ matrix.platform.features }}"
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
           name: wheels
           path: dist
       - name: Archive binary
-        run: tar czvf target/release/roapi-http.tar.gz -C target/${{ matrix.platform.target }}/release roapi-http
+        run: tar czvf target/release/columnq-cli.tar.gz -C target/${{ matrix.platform.target }}/release columnq
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
         if: "startsWith(github.ref, 'refs/tags/')"
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          asset_name: roapi-http-${{ matrix.platform.target }}.tar.gz
-          file: target/release/roapi-http.tar.gz
+          asset_name: columnq-cli-${{ matrix.platform.target }}.tar.gz
+          file: target/release/columnq-cli.tar.gz
           tag: ${{ github.ref }}
 
   pypi_release:
@@ -174,43 +175,7 @@ jobs:
       - name: Publish to PyPi
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.COLUMNQ_CLI_PYPI_TOKEN }}
         run: |
           pip install --upgrade twine
           twine upload --skip-existing *
-
-  docker_release:
-    if: "startsWith(github.ref, 'refs/tags/')"
-    needs: validate-release-tag
-    name: Docker Image Release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-        with:
-          flavor: |
-            latest=true
-          tags: |
-            type=match,pattern=roapi-http-(v.+),group=1
-          images: ghcr.io/${{ github.repository_owner }}/roapi-http
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}

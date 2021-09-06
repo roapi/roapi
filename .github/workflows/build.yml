@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  # NOTE: this env is also defined in roapi_http_release.yml
+  # NOTE: this env is also defined in roapi_http_release.yml and columnq_cli_release.yml
   RUST_TC_NIGHTLY_VER: "2021-07-17"
 
 jobs:

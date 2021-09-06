@@ -1,7 +1,10 @@
 [package]
 name = "columnq-cli"
-version = "0.1.0"
-authors = ["Qingping Hou <dave2008713@gmail.com>"]
+version = "0.1.1"
+homepage = "https://github.com/roapi/roapi"
+license = "MIT"
+readme = "README.md"
+authors = ["QP Hou <dave2008713@gmail.com>"]
 edition = "2018"
 
 [[bin]]
@@ -19,6 +22,9 @@ env_logger = { version = "0" }
 anyhow = { version = "1" }
 clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }
 dirs = { version = "3" }
+
+[features]
+simd = ["columnq/simd"]
 
 [dev-dependencies]
 pretty_assertions = "*"
