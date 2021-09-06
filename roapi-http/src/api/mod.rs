@@ -63,9 +63,19 @@ pub fn encode_record_batches(
                 .map_err(ApiErrResp::csv_serialization)?;
             Ok(builder.body(payload))
         }
+        encoding::ContentType::ArrowFile => {
+            let payload = encoding::arrow::record_batches_to_file_bytes(batches)
+                .map_err(ApiErrResp::arrow_file_serialization)?;
+            Ok(builder.body(payload))
+        }
         encoding::ContentType::ArrowStream => {
             let payload = encoding::arrow::record_batches_to_stream_bytes(batches)
                 .map_err(ApiErrResp::arrow_stream_serialization)?;
+            Ok(builder.body(payload))
+        }
+        encoding::ContentType::Parquet => {
+            let payload = encoding::parquet::record_batches_to_bytes(batches)
+                .map_err(ApiErrResp::parquet_serialization)?;
             Ok(builder.body(payload))
         }
     }

@@ -117,7 +117,7 @@ jobs:
       matrix:
         platform: [
           { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl", features: "simd" },
-          { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl", features: "" },
+          # { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl", features: "" },
           { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl", features: "" },
           { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf", features: "" },
         ]
