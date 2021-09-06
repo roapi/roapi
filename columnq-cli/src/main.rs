@@ -8,6 +8,14 @@ use columnq::datafusion::arrow::util::pretty;
 use columnq::table::parse_table_uri_arg;
 use columnq::{encoding, ColumnQ, ExecutionConfig};
 
+fn history_path() -> anyhow::Result<PathBuf> {
+    let mut home =
+        dirs::home_dir().ok_or_else(|| anyhow!("Failed to locate user home directory"))?;
+    home.push(".columnq_history");
+    Ok(home)
+}
+
+#[allow(dead_code)]
 fn config_path() -> anyhow::Result<PathBuf> {
     let mut home =
         dirs::home_dir().ok_or_else(|| anyhow!("Failed to locate user home directory"))?;
@@ -31,17 +39,10 @@ fn table_arg() -> clap::Arg<'static> {
 }
 
 async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
-    let mut path = config_path()?;
-    if !path.as_path().exists() {
-        std::fs::create_dir(path.as_path())
-            .with_context(|| format!("Failed to create columnq config directory: {:?}", path))?;
-    }
-
-    path.push("history.txt");
-    let rl_history = path.as_path();
+    let rl_history = history_path()?;
 
     let mut readline = Editor::<()>::new();
-    if let Err(e) = readline.load_history(rl_history) {
+    if let Err(e) = readline.load_history(&rl_history) {
         debug!("no query history loaded: {:?}", e);
     }
 
@@ -74,7 +75,7 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
     }
 
     readline
-        .save_history(rl_history)
+        .save_history(&rl_history)
         .context("Failed to save query history")
 }
 
@@ -167,6 +168,12 @@ async fn main() -> anyhow::Result<()> {
                 .args(&[table_arg()]),
         );
     let matches = app.get_matches();
+
+    // let mut path = config_path()?;
+    // if !path.as_path().exists() {
+    //     std::fs::create_dir(path.as_path())
+    //         .with_context(|| format!("Failed to create columnq config directory: {:?}", path))?;
+    // }
 
     match matches.subcommand() {
         Some(("console", console_matches)) => cmd_console(console_matches).await?,
