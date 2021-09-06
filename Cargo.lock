@@ -765,7 +765,7 @@ dependencies = [
 [[package]]
 name = "deltalake"
 version = "0.4.1"
-source = "git+https://github.com/delta-io/delta-rs.git?rev=61e2941cc5787ac2028efea271a54926f9c45cec#61e2941cc5787ac2028efea271a54926f9c45cec"
+source = "git+https://github.com/delta-io/delta-rs.git?rev=2a0d3632f44a5ffa8cf6bf953615699547856719#2a0d3632f44a5ffa8cf6bf953615699547856719"
 dependencies = [
  "anyhow",
  "arrow",
@@ -774,6 +774,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "chrono",
  "clap",
+ "datafusion",
  "env_logger",
  "errno",
  "futures",
@@ -3323,3 +3324,8 @@ dependencies = [
  "cc",
  "libc",
 ]
+
+[[patch.unused]]
+name = "deltalake"
+version = "0.4.1"
+source = "git+https://github.com/delta-io/delta-rs.git?rev=61e2941cc5787ac2028efea271a54926f9c45cec#61e2941cc5787ac2028efea271a54926f9c45cec"
