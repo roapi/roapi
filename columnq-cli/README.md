@@ -4,13 +4,22 @@ Columnq
 Simple CLI to help you query tabular data with support for a rich set of
 growing formats and data sources.
 
+It supports JSON, CSV, Parquet, Arrow and all other formats that are supported
+by ROAPI, which is documented at
+[here](https://roapi.github.io/docs/config/dataset-formats/index.html).
+
+It also supports querying datasets from remote locations like S3 and HTTPs, see
+ROAPI's [blob store
+documentation](https://roapi.github.io/docs/config/blob-store.html) for more
+info.
+
+
 ## Installation
 
 ### Pre-built binary
 
-The pre-built binaries hosted on GitHub releases:
-https://github.com/roapi/roapi/releases. These binaries are self-contained so
-you can just drop them into your PATH.
+The pre-built binaries hosted on [GitHub releases](https://github.com/roapi/roapi/releases).
+These binaries are self-contained so you can just drop them into your PATH.
 
 The same set of binaries are also distributed through PyPI:
 
