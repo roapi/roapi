@@ -6,9 +6,6 @@ on:
       - 'columnq/**'
       - 'columnq-cli/**'
       - 'Cargo.lock'
-    paths-ignore:
-      - '**.md'
-      - 'test_data/**'
     branches: [ main ]
     tags: [ 'columnq-cli-v*' ]
 
