@@ -4,13 +4,54 @@ use std::sync::Arc;
 
 use datafusion::arrow;
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::{ArrowReader, ParquetFileArrowReader};
 use datafusion::parquet::file::reader::SerializedFileReader;
 use datafusion::parquet::file::serialized_reader::SliceableCursor;
 
 use crate::error::ColumnQError;
 use crate::io;
-use crate::table::TableSource;
+use crate::table::{TableLoadOption, TableOptionDelta, TableSource};
+use deltalake;
+
+pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+    let opt = t
+        .option
+        .clone()
+        .unwrap_or_else(|| TableLoadOption::delta(TableOptionDelta::default()));
+
+    let TableOptionDelta { use_memory_table } = opt.as_delta()?;
+
+    let uri_str = t.get_uri_str();
+    let delta_table = deltalake::open_table(uri_str).await?;
+    let parsed_uri = t.parsed_uri()?;
+    let blob_type = io::BlobStoreType::try_from(parsed_uri.scheme())?;
+
+    if *use_memory_table {
+        to_mem_table(delta_table, blob_type).await
+    } else {
+        to_delta_table(delta_table, blob_type).await
+    }
+}
+
+pub async fn to_delta_table(
+    delta_table: deltalake::DeltaTable,
+    blob_type: io::BlobStoreType,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+    match blob_type {
+        io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
+        io::BlobStoreType::S3 => Err(ColumnQError::LoadDelta(format!(
+                "S3 for delta table currently only supported in conjunction with `to_memory_table` config: {}",
+                delta_table.table_uri,
+            ))),
+        _ => {
+            return Err(ColumnQError::InvalidUri(format!(
+                "Scheme in table uri not supported for delta table: {}",
+                delta_table.table_uri,
+            )));
+        }
+    }
+}
 
 fn read_partition<R: Read>(mut r: R, batch_size: usize) -> Result<Vec<RecordBatch>, ColumnQError> {
     let mut buffer = Vec::new();
@@ -32,21 +73,17 @@ fn read_partition<R: Read>(mut r: R, batch_size: usize) -> Result<Vec<RecordBatc
 }
 
 pub async fn to_mem_table(
-    t: &TableSource,
-) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+    delta_table: deltalake::DeltaTable,
+    blob_type: io::BlobStoreType,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     // TODO: make batch size configurable
     let batch_size = 1024;
-
-    let uri_str = t.get_uri_str();
-    let delta_table = deltalake::open_table(uri_str).await?;
 
     if delta_table.get_files().is_empty() {
         return Err(ColumnQError::LoadDelta("empty delta table".to_string()));
     }
 
     let delta_schema = delta_table.get_schema()?;
-    let uri = t.parsed_uri()?;
-    let blob_type = io::BlobStoreType::try_from(uri.scheme())?;
 
     let paths = delta_table.get_file_uris();
     let path_iter = paths.iter().map(|s| s.as_str());
@@ -70,13 +107,73 @@ pub async fn to_mem_table(
         _ => {
             return Err(ColumnQError::InvalidUri(format!(
                 "Scheme in table uri not supported for delta table: {}",
-                uri_str,
+                delta_table.table_uri,
             )));
         }
     };
 
-    Ok(datafusion::datasource::MemTable::try_new(
+    Ok(Arc::new(datafusion::datasource::MemTable::try_new(
         Arc::new(delta_schema.try_into()?),
         partitions,
-    )?)
+    )?))
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use datafusion::datasource::datasource::Statistics;
+    use datafusion::datasource::MemTable;
+
+    use deltalake::DeltaTable;
+
+    use crate::error::ColumnQError;
+    use crate::test_util::test_data_path;
+
+    #[tokio::test]
+    async fn load_delta_as_memtable() -> Result<(), ColumnQError> {
+        let t = to_datafusion_table(
+            &TableSource::new("blogs".to_string(), test_data_path("blogs-delta")).with_option(
+                TableLoadOption::delta(TableOptionDelta {
+                    use_memory_table: true,
+                }),
+            ),
+        )
+        .await?;
+
+        validate_statistics(t.statistics());
+
+        match t.as_any().downcast_ref::<MemTable>() {
+            Some(_) => Ok(()),
+            None => panic!("must be of type datafusion::datasource::MemTable"),
+        }
+    }
+
+    #[tokio::test]
+    async fn load_delta_as_delta_source() -> Result<(), ColumnQError> {
+        let t = to_datafusion_table(
+            &TableSource::new("blogs".to_string(), test_data_path("blogs-delta")).with_option(
+                TableLoadOption::delta(TableOptionDelta {
+                    use_memory_table: false,
+                }),
+            ),
+        )
+        .await?;
+
+        match t.as_any().downcast_ref::<DeltaTable>() {
+            Some(delta_table) => {
+                assert_eq!(delta_table.version, 0);
+                Ok(())
+            }
+            None => panic!("must be of type deltalake::DeltaTable"),
+        }
+    }
+
+    fn validate_statistics(stats: Statistics) {
+        assert_eq!(stats.num_rows, Some(500));
+        let column_stats = stats.column_statistics.unwrap();
+        assert_eq!(column_stats[0].null_count, Some(245));
+        assert_eq!(column_stats[1].null_count, Some(373));
+        assert_eq!(column_stats[2].null_count, Some(237));
+    }
 }

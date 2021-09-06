@@ -114,7 +114,7 @@ mod tests {
 
         match t.as_any().downcast_ref::<ParquetTable>() {
             Some(_) => Ok(()),
-            None => panic!("not read a datafusion::ParquetTable"),
+            None => panic!("must be of type datafusion::datasource::parquet::ParquetTable"),
         }
     }
 

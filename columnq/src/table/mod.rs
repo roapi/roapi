@@ -143,6 +143,27 @@ impl Default for TableOptionParquet {
     }
 }
 
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct TableOptionDelta {
+    #[serde(default = "TableOptionDelta::default_use_memory_table")]
+    use_memory_table: bool,
+}
+
+impl TableOptionDelta {
+    #[inline]
+    pub fn default_use_memory_table() -> bool {
+        true
+    }
+}
+
+impl Default for TableOptionDelta {
+    fn default() -> Self {
+        Self {
+            use_memory_table: Self::default_use_memory_table(),
+        }
+    }
+}
+
 // Adding new table format:
 // * update TableLoadOption enum to add the new variant
 // * update TableLoadOption.extension
@@ -163,7 +184,7 @@ pub enum TableLoadOption {
     ndjson {},
     parquet(TableOptionParquet),
     google_spreadsheet(TableOptionGoogleSpreasheet),
-    delta {},
+    delta(TableOptionDelta),
 }
 
 impl TableLoadOption {
@@ -187,6 +208,13 @@ impl TableLoadOption {
         match self {
             Self::parquet(opt) => Ok(opt),
             _ => Err(ColumnQError::ExpectFormatOption("parquet".to_string())),
+        }
+    }
+
+    fn as_delta(&self) -> Result<&TableOptionDelta, ColumnQError> {
+        match self {
+            Self::delta(opt) => Ok(opt),
+            _ => Err(ColumnQError::ExpectFormatOption("delta".to_string())),
         }
     }
 
@@ -346,7 +374,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
-            TableLoadOption::delta { .. } => Arc::new(delta::to_mem_table(t).await?),
+            TableLoadOption::delta { .. } => delta::to_datafusion_table(t).await?,
         })
     } else {
         let t: Arc<dyn TableProvider> = match t.extension()? {

@@ -36,7 +36,9 @@ rusoto_s3 = { version = "0.46" }
 rusoto_credential = { version = "0.46" }
 rusoto_sts = { version = "0.46" }
 
-deltalake = { version = "0", features = ["s3"] }
+
+deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "2a0d3632f44a5ffa8cf6bf953615699547856719", features = ["s3", "datafusion-ext"] }
+# deltalake = { version = "0", features = ["s3", "datafusion-ext"] }
 
 [dev-dependencies]
 anyhow = "1"
