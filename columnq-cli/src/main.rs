@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context};
 use log::debug;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::io::Write;
 use std::path::PathBuf;
 
 use columnq::datafusion::arrow::util::pretty;
@@ -92,6 +93,13 @@ async fn cmd_console(args: &clap::ArgMatches) -> anyhow::Result<()> {
     console_loop(&cq).await
 }
 
+fn bytes_to_stdout(bytes: &[u8]) -> anyhow::Result<()> {
+    let mut out = std::io::stdout();
+    out.write_all(bytes)?;
+    out.flush()?;
+    Ok(())
+}
+
 async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let config = ExecutionConfig::default().with_information_schema(true);
     let mut cq = ColumnQ::new_with_config(config);
@@ -108,11 +116,23 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
                 "table" => pretty::print_batches(&batches)?,
                 "json" => {
                     let bytes = encoding::json::record_batches_to_bytes(&batches)?;
-                    println!("{}", String::from_utf8(bytes)?);
+                    bytes_to_stdout(&bytes)?;
                 }
                 "csv" => {
                     let bytes = encoding::csv::record_batches_to_bytes(&batches)?;
-                    println!("{}", String::from_utf8(bytes)?);
+                    bytes_to_stdout(&bytes)?;
+                }
+                "parquet" => {
+                    let bytes = encoding::parquet::record_batches_to_bytes(&batches)?;
+                    bytes_to_stdout(&bytes)?;
+                }
+                "arrow" => {
+                    let bytes = encoding::arrow::record_batches_to_file_bytes(&batches)?;
+                    bytes_to_stdout(&bytes)?;
+                }
+                "arrows" => {
+                    let bytes = encoding::arrow::record_batches_to_stream_bytes(&batches)?;
+                    bytes_to_stdout(&bytes)?;
                 }
                 other => anyhow::bail!("unsupported output format: {}", other),
             },
@@ -157,7 +177,7 @@ async fn main() -> anyhow::Result<()> {
                         .number_of_values(1)
                         .default_value("table")
                         // TODO: add yaml
-                        .possible_values(&["table", "json", "csv"]),
+                        .possible_values(&["table", "json", "csv", "parquet", "arrow", "arrows"]),
                     table_arg(),
                 ]),
         )
