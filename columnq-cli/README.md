@@ -4,6 +4,26 @@ Columnq
 Simple CLI to help you query tabular data with support for a rich set of
 growing formats and data sources.
 
+## Installation
+
+### Pre-built binary
+
+The pre-built binaries hosted on GitHub releases:
+https://github.com/roapi/roapi/releases. These binaries are self-contained so
+you can just drop them into your PATH.
+
+The same set of binaries are also distributed through PyPI:
+
+```bash
+pip install columnq-cli
+```
+
+### Build from source
+
+```bash
+cargo install --locked --git https://github.com/roapi/roapi --branch main --bin columnq-cli
+```
+
 
 Usage
 -----
