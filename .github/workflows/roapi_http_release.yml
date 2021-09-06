@@ -6,6 +6,9 @@ on:
       - 'columnq/**'
       - 'roapi-http/**'
       - 'Cargo.lock'
+    paths-ignore:
+      - '**.md'
+      - 'test_data/**'
     branches: [ main ]
     tags: [ 'roapi-http-v*' ]
 
