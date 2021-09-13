@@ -16,7 +16,6 @@ datafusion = "5"
 
 log = "0"
 regex = "1"
-lexical-core = "0.8"
 lazy_static = "1"
 graphql-parser = "0"
 sqlparser = "0.10"
