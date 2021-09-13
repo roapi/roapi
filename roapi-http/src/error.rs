@@ -104,6 +104,6 @@ impl actix_web::error::ResponseError for ApiErrResp {
     }
 
     fn error_response(&self) -> Response<Body> {
-        HttpResponse::build(self.code).json(self).into()
+        HttpResponse::build(self.code).json(self)
     }
 }
