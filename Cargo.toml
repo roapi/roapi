@@ -11,7 +11,7 @@ members = [
 # parquet = { git = "https://github.com/houqp/arrow-rs.git", rev = "8927982af7bef19f18a2cb6d3433a4cc69a40074" }
 # datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "e97b86a8bc410983a73b5802ae44eb7a55faecd3" }
 
-actix-cors = { git = "https://github.com/actix/actix-extras.git", rev = "50621bae7168b689d79fe789ce6b26fd202790f6" }
+actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6a5924b6d881d204856199e7539e273d2f" }
 
 deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "61e2941cc5787ac2028efea271a54926f9c45cec" }
 
