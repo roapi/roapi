@@ -33,7 +33,7 @@ fn table_arg() -> clap::Arg<'static> {
         .takes_value(true)
         .required(false)
         .number_of_values(1)
-        .multiple(true)
+        .multiple_occurrences(true)
         .value_name("[table_name=]uri[,option_key=option_value]")
         .long("table")
         .short('t')
@@ -156,7 +156,7 @@ async fn main() -> anyhow::Result<()> {
         .version("0.0.1")
         .about("OLAP the Unix way.")
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
-        .setting(clap::AppSettings::VersionlessSubcommands)
+        .setting(clap::AppSettings::DisableVersionForSubcommands)
         .subcommand(
             clap::App::new("sql")
                 .about("Query tables with SQL")
