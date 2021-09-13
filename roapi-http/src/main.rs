@@ -87,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
                 Cors::default()
                     .allowed_methods(vec!["POST", "GET"])
                     .supports_credentials()
-                    .max_age(3600).,
+                    .max_age(3600),
             );
 
         api::register_app_routes(app)
