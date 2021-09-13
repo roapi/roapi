@@ -17,7 +17,7 @@ columnq = { path = "../columnq", version = "0" }
 serde_json = "*"
 log = "0"
 tokio = "1"
-rustyline = { version = "8" }
+rustyline = { version = "9" }
 env_logger = { version = "0" }
 anyhow = { version = "1" }
 clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }

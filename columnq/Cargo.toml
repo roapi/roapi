@@ -16,10 +16,10 @@ datafusion = "5"
 
 log = "0"
 regex = "1"
-lexical-core = "0.7"
+lexical-core = "0.8"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.7"
+sqlparser = "0.10"
 yup-oauth2 = "5"
 thiserror = "1"
 serde_json = "1"
@@ -33,10 +33,10 @@ tokio = "1"
 futures = "0.3"
 
 # S3
-rusoto_core = { version = "0.46" }
-rusoto_s3 = { version = "0.46" }
-rusoto_credential = { version = "0.46" }
-rusoto_sts = { version = "0.46" }
+rusoto_core = { version = "0.47" }
+rusoto_s3 = { version = "0.47" }
+rusoto_credential = { version = "0.47" }
+rusoto_sts = { version = "0.47" }
 
 
 deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "2a0d3632f44a5ffa8cf6bf953615699547856719", features = ["s3", "datafusion-ext"] }
