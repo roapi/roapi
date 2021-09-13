@@ -1,5 +1,7 @@
 use std::fmt;
 
+use actix_http::body::Body;
+use actix_http::Response;
 use actix_web::{http, HttpResponse};
 use columnq::datafusion::arrow;
 use columnq::datafusion::parquet;
@@ -101,7 +103,7 @@ impl actix_web::error::ResponseError for ApiErrResp {
         self.code
     }
 
-    fn error_response(&self) -> HttpResponse {
+    fn error_response(&self) -> Response<Body> {
         HttpResponse::build(self.code).json(self)
     }
 }

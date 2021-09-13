@@ -27,10 +27,10 @@ fn rest_query_value_to_expr(v: &str) -> Result<Expr, QueryError> {
         sqlparser::tokenizer::Token::SingleQuotedString(s) => {
             Ok(Expr::Literal(ScalarValue::Utf8(Some(s.to_string()))))
         }
-        sqlparser::tokenizer::Token::Number(s) => {
-            if let Ok(n) = lexical_core::parse::<i64>(s.as_bytes()) {
+        sqlparser::tokenizer::Token::Number(s, _) => {
+            if let Ok(n) = s.parse() {
                 Ok(Expr::Literal(ScalarValue::Int64(Some(n))))
-            } else if let Ok(n) = lexical_core::parse::<f64>(s.as_bytes()) {
+            } else if let Ok(n) = s.parse() {
                 Ok(Expr::Literal(ScalarValue::Float64(Some(n))))
             } else {
                 Err(QueryError {

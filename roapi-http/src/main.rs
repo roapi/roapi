@@ -17,7 +17,7 @@ fn table_arg() -> clap::Arg<'static> {
         .takes_value(true)
         .required(false)
         .number_of_values(1)
-        .multiple(true)
+        .multiple_occurrences(true)
         .value_name("[table_name=]uri[,option_key=option_value]")
         .long("table")
         .short('t')
