@@ -51,20 +51,22 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
         match readline.readline("columnq(sql)> ") {
             Ok(line) => {
                 readline.add_history_entry(line.as_str());
-                match cq.query_sql(&line).await {
-                    Ok(batches) => {
-                        pretty::print_batches(&batches)?;
+                match line.as_ref() {
+                    "exit" | "quit" | "q" => {
+                        println!("Good bye!");
+                        break;
                     }
-                    Err(e) => {
-                        println!("Error: {}", e);
-                    }
+                    s => match cq.query_sql(s).await {
+                        Ok(batches) => {
+                            pretty::print_batches(&batches)?;
+                        }
+                        Err(e) => {
+                            println!("Error: {}", e);
+                        }
+                    },
                 }
             }
-            Err(ReadlineError::Interrupted) => {
-                println!("Good bye!");
-                break;
-            }
-            Err(ReadlineError::Eof) => {
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
                 println!("Good bye!");
                 break;
             }
