@@ -1,4 +1,4 @@
-FROM rust:1.53 as builder
+FROM rust:1.55 as builder
 WORKDIR /roapi_src
 COPY ./ /roapi_src
 RUN cargo install --locked --path ./roapi-http --bin roapi-http
