@@ -7,14 +7,14 @@ members = [
 ]
 
 [patch.crates-io]
-# arrow = { git = "https://github.com/houqp/arrow-rs.git", rev = "8927982af7bef19f18a2cb6d3433a4cc69a40074" }
-# parquet = { git = "https://github.com/houqp/arrow-rs.git", rev = "8927982af7bef19f18a2cb6d3433a4cc69a40074" }
-# datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "e97b86a8bc410983a73b5802ae44eb7a55faecd3" }
+datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "af34cec956c8d67b2520a266e74683d7bdcb3099" }
 
 actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6a5924b6d881d204856199e7539e273d2f" }
 
-deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "61e2941cc5787ac2028efea271a54926f9c45cec" }
+deltalake = { git = "https://github.com/houqp/delta-rs.git", rev = "cbf1126e70f8578f192dced7286ea9d63d9f629e" }
 
+[patch."https://github.com/apache/arrow-datafusion"]
+datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "af34cec956c8d67b2520a266e74683d7bdcb3099" }
 
 [profile.dev]
 split-debuginfo = "unpacked"

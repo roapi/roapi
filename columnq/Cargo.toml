@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.4.0"
+version = "0.4.1"
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 authors = ["QP Hou <dave2008713@gmail.com>"]
@@ -12,7 +12,7 @@ path = "src/lib.rs"
 
 [dependencies]
 datafusion = "5"
-# datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "4ddd2f5e7582ffe662aea27bbb74c58cd0715152" }
+# datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "af34cec956c8d67b2520a266e74683d7bdcb3099" }
 
 log = "0"
 regex = "1"
@@ -38,8 +38,7 @@ rusoto_credential = { version = "0.47" }
 rusoto_sts = { version = "0.47" }
 
 
-deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "2a0d3632f44a5ffa8cf6bf953615699547856719", features = ["s3", "datafusion-ext"] }
-# deltalake = { version = "0", features = ["s3", "datafusion-ext"] }
+deltalake = { version = "0", features = ["s3", "datafusion-ext"] }
 
 [dev-dependencies]
 anyhow = "1"
