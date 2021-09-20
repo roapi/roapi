@@ -106,8 +106,9 @@ mod tests {
         )
         .await?;
 
-        assert_eq!(t.statistics().num_rows, Some(500));
-        let stats = t.statistics().column_statistics.unwrap();
+        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        assert_eq!(stats.num_rows, Some(500));
+        let stats = stats.column_statistics.unwrap();
         assert_eq!(stats[0].null_count, Some(245));
         assert_eq!(stats[1].null_count, Some(373));
         assert_eq!(stats[2].null_count, Some(237));
@@ -135,7 +136,8 @@ mod tests {
             Some("protobuf")
         );
 
-        assert_eq!(t.statistics().num_rows, Some(500));
+        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        assert_eq!(stats.num_rows, Some(500));
 
         Ok(())
     }
@@ -164,7 +166,8 @@ mod tests {
             Some("protobuf")
         );
 
-        assert_eq!(t.statistics().num_rows, Some(1500));
+        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        assert_eq!(stats.num_rows, Some(1500));
 
         Ok(())
     }

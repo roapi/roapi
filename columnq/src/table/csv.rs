@@ -73,9 +73,8 @@ pub async fn to_mem_table(
 mod tests {
     use super::*;
 
-    use std::fs;
-
     use datafusion::datasource::TableProvider;
+    use std::fs;
 
     use crate::table::{TableIoSource, TableLoadOption};
     use crate::test_util::*;
@@ -101,7 +100,8 @@ mod tests {
         )
         .await?;
 
-        assert_eq!(t.statistics().num_rows, Some(37 * 3));
+        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        assert_eq!(stats.num_rows, Some(37 * 3));
 
         Ok(())
     }
@@ -122,7 +122,8 @@ c1,c2,c3
             ));
         let t = to_mem_table(&source).await?;
 
-        assert_eq!(t.statistics().num_rows, Some(3));
+        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        assert_eq!(stats.num_rows, Some(3));
 
         Ok(())
     }

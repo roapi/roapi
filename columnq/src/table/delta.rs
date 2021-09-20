@@ -122,8 +122,8 @@ pub async fn to_mem_table(
 mod tests {
 
     use super::*;
-    use datafusion::datasource::datasource::Statistics;
     use datafusion::datasource::MemTable;
+    use datafusion::physical_plan::Statistics;
 
     use deltalake::DeltaTable;
 
@@ -141,7 +141,7 @@ mod tests {
         )
         .await?;
 
-        validate_statistics(t.statistics());
+        validate_statistics(t.scan(&None, 1024, &[], None)?.statistics());
 
         match t.as_any().downcast_ref::<MemTable>() {
             Some(_) => Ok(()),

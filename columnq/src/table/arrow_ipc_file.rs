@@ -48,14 +48,13 @@ pub async fn to_mem_table(
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
+    use super::*;
 
     use datafusion::datasource::TableProvider;
+    use std::fs;
 
     use crate::table::TableLoadOption;
     use crate::test_util::*;
-
-    use super::*;
 
     #[tokio::test]
     async fn load_partitions() -> anyhow::Result<()> {
@@ -76,7 +75,8 @@ mod tests {
         )
         .await?;
 
-        assert_eq!(t.statistics().num_rows, Some(37 * 3));
+        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        assert_eq!(stats.num_rows, Some(37 * 3));
 
         Ok(())
     }
@@ -87,7 +87,8 @@ mod tests {
 
         let t = to_mem_table(&TableSource::new("uk_cities".to_string(), test_path)).await?;
 
-        assert_eq!(t.statistics().num_rows, Some(37));
+        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        assert_eq!(stats.num_rows, Some(37));
 
         Ok(())
     }
