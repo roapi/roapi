@@ -11,7 +11,7 @@ on:
 
 env:
   # NOTE: this env is also defined in build.yml
-  RUST_TC_NIGHTLY_VER: "2021-07-17"
+  RUST_TC_NIGHTLY_VER: "2021-09-25"
 
 jobs:
   # skip tag version validation on non-release branch run
