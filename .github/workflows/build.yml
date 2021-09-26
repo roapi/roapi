@@ -41,7 +41,7 @@ jobs:
       run: cargo test
     - name: Trim cache
       run: |
-        cargo install cargo-cache
+        cargo install --force cargo-cache
         cargo cache trim -l 1G
 
   simd_test:
@@ -71,7 +71,7 @@ jobs:
       run: cargo test --features simd
     - name: Trim cache
       run: |
-        cargo install cargo-cache
+        cargo install --force cargo-cache
         cargo cache trim -l 1G
 
   docker_build:
