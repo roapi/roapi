@@ -56,6 +56,7 @@ struct Spreadsheets {
     // see: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 struct SpreadsheetValues {
     range: String,
