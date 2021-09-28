@@ -26,19 +26,19 @@ serde_derive = "1"
 serde = "1"
 uriparse = "0"
 bytes = { version = "1" }
-reqwest = { version = "0.11", features = ["blocking", "json"] }
+reqwest = { version = "0.11", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 
 tokio = "1"
 futures = "0.3"
 
 # S3
-rusoto_core = { version = "0.47" }
-rusoto_s3 = { version = "0.47" }
+rusoto_core = { version = "0.47", default-features = false, features=["rustls"] }
+rusoto_s3 = { version = "0.47", default-features = false, features=["rustls"]}
 rusoto_credential = { version = "0.47" }
-rusoto_sts = { version = "0.47" }
+rusoto_sts = { version = "0.47", default-features = false, features=["rustls"] }
 
 
-deltalake = { version = "0", features = ["s3", "datafusion-ext"] }
+deltalake = { version = "0", default-features = false, features = ["s3-rustls", "datafusion-ext"] }
 
 [dev-dependencies]
 anyhow = "1"
