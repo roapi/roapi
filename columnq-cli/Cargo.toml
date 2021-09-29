@@ -24,6 +24,9 @@ clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }
 dirs = { version = "3" }
 
 [features]
+default = ["rustls"]
+rustls = ["columnq/rustls"]
+native-tls-vendored = ["columnq/native-tls-vendored"]
 simd = ["columnq/simd"]
 
 [dev-dependencies]
