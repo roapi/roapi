@@ -3,15 +3,16 @@ name: columnq-cli release
 on:
   push:
     paths:
+      - '.github/workflows/columnq_cli_release.yml'
       - 'columnq/**'
       - 'columnq-cli/**'
       - 'Cargo.lock'
-    branches: [ main ]
+    branches: [ main, nightly-2021-07-17 ]
     tags: [ 'columnq-cli-v*' ]
 
 env:
   # NOTE: this env is also defined in build.yml
-  RUST_TC_NIGHTLY_VER: "2021-09-25"
+  RUST_TC_NIGHTLY_VER: "2021-07-17"
 
 jobs:
   # skip tag version validation on non-release branch run

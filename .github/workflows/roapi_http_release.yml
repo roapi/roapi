@@ -3,15 +3,16 @@ name: roapi-http release
 on:
   push:
     paths:
+      - '.github/workflows/columnq_cli_release.yml'
       - 'columnq/**'
       - 'roapi-http/**'
       - 'Cargo.lock'
-    branches: [ main ]
+    branches: [ main, nightly-2021-07-17 ]
     tags: [ 'roapi-http-v*' ]
 
 env:
   # NOTE: this env is also defined in build.yml
-  RUST_TC_NIGHTLY_VER: "2021-09-25"
+  RUST_TC_NIGHTLY_VER: "2021-07-17"
 
 jobs:
   validate-release-tag:
