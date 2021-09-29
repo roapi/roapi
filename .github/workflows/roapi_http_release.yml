@@ -143,7 +143,7 @@ jobs:
           rustup default nightly-${{ env.RUST_TC_NIGHTLY_VER }}
       - name: Build Wheels
         run: |
-          sudo python3 -m pip install maturin
+          sudo python3 -m pip install 'maturin<0.12'
           maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist \
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
             --cargo-extra-args="--features=${{ matrix.platform.features }}"
