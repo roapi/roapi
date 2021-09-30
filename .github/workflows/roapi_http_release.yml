@@ -7,7 +7,7 @@ on:
       - 'columnq/**'
       - 'roapi-http/**'
       - 'Cargo.lock'
-    branches: [ main, rustls ]
+    branches: [ main ]
     tags: [ 'roapi-http-v*' ]
 
 env:
