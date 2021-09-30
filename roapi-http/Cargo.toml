@@ -35,7 +35,7 @@ thiserror = "1"
 anyhow = "1"
 
 [features]
-default = ["rustls"]
+default = ["native-tls-vendored"]
 rustls = ["columnq/rustls"]
 native-tls-vendored = ["columnq/native-tls-vendored"]
 simd = ["columnq/simd"]

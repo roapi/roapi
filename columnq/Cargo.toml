@@ -49,7 +49,7 @@ tempdir = "0"
 pretty_assertions = "*"
 
 [features]
-default = ["rustls"]
+default = ["native-tls-vendored"]
 rustls = ["reqwest/rustls-tls", "rusoto_core/rustls", "rusoto_core/rustls", "rusoto_sts/rustls", "deltalake/s3-rustls", "yup-oauth2/hyper-rustls"]
 native-tls-vendored = ["reqwest/native-tls-vendored", "hyper-tls/vendored", "rusoto_core/native-tls", "rusoto_s3/native-tls", "rusoto_sts/native-tls", "deltalake/s3", "yup-oauth2/hyper-tls"]
 simd = ["datafusion/simd"]
