@@ -3,6 +3,7 @@ name: roapi-http release
 on:
   push:
     paths:
+      - '.github/workflows/roapi_http_release.yml'
       - 'columnq/**'
       - 'roapi-http/**'
       - 'Cargo.lock'
@@ -118,15 +119,19 @@ jobs:
     needs: validate-release-tag
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         platform: [
-          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl", features: "simd" },
+          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl", features: "simd,rustls", upload: "true" },
+          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl", features: "simd,native-tls-vendored", upload: "false" },
           # { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl", features: "" },
-          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl", features: "" },
-          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf", features: "" },
+          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl", features: "rustls", upload: "true"},
+          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl", features: "native-tls-vendored", upload: "false" },
+          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf", features: "rustls", upload: "true" },
+          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf", features: "native-tls-vendored", upload: "false" },
         ]
     container:
-      image: docker://benfred/rust-musl-cross:${{ matrix.platform.image_tag }}
+      image: docker://messense/rust-musl-cross:${{ matrix.platform.image_tag }}
       env:
         RUSTUP_HOME: /root/.rustup
         CARGO_HOME: /root/.cargo
@@ -141,18 +146,22 @@ jobs:
           rustup default nightly-${{ env.RUST_TC_NIGHTLY_VER }}
       - name: Build Wheels
         run: |
-          pip3 install 'maturin<0.12'
-          maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
+          sudo python3 -m pip install 'maturin<0.12'
+          maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist \
+            --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
+            --cargo-extra-args="--no-default-features --features=${{ matrix.platform.features }}"
       - name: Upload wheels
         uses: actions/upload-artifact@v2
+        if: "matrix.platform.upload == 'true'"
         with:
           name: wheels
           path: dist
       - name: Archive binary
+        if: "matrix.platform.upload == 'true'"
         run: tar czvf target/release/roapi-http.tar.gz -C target/${{ matrix.platform.target }}/release roapi-http
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
-        if: "startsWith(github.ref, 'refs/tags/')"
+        if: "startsWith(github.ref, 'refs/tags/') && matrix.platform.upload == 'true'"
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           asset_name: roapi-http-${{ matrix.platform.target }}.tar.gz
