@@ -15,8 +15,7 @@ impl Application {
     pub async fn build(config: Config) -> Result<Self, std::io::Error> {
         let addr = (config.addr)
             .clone()
-            .unwrap_or_else(|| "127.0.0.1:8080".to_string())
-            .clone();
+            .unwrap_or_else(|| "127.0.0.1:8080".to_string());
         let listener = TcpListener::bind(addr)?;
         let port = listener.local_addr().unwrap().port();
 
