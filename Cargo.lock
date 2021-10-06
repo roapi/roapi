@@ -2226,11 +2226,13 @@ dependencies = [
  "columnq",
  "env_logger",
  "log",
+ "reqwest",
  "serde",
  "serde_derive",
  "serde_json",
  "serde_yaml",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

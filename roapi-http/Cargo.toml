@@ -42,3 +42,5 @@ simd = ["columnq/simd"]
 
 [dev-dependencies]
 actix-rt = "*"
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"]}
+tokio = { version = "1" }
