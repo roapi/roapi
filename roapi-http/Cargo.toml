@@ -1,6 +1,6 @@
 [package]
 name = "roapi-http"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
