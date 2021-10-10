@@ -13,6 +13,8 @@ path = "src/main.rs"
 
 [dependencies]
 columnq = { path = "../columnq", version = "0", default-features = false }
+# for datafusion optimization
+snmalloc-rs = { version = "0.2", features= ["cache-friendly"], optional = true }
 
 serde_json = "*"
 log = "0"
@@ -24,10 +26,16 @@ clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }
 dirs = { version = "3" }
 
 [features]
-default = ["rustls"]
+default = ["rustls", "snmalloc"]
 rustls = ["columnq/rustls"]
 native-tls-vendored = ["columnq/native-tls-vendored"]
 simd = ["columnq/simd"]
+snmalloc = ["snmalloc-rs"]
 
 [dev-dependencies]
 pretty_assertions = "*"
+
+# TODO: uncomment this when we exclude columnq-cli from root workspace
+# [profile.release]
+# lto = true
+# codegen-units = 1
