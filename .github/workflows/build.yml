@@ -84,4 +84,8 @@ jobs:
         with:
           context: .
           push: false
-          tags: latest
+          load: true
+          tags: roapi-http:latest
+      - name: Test
+        run: |
+          docker run --rm roapi-http:latest --help
