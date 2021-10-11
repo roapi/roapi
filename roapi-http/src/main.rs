@@ -11,6 +11,10 @@ use roapi_http::api;
 use roapi_http::api::HandlerContext;
 use roapi_http::config::Config;
 
+#[cfg(snmalloc)]
+#[global_allocator]
+static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
+
 fn table_arg() -> clap::Arg<'static> {
     clap::Arg::new("table")
         .about("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")

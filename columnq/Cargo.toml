@@ -28,7 +28,7 @@ uriparse = "0"
 bytes = { version = "1" }
 reqwest = { version = "0.11", default-features = false, features = ["blocking", "json"] }
 
-tokio = "1"
+tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 
 # S3

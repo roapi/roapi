@@ -542,8 +542,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmake"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb6210b637171dfba4cda12e579ac6dc73f5165ad56133e5d72ef3131f320855"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "columnq"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "bytes",
@@ -587,6 +596,7 @@ dependencies = [
  "pretty_assertions",
  "rustyline",
  "serde_json",
+ "snmalloc-rs",
  "tokio",
 ]
 
@@ -2214,7 +2224,7 @@ dependencies = [
 
 [[package]]
 name = "roapi-http"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -2230,6 +2240,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
+ "snmalloc-rs",
  "thiserror",
 ]
 
@@ -2729,6 +2740,24 @@ name = "snap"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc725476a1398f0480d56cd0ad381f6f32acf2642704456f8f59a35df464b59a"
+
+[[package]]
+name = "snmalloc-rs"
+version = "0.2.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f5a6194d59b08fc87381e7c8a04ab4ab9967282b00f409bb742e08f3514ed0b"
+dependencies = [
+ "snmalloc-sys",
+]
+
+[[package]]
+name = "snmalloc-sys"
+version = "0.2.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9518813a25ab2704a6df4968f609aa6949705409b6a854dcc87018d12961cbc8"
+dependencies = [
+ "cmake",
+]
 
 [[package]]
 name = "socket2"
