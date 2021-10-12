@@ -107,7 +107,6 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels
         run: |
-          export RUSTFLAGS='-C target-cpu=skylake'
           maturin build -m roapi-http/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
           pip install roapi-http --no-index --find-links dist --force-reinstall
           roapi-http --help

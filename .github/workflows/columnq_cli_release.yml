@@ -13,7 +13,6 @@ on:
 env:
   # NOTE: this env is also defined in build.yml
   RUST_TC_NIGHTLY_VER: "2021-09-25"
-  RUSTFLAGS: "-C target-cpu=skylake"
 
 jobs:
   # skip tag version validation on non-release branch run
@@ -107,7 +106,6 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels
         run: |
-          export RUSTFLAGS='-C target-cpu=skylake'
           maturin build -m columnq-cli/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
           pip install columnq-cli --no-index --find-links dist --force-reinstall
           columnq --help
