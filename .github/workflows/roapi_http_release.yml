@@ -53,6 +53,7 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels - x86_64
         run: |
+          export RUSTFLAGS='-C target-cpu=skylake'
           maturin build -m roapi-http/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
           pip install roapi-http --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
@@ -106,6 +107,7 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels
         run: |
+          export RUSTFLAGS='-C target-cpu=skylake'
           maturin build -m roapi-http/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
           pip install roapi-http --no-index --find-links dist --force-reinstall
           roapi-http --help
@@ -147,6 +149,7 @@ jobs:
       - name: Build Wheels
         run: |
           sudo python3 -m pip install 'maturin<0.12'
+          export RUSTFLAGS='-C target-cpu=skylake'
           maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist \
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
             --cargo-extra-args="--no-default-features --features=${{ matrix.platform.features }}"
