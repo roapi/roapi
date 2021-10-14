@@ -29,6 +29,7 @@ dirs = { version = "3" }
 default = ["rustls", "snmalloc"]
 rustls = ["columnq/rustls"]
 native-tls-vendored = ["columnq/native-tls-vendored"]
+native-tls = ["columnq/native-tls"]
 simd = ["columnq/simd"]
 snmalloc = ["snmalloc-rs"]
 

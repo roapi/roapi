@@ -71,11 +71,13 @@ jobs:
           name: wheels
           path: dist
       - name: Archive binary
+        if: "startsWith(github.ref, 'refs/tags/')"
         run: tar czvf target/release/roapi-http.tar.gz -C target/release roapi-http
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
         if: "startsWith(github.ref, 'refs/tags/')"
         with:
+          overwrite: true
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           asset_name: roapi-http-apple-darwin.tar.gz
           file: target/release/roapi-http.tar.gz
@@ -115,6 +117,19 @@ jobs:
         with:
           name: wheels
           path: dist
+      - name: Archive binary
+        if: "startsWith(github.ref, 'refs/tags/')"
+        run: |
+            tar czvf target/release/roapi-http.tar.gz -C target/${{ matrix.platform.target }}/release roapi-http.exe
+      - name: Upload binary to GitHub Release
+        uses: svenstaro/upload-release-action@v2
+        if: "startsWith(github.ref, 'refs/tags/')"
+        with:
+          overwrite: true
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          asset_name: roapi-http-windows.tar.gz
+          file: target/release/roapi-http.tar.gz
+          tag: ${{ github.ref }}
 
   linux:
     needs: validate-release-tag
@@ -122,15 +137,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [
-          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl", features: "simd,rustls", upload: "true" },
-          { manylinux: '2010', target: "x86_64-unknown-linux-musl", image_tag: "x86_64-musl", features: "simd,native-tls-vendored", upload: "false" },
-          # { manylinux: '2010', target: "i686-unknown-linux-musl", image_tag: "i686-musl", features: "" },
-          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl", features: "rustls", upload: "true"},
-          { manylinux: '2014', target: "aarch64-unknown-linux-musl", image_tag: "aarch64-musl", features: "native-tls-vendored", upload: "false" },
-          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf", features: "rustls", upload: "true" },
-          { manylinux: '2014', target: "armv7-unknown-linux-musleabihf", image_tag: "armv7-musleabihf", features: "native-tls-vendored", upload: "false" },
-        ]
+        platform:
+          - manylinux: "2010"
+            target: "x86_64-unknown-linux-musl"
+            image_tag: "x86_64-musl"
+            features: "simd,rustls"
+            name_suffix: ""
+            upload: "true"
+          # - manylinux: "2010"
+          #   target: "x86_64-unknown-linux-musl"
+          #   image_tag: "x86_64-musl"
+          #   features: "simd,native-tls"
+          #   name_suffix: "-openssl"
+          #   upload: "false"
+          - manylinux: '2014'
+            target: "aarch64-unknown-linux-musl"
+            image_tag: "aarch64-musl"
+            features: "rustls"
+            name_suffix: ""
+            upload: "true"
+          # - manylinux: '2014'
+          #   target: "aarch64-unknown-linux-musl"
+          #   image_tag: "aarch64-musl"
+          #   features: "native-tls"
+          #   name_suffix: "-openssl"
+          #   upload: "false"
+          - manylinux: '2014'
+            target: "armv7-unknown-linux-musleabihf"
+            image_tag: "armv7-musleabihf"
+            features: "rustls"
+            name_suffix: ""
+            upload: "true"
+          # - manylinux: '2014'
+          #   target: "armv7-unknown-linux-musleabihf"
+          #   image_tag: "armv7-musleabihf"
+          #   features: "native-tls"
+          #   name_suffix: "-openssl"
+          #   upload: "false"
     container:
       image: docker://messense/rust-musl-cross:${{ matrix.platform.image_tag }}
       env:
@@ -145,6 +188,11 @@ jobs:
             --toolchain nightly-${{ env.RUST_TC_NIGHTLY_VER }} \
             ${{ matrix.platform.target }}
           rustup default nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+      - name: Install build deps
+        if: "contains(matrix.platform.name_suffix, 'openssl')"
+        run: |
+          apt-get update
+          apt-get install -y libssl-dev
       - name: Build Wheels
         run: |
           sudo python3 -m pip install 'maturin<0.12'
@@ -159,14 +207,15 @@ jobs:
           name: wheels
           path: dist
       - name: Archive binary
-        if: "matrix.platform.upload == 'true'"
+        if: "startsWith(github.ref, 'refs/tags/')"
         run: tar czvf target/release/roapi-http.tar.gz -C target/${{ matrix.platform.target }}/release roapi-http
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
-        if: "startsWith(github.ref, 'refs/tags/') && matrix.platform.upload == 'true'"
+        if: "startsWith(github.ref, 'refs/tags/')"
         with:
+          overwrite: true
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          asset_name: roapi-http-${{ matrix.platform.target }}.tar.gz
+          asset_name: roapi-http-${{ matrix.platform.target }}${{ matrix.platform.name_suffix }}.tar.gz
           file: target/release/roapi-http.tar.gz
           tag: ${{ github.ref }}
 

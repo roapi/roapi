@@ -75,6 +75,36 @@ jobs:
         which cargo-cache || cargo install cargo-cache
         cargo cache trim -l 1G
 
+  # make sure native-tls always builds
+  openssl_build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: openssl-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          openssl-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          openssl-${{ runner.os }}-cargo-
+    - name: Install minimal stable with clippy and rustfmt
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: default
+        toolchain: stable
+        override: true
+    - name: Check
+      run: cargo clippy --no-default-features --features=native-tls
+    - name: Trim cache
+      run: |
+        which cargo-cache || cargo install cargo-cache
+        cargo cache trim -l 1G
+
   # cross compile from x86 mac to arm64, this is to make sure universal2
   # release will build without error
   mac_cross_build:
