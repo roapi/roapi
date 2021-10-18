@@ -49,36 +49,24 @@ pub fn encode_record_batches(
     content_type: encoding::ContentType,
     batches: &[arrow::record_batch::RecordBatch],
 ) -> Result<HttpResponse, ApiErrResp> {
+    let payload = match content_type {
+        encoding::ContentType::Json => encoding::json::record_batches_to_bytes(batches)
+            .map_err(ApiErrResp::json_serialization)?,
+        encoding::ContentType::Csv => encoding::csv::record_batches_to_bytes(batches)
+            .map_err(ApiErrResp::csv_serialization)?,
+        encoding::ContentType::ArrowFile => encoding::arrow::record_batches_to_file_bytes(batches)
+            .map_err(ApiErrResp::arrow_file_serialization)?,
+        encoding::ContentType::ArrowStream => {
+            encoding::arrow::record_batches_to_stream_bytes(batches)
+                .map_err(ApiErrResp::arrow_stream_serialization)?
+        }
+        encoding::ContentType::Parquet => encoding::parquet::record_batches_to_bytes(batches)
+            .map_err(ApiErrResp::parquet_serialization)?,
+    };
+
     let mut resp = HttpResponse::Ok();
     let builder = resp.content_type(content_type.to_str());
-
-    match content_type {
-        encoding::ContentType::Json => {
-            let payload = encoding::json::record_batches_to_bytes(batches)
-                .map_err(ApiErrResp::json_serialization)?;
-            Ok(builder.body(payload))
-        }
-        encoding::ContentType::Csv => {
-            let payload = encoding::csv::record_batches_to_bytes(batches)
-                .map_err(ApiErrResp::csv_serialization)?;
-            Ok(builder.body(payload))
-        }
-        encoding::ContentType::ArrowFile => {
-            let payload = encoding::arrow::record_batches_to_file_bytes(batches)
-                .map_err(ApiErrResp::arrow_file_serialization)?;
-            Ok(builder.body(payload))
-        }
-        encoding::ContentType::ArrowStream => {
-            let payload = encoding::arrow::record_batches_to_stream_bytes(batches)
-                .map_err(ApiErrResp::arrow_stream_serialization)?;
-            Ok(builder.body(payload))
-        }
-        encoding::ContentType::Parquet => {
-            let payload = encoding::parquet::record_batches_to_bytes(batches)
-                .map_err(ApiErrResp::parquet_serialization)?;
-            Ok(builder.body(payload))
-        }
-    }
+    Ok(builder.body(payload))
 }
 
 pub mod graphql;
