@@ -9,8 +9,6 @@ members = [
 [patch.crates-io]
 datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "af34cec956c8d67b2520a266e74683d7bdcb3099" }
 
-actix-cors = { git = "https://github.com/houqp/actix-extras.git", rev = "ab3bdb6a5924b6d881d204856199e7539e273d2f" }
-
 deltalake = { git = "https://github.com/houqp/delta-rs.git", rev = "cbf1126e70f8578f192dced7286ea9d63d9f629e" }
 
 [patch."https://github.com/apache/arrow-datafusion"]

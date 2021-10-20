@@ -1,8 +1,7 @@
 use std::fmt;
 
-use actix_http::body::Body;
-use actix_http::Response;
-use actix_web::{http, HttpResponse};
+use axum::http;
+use axum::http::Response;
 use columnq::datafusion::arrow;
 use columnq::datafusion::parquet;
 use columnq::error::QueryError;
@@ -15,6 +14,13 @@ pub struct ApiErrResp {
     pub code: http::StatusCode,
     pub error: String,
     pub message: String,
+}
+
+fn serialize_statuscode<S>(x: &http::StatusCode, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_u16(x.as_u16())
 }
 
 impl ApiErrResp {
@@ -30,7 +36,7 @@ impl ApiErrResp {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,
             error: "json_serialization".to_string(),
-            message: "Failed to serialize record batches into JSON".to_string(),
+            message: "Failed to serialize payload into JSON".to_string(),
         }
     }
 
@@ -85,11 +91,14 @@ impl From<QueryError> for ApiErrResp {
     }
 }
 
-fn serialize_statuscode<S>(x: &http::StatusCode, s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_u16(x.as_u16())
+impl From<http::Error> for ApiErrResp {
+    fn from(e: http::Error) -> Self {
+        ApiErrResp {
+            error: "http_error".to_string(),
+            message: e.to_string(),
+            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
 }
 
 impl fmt::Display for ApiErrResp {
@@ -98,12 +107,14 @@ impl fmt::Display for ApiErrResp {
     }
 }
 
-impl actix_web::error::ResponseError for ApiErrResp {
-    fn status_code(&self) -> http::StatusCode {
-        self.code
-    }
+impl axum::response::IntoResponse for ApiErrResp {
+    type Body = axum::body::Body;
+    type BodyError = <Self::Body as axum::body::HttpBody>::Error;
 
-    fn error_response(&self) -> Response<Body> {
-        HttpResponse::build(self.code).json(self)
+    fn into_response(self) -> Response<axum::body::Body> {
+        let payload = serde_json::to_vec(&self).unwrap();
+        let mut res = Response::new(axum::body::Body::from(payload));
+        *res.status_mut() = self.code;
+        res
     }
 }
