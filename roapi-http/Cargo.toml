@@ -20,8 +20,8 @@ columnq = { path = "../columnq", version = "0", default-features = false }
 snmalloc-rs = { version = "0.2", optional = true }
 
 # all actix dependencies are patched to use git source until actix-web 4.x lands
-actix-web = "4.0.0-beta.4"
-actix-http = "3.0.0-beta.4"
+actix-web = { version = "4.0.0-beta.4", default-features = false }
+actix-http = { version = "3.0.0-beta.4", default-features = false }
 actix-service = "2.0.0-beta.3"
 # see https://github.com/actix/actix-extras/pull/144 for cors tokio 1 upgrade
 actix-cors = "*"
@@ -46,6 +46,8 @@ snmalloc = ["snmalloc-rs"]
 
 [dev-dependencies]
 actix-rt = "*"
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"]}
+tokio = { version = "1" }
 
 # TODO: uncomment this when we exclude roapi-http from root workspace
 # [profile.release]
