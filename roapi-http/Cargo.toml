@@ -1,6 +1,6 @@
 [package]
 name = "roapi-http"
-version = "0.4.1"
+version = "0.4.3"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -16,6 +16,8 @@ path = "src/main.rs"
 
 [dependencies]
 columnq = { path = "../columnq", version = "0", default-features = false }
+# for datafusion optimization
+snmalloc-rs = { version = "0.2", optional = true }
 
 # all actix dependencies are patched to use git source until actix-web 4.x lands
 actix-web = { version = "4.0.0-beta.4", default-features = false }
@@ -35,12 +37,19 @@ thiserror = "1"
 anyhow = "1"
 
 [features]
-default = ["rustls"]
+default = ["rustls", "snmalloc"]
 rustls = ["columnq/rustls"]
 native-tls-vendored = ["columnq/native-tls-vendored"]
+native-tls = ["columnq/native-tls"]
 simd = ["columnq/simd"]
+snmalloc = ["snmalloc-rs"]
 
 [dev-dependencies]
 actix-rt = "*"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"]}
 tokio = { version = "1" }
+
+# TODO: uncomment this when we exclude roapi-http from root workspace
+# [profile.release]
+# lto = true
+# codegen-units = 1

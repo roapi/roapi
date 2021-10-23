@@ -9,6 +9,7 @@ on:
 env:
   # NOTE: this env is also defined in roapi_http_release.yml and columnq_cli_release.yml
   RUST_TC_NIGHTLY_VER: "2021-09-25"
+  RUSTFLAGS: "-C target-cpu=skylake"
 
 jobs:
   build:
@@ -41,7 +42,7 @@ jobs:
       run: cargo test
     - name: Trim cache
       run: |
-        cargo install --force cargo-cache
+        which cargo-cache || cargo install cargo-cache
         cargo cache trim -l 1G
 
   simd_test:
@@ -71,7 +72,76 @@ jobs:
       run: cargo test --features simd
     - name: Trim cache
       run: |
-        cargo install --force cargo-cache
+        which cargo-cache || cargo install cargo-cache
+        cargo cache trim -l 1G
+
+  # make sure native-tls always builds
+  openssl_build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: openssl-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          openssl-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          openssl-${{ runner.os }}-cargo-
+    - name: Install minimal stable with clippy and rustfmt
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: default
+        toolchain: stable
+        override: true
+    - name: Check
+      run: cargo clippy --no-default-features --features=native-tls
+    - name: Trim cache
+      run: |
+        which cargo-cache || cargo install cargo-cache
+        cargo cache trim -l 1G
+
+  # cross compile from x86 mac to arm64, this is to make sure universal2
+  # release will build without error
+  mac_cross_build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: mac-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          mac-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          mac-${{ runner.os }}-cargo-
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        target: aarch64-apple-darwin
+        profile: minimal
+        default: true
+    - name: Build binary - universal2
+      env:
+        DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        MACOSX_DEPLOYMENT_TARGET: '10.9'
+      run: |
+        # set SDKROOT for C dependencies
+        export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+        cd roapi-http && \
+          cargo build --bin roapi-http --target aarch64-apple-darwin
+    - name: Trim cache
+      run: |
+        which cargo-cache || cargo install cargo-cache
         cargo cache trim -l 1G
 
   docker_build:
@@ -84,4 +154,8 @@ jobs:
         with:
           context: .
           push: false
-          tags: latest
+          load: true
+          tags: roapi-http:latest
+      - name: Test
+        run: |
+          docker run --rm roapi-http:latest --help

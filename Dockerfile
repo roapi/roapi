@@ -1,7 +1,11 @@
 FROM instrumentisto/rust:nightly-bullseye-2021-09-24 AS builder
 WORKDIR /roapi_src
 COPY ./ /roapi_src
-RUN cargo install --locked --features simd --path ./roapi-http --bin roapi-http
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y cmake
+
+RUN RUSTFLAGS='-C target-cpu=skylake' \
+    cargo install --locked --features simd --path ./roapi-http --bin roapi-http
 
 FROM debian:bullseye-slim
 LABEL org.opencontainers.image.source https://github.com/roapi/roapi

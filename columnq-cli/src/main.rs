@@ -9,6 +9,10 @@ use columnq::datafusion::arrow::util::pretty;
 use columnq::table::parse_table_uri_arg;
 use columnq::{encoding, ColumnQ, ExecutionConfig};
 
+#[cfg(snmalloc)]
+#[global_allocator]
+static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
+
 fn history_path() -> anyhow::Result<PathBuf> {
     let mut home =
         dirs::home_dir().ok_or_else(|| anyhow!("Failed to locate user home directory"))?;
