@@ -19,12 +19,15 @@ columnq = { path = "../columnq", version = "0", default-features = false }
 # for datafusion optimization
 snmalloc-rs = { version = "0.2", optional = true }
 
-# all actix dependencies are patched to use git source until actix-web 4.x lands
-actix-web = { version = "4.0.0-beta.4", default-features = false }
-actix-http = { version = "3.0.0-beta.4", default-features = false }
-actix-service = "2.0.0-beta.3"
-# see https://github.com/actix/actix-extras/pull/144 for cors tokio 1 upgrade
-actix-cors = "*"
+# dependencies related to axum
+tokio = { version = "1", features = ["rt-multi-thread"] }
+hyper = { version = "0", features = ["http1", "server", "stream", "runtime"] }
+# axum = "0.2.8"
+axum = { git = "https://github.com/tokio-rs/axum.git", rev = "7692baf83728775afbb7ed7f1a178d741ca74c40" }
+tower-http = { git = "https://github.com/tower-rs/tower-http.git", branch = "cors", features = ["cors"] }
+tower-layer = "0"
+tracing = "0"
+pin-project = "1"
 
 env_logger = "0"
 log = "0"
@@ -47,7 +50,6 @@ snmalloc = ["snmalloc-rs"]
 [dev-dependencies]
 actix-rt = "*"
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"]}
-tokio = { version = "1" }
 
 # TODO: uncomment this when we exclude roapi-http from root workspace
 # [profile.release]

@@ -1,28 +1,23 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse};
-use serde_derive::Deserialize;
+use axum::body::Body;
+use axum::extract;
+use axum::http::header::HeaderMap;
+use axum::http::Response;
 
-use crate::api::{encode_record_batches, encode_type_from_req, HandlerContext};
+use crate::api::HandlerContext;
+use crate::api::{encode_record_batches, encode_type_from_hdr};
 use crate::error::ApiErrResp;
 
-#[derive(Deserialize)]
-pub struct RestTablePath {
-    table_name: String,
-}
-
 pub async fn get_table(
-    data: web::Data<HandlerContext>,
-    path: web::Path<RestTablePath>,
-    req: HttpRequest,
-    query: web::Query<HashMap<String, String>>,
-) -> Result<HttpResponse, ApiErrResp> {
-    let encode_type = encode_type_from_req(req)?;
-
-    let batches = data
-        .cq
-        .query_rest_table(&path.table_name, &query.into_inner())
-        .await?;
-
+    state: extract::Extension<Arc<HandlerContext>>,
+    headers: HeaderMap,
+    extract::Path(table_name): extract::Path<String>,
+    extract::Query(params): extract::Query<HashMap<String, String>>,
+) -> Result<Response<Body>, ApiErrResp> {
+    let ctx = &state.0;
+    let encode_type = encode_type_from_hdr(headers)?;
+    let batches = ctx.cq.query_rest_table(&table_name, &params).await?;
     encode_record_batches(encode_type, &batches)
 }

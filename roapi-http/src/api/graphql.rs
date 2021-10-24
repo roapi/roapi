@@ -1,17 +1,22 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use std::sync::Arc;
 
-use crate::api::{encode_record_batches, encode_type_from_req, HandlerContext};
+use axum::body::Body;
+use axum::body::Bytes;
+use axum::extract;
+use axum::http::header::HeaderMap;
+use axum::http::Response;
+
+use crate::api::{encode_record_batches, encode_type_from_hdr, HandlerContext};
 use crate::error::ApiErrResp;
 
 pub async fn post(
-    data: web::Data<HandlerContext>,
-    req: HttpRequest,
-    query: web::Bytes,
-) -> Result<HttpResponse, ApiErrResp> {
-    let encode_type = encode_type_from_req(req)?;
-
-    let graphq = std::str::from_utf8(&query).map_err(ApiErrResp::read_query)?;
-    let batches = data.cq.query_graphql(graphq).await?;
-
+    state: extract::Extension<Arc<HandlerContext>>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Response<Body>, ApiErrResp> {
+    let ctx = state.0;
+    let encode_type = encode_type_from_hdr(headers)?;
+    let graphq = std::str::from_utf8(&body).map_err(ApiErrResp::read_query)?;
+    let batches = ctx.cq.query_graphql(graphq).await?;
     encode_record_batches(encode_type, &batches)
 }

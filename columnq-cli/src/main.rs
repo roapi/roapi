@@ -160,9 +160,9 @@ async fn main() -> anyhow::Result<()> {
 
     let app = clap::App::new("Columnq")
         .version("0.0.1")
+        .author("QP Hou")
         .about("OLAP the Unix way.")
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
-        .setting(clap::AppSettings::DisableVersionForSubcommands)
         .subcommand(
             clap::App::new("sql")
                 .about("Query tables with SQL")
