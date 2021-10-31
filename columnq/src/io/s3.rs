@@ -201,7 +201,16 @@ pub async fn partitions_from_uri<'a, F, T>(
 where
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
-    let client = rusoto_s3::S3Client::new(rusoto_core::Region::default());
+    let region = if let Ok(endpoint_url) = std::env::var("AWS_ENDPOINT_URL") {
+        debug!("using custom S3 endpoint: {}", &endpoint_url);
+        rusoto_core::Region::Custom {
+            name: "custom".to_string(),
+            endpoint: endpoint_url,
+        }
+    } else {
+        rusoto_core::Region::default()
+    };
+    let client = rusoto_s3::S3Client::new(region);
     // TODO: use host and path from URIReference instead
     let (bucket, key) = parse_uri(t.get_uri_str())?;
 
