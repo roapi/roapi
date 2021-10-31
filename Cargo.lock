@@ -364,7 +364,7 @@ dependencies = [
 
 [[package]]
 name = "columnq-cli"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "anyhow",
  "clap",
@@ -1980,7 +1980,7 @@ dependencies = [
 
 [[package]]
 name = "roapi-http"
-version = "0.4.3"
+version = "0.4.4"
 dependencies = [
  "actix-rt",
  "anyhow",

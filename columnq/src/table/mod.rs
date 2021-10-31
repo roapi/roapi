@@ -312,8 +312,9 @@ impl TableSource {
 
     pub fn parsed_uri(&self) -> Result<URIReference, ColumnQError> {
         match &self.io_source {
-            TableIoSource::Uri(uri) => URIReference::try_from(uri.as_str())
-                .map_err(|_| ColumnQError::InvalidUri(uri.to_string())),
+            TableIoSource::Uri(uri) => URIReference::try_from(uri.as_str()).map_err(|_| {
+                ColumnQError::InvalidUri(format!("{}. Make sure it's URI encoded.", uri))
+            }),
             TableIoSource::Memory(_) => URIReference::builder()
                 .with_scheme(Some(uriparse::Scheme::try_from("memory").map_err(|e| {
                     ColumnQError::Generic(format!(
