@@ -140,7 +140,8 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "axum"
 version = "0.3.0"
-source = "git+https://github.com/tokio-rs/axum.git?rev=7692baf83728775afbb7ed7f1a178d741ca74c40#7692baf83728775afbb7ed7f1a178d741ca74c40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49c3f630b925c7a85089ff794fdce495c88c80d38710f31eb9817c8399fd77ce"
 dependencies = [
  "async-trait",
  "bitflags",
@@ -1280,9 +1281,9 @@ checksum = "a3e378b66a060d48947b590737b30a1be76706c8dd7b8ba0f2fe3989c68a853f"
 
 [[package]]
 name = "matchit"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96eb506a2b58cf156e8ea212ec185d0e3a24014d8381c9f73cca8fe3d6e86546"
+checksum = "58b6f41fdfbec185dd3dff58b51e323f5bc61692c0de38419a957b0dcfccca3c"
 
 [[package]]
 name = "md-5"
