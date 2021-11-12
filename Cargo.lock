@@ -3,27 +3,6 @@
 version = 3
 
 [[package]]
-name = "actix-macros"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "465a6172cf69b960917811022d8f29bc0b7fa1398bc4f78b3c466673db1213b6"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
-name = "actix-rt"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea360596a50aa9af459850737f99293e5cb9114ae831118cb6026b3bbc7583ad"
-dependencies = [
- "actix-macros",
- "futures-core",
- "tokio",
-]
-
-[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -139,9 +118,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "axum"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49c3f630b925c7a85089ff794fdce495c88c80d38710f31eb9817c8399fd77ce"
+checksum = "c5e874ee652f2ec443faed3073b80f0ac7a2042a3605fc0704d28bbbf22d623c"
 dependencies = [
  "async-trait",
  "bitflags",
@@ -1097,15 +1076,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "instant"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
-dependencies = [
- "cfg-if 1.0.0",
-]
-
-[[package]]
 name = "integer-encoding"
 version = "1.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1228,15 +1198,6 @@ name = "linked-hash-map"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
-
-[[package]]
-name = "lock_api"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "712a4d093c9976e24e7dbca41db895dabcbac38eb5f4045393d17a95bdfb1109"
-dependencies = [
- "scopeguard",
-]
 
 [[package]]
 name = "log"
@@ -1612,31 +1573,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "parking_lot"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
-dependencies = [
- "instant",
- "lock_api",
- "parking_lot_core",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d76e8e1493bcac0d2766c42737f34458f1c8c50c0d23bcb24ea953affb273216"
-dependencies = [
- "cfg-if 1.0.0",
- "instant",
- "libc",
- "redox_syscall",
- "smallvec",
- "winapi",
-]
-
-[[package]]
 name = "parquet"
 version = "6.0.0-SNAPSHOT"
 source = "git+https://github.com/apache/arrow-rs?rev=615d7830fdaf994ebd32ca1e349daf68b18c99b0#615d7830fdaf994ebd32ca1e349daf68b18c99b0"
@@ -1983,7 +1919,6 @@ dependencies = [
 name = "roapi-http"
 version = "0.4.4"
 dependencies = [
- "actix-rt",
  "anyhow",
  "axum",
  "clap",
@@ -2809,7 +2744,6 @@ dependencies = [
  "mio",
  "num_cpus",
  "once_cell",
- "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "tokio-macros",

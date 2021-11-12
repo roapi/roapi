@@ -21,7 +21,9 @@ impl TryFrom<Option<&uriparse::Scheme<'_>>> for BlobStoreType {
     fn try_from(scheme: Option<&uriparse::Scheme<'_>>) -> Result<Self, Self::Error> {
         match scheme {
             // default to local file when schema is not provided
-            None | Some(uriparse::Scheme::FileSystem) | Some(uriparse::Scheme::File) => Ok(BlobStoreType::FileSystem),
+            None | Some(uriparse::Scheme::FileSystem) | Some(uriparse::Scheme::File) => {
+                Ok(BlobStoreType::FileSystem)
+            }
             Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => Ok(BlobStoreType::Http),
             Some(uriparse::Scheme::Unregistered(s)) => match s.as_str() {
                 "s3" => Ok(BlobStoreType::S3),
@@ -40,12 +42,11 @@ impl TryFrom<Option<&uriparse::Scheme<'_>>> for BlobStoreType {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use uriparse::*;
-    use std::convert::TryFrom;
     use crate::io::BlobStoreType;
+    use std::convert::TryFrom;
+    use uriparse::*;
 
     #[test]
     fn path_test() {

@@ -17,7 +17,7 @@ pub async fn get_table(
     extract::Query(params): extract::Query<HashMap<String, String>>,
 ) -> Result<Response<Body>, ApiErrResp> {
     let ctx = &state.0;
-    let encode_type = encode_type_from_hdr(headers)?;
+    let encode_type = encode_type_from_hdr(headers);
     let batches = ctx.cq.query_rest_table(&table_name, &params).await?;
     encode_record_batches(encode_type, &batches)
 }

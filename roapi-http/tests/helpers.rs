@@ -27,12 +27,14 @@ pub async fn test_api_app(tables: Vec<TableSource>) -> (Application, String) {
     (app, address)
 }
 
-pub async fn http_get(url: &str) -> reqwest::Response {
-    reqwest::Client::new()
-        .get(url)
-        .send()
-        .await
-        .expect("Unable to execute GET request")
+pub async fn http_get(url: &str, accept: Option<&str>) -> reqwest::Response {
+    let request = reqwest::Client::new().get(url);
+    let request = if let Some(accept) = accept {
+        request.header("Accept", accept)
+    } else {
+        request
+    };
+    request.send().await.expect("Unable to execute GET request")
 }
 
 pub async fn http_post(url: &str, payload: impl Into<reqwest::Body>) -> reqwest::Response {
