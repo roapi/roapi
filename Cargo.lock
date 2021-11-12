@@ -2843,7 +2843,7 @@ dependencies = [
 [[package]]
 name = "tower-http"
 version = "0.1.1"
-source = "git+https://github.com/tower-rs/tower-http.git?branch=cors#9f09fc55bf74b5b9a8bd79cbede7e73d37a3e79b"
+source = "git+https://github.com/tower-rs/tower-http.git?branch=cors#44b79e09fe0a53f2abd0a6775deef264f3d2af69"
 dependencies = [
  "bytes",
  "futures-core",
