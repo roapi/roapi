@@ -53,9 +53,7 @@ pub fn bytes_to_json_resp(bytes: Vec<u8>) -> Response<Body> {
 pub fn encode_type_from_hdr(headers: header::HeaderMap) -> encoding::ContentType {
     match headers.get(header::ACCEPT) {
         None => encoding::ContentType::Json,
-        Some(hdr_value) => encoding::ContentType::try_from(hdr_value.as_bytes())
-            .or::<()>(Ok(ContentType::Json))
-            .unwrap(),
+        Some(hdr_value) => encoding::ContentType::try_from(hdr_value.as_bytes()).unwrap_or(ContentType::Json),
     }
 }
 
