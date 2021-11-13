@@ -1,11 +1,11 @@
 use std::convert::TryFrom;
 
 use axum::body::Body;
-use axum::http;
 use axum::http::header;
 use axum::http::Response;
 use columnq::datafusion::arrow;
 use columnq::encoding;
+use columnq::encoding::ContentType;
 use columnq::ColumnQ;
 use log::info;
 
@@ -50,17 +50,11 @@ pub fn bytes_to_json_resp(bytes: Vec<u8>) -> Response<Body> {
     bytes_to_resp(bytes, "application/json")
 }
 
-pub fn encode_type_from_hdr(
-    headers: header::HeaderMap,
-) -> Result<encoding::ContentType, ApiErrResp> {
+pub fn encode_type_from_hdr(headers: header::HeaderMap) -> encoding::ContentType {
     match headers.get(header::ACCEPT) {
-        None => Ok(encoding::ContentType::Json),
+        None => encoding::ContentType::Json,
         Some(hdr_value) => {
-            encoding::ContentType::try_from(hdr_value.as_bytes()).map_err(|_| ApiErrResp {
-                code: http::StatusCode::BAD_REQUEST,
-                error: "unsupported_content_type".to_string(),
-                message: format!("{:?} is not a supported response content type", hdr_value),
-            })
+            encoding::ContentType::try_from(hdr_value.as_bytes()).unwrap_or(ContentType::Json)
         }
     }
 }

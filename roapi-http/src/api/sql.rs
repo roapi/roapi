@@ -15,7 +15,7 @@ pub async fn post(
     body: Bytes,
 ) -> Result<Response<Body>, ApiErrResp> {
     let ctx = state.0;
-    let encode_type = encode_type_from_hdr(headers)?;
+    let encode_type = encode_type_from_hdr(headers);
     let sql = std::str::from_utf8(&body).map_err(ApiErrResp::read_query)?;
     let batches = ctx.cq.query_sql(sql).await?;
     encode_record_batches(encode_type, &batches)

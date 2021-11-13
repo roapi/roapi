@@ -6,13 +6,13 @@ use anyhow::Result;
 use columnq::arrow::datatypes::Schema;
 use tokio;
 
-#[actix_rt::test]
+#[tokio::test]
 async fn test_schema() -> Result<()> {
     let json_table = helpers::get_spacex_table();
     let (app, address) = helpers::test_api_app(vec![json_table]).await;
     tokio::spawn(app.run_until_stopped());
 
-    let response = helpers::http_get(&format!("{}/api/schema", address)).await;
+    let response = helpers::http_get(&format!("{}/api/schema", address), None).await;
 
     assert_eq!(response.status(), 200);
     let body = response.json::<HashMap<String, Schema>>().await?;
@@ -20,7 +20,7 @@ async fn test_schema() -> Result<()> {
     Ok(())
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn test_uk_cities_sql_post() -> Result<()> {
     let table = helpers::get_uk_cities_table();
     let (app, address) = helpers::test_api_app(vec![table]).await;
@@ -47,7 +47,7 @@ async fn test_uk_cities_sql_post() -> Result<()> {
     Ok(())
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn test_sql_invalid_post() -> Result<()> {
     let table = helpers::get_uk_cities_table();
     let (app, address) = helpers::test_api_app(vec![table]).await;
@@ -68,7 +68,7 @@ async fn test_sql_invalid_post() -> Result<()> {
     Ok(())
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn test_ubuntu_ami_sql_post() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app(vec![table]).await;
@@ -95,43 +95,54 @@ async fn test_ubuntu_ami_sql_post() -> Result<()> {
     Ok(())
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn test_rest_get() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
+    let accept_headers = vec![
+        None,
+        Some("application/json"),
+        Some("text/html,application/xhtml+xml,application/xml;q=0.9"),
+        Some("text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.5"),
+    ];
 
-    let response = helpers::http_get(&format!(
-        "{}/api/tables/ubuntu_ami?\
+    for accept_header in accept_headers {
+        let response = helpers::http_get(
+            &format!(
+                "{}/api/tables/ubuntu_ami?\
                 columns=name,version,release&\
                 filter[arch]='amd64'&\
                 filter[zone]eq='us-west-2'&\
                 filter[instance_type]eq='hvm:ebs-ssd'&\
                 sort=-version,release\
                 ",
-        address
-    ))
-    .await;
+                address
+            ),
+            accept_header,
+        )
+        .await;
 
-    assert_eq!(response.status(), 200);
-    let data = response.json::<serde_json::Value>().await?;
-    assert_eq!(
-        data,
-        serde_json::json!([
-            { "release": "20201205", "version": "20.10", "name": "groovy" },
-            { "release": "20201201", "version": "20.04 LTS", "name": "focal" },
-            { "release": "20200716.1", "version": "19.10", "name": "eoan" },
-            { "release": "20200115", "version": "19.04", "name": "disco" },
-            { "release": "20201201", "version": "18.04 LTS", "name": "bionic" },
-            { "release": "20201202.1", "version": "16.04 LTS", "name": "xenial" },
-            { "release": "20191107", "version": "14.04 LTS", "name": "trusty" },
-            { "release": "20170502", "version": "12.04 LTS", "name": "precise" }
-        ])
-    );
+        assert_eq!(response.status(), 200);
+        let data = response.json::<serde_json::Value>().await?;
+        assert_eq!(
+            data,
+            serde_json::json!([
+                { "release": "20201205", "version": "20.10", "name": "groovy" },
+                { "release": "20201201", "version": "20.04 LTS", "name": "focal" },
+                { "release": "20200716.1", "version": "19.10", "name": "eoan" },
+                { "release": "20200115", "version": "19.04", "name": "disco" },
+                { "release": "20201201", "version": "18.04 LTS", "name": "bionic" },
+                { "release": "20201202.1", "version": "16.04 LTS", "name": "xenial" },
+                { "release": "20191107", "version": "14.04 LTS", "name": "trusty" },
+                { "release": "20170502", "version": "12.04 LTS", "name": "precise" }
+            ])
+        );
+    }
     Ok(())
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn test_graphql_post_query_op() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app(vec![table]).await;
@@ -177,7 +188,7 @@ async fn test_graphql_post_query_op() -> Result<()> {
     Ok(())
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn test_graphql_post_selection() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app(vec![table]).await;
