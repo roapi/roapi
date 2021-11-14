@@ -23,7 +23,7 @@ snmalloc-rs = { version = "0.2", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 hyper = { version = "0", features = ["http1", "server", "stream", "runtime"] }
 axum = "0.3"
-tower-http = { git = "https://github.com/tower-rs/tower-http.git", branch = "cors", features = ["cors"] }
+tower-http = { version = "0", features = ["cors"] }
 tower-layer = "0"
 tracing = "0"
 pin-project = "1"

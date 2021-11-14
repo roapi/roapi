@@ -35,8 +35,6 @@ jobs:
         profile: default
         toolchain: stable
         override: true
-    - name: Clean roapi-http
-      run: cargo clean -p roapi-http
     - name: Check
       run: cargo clippy
     - name: Build
