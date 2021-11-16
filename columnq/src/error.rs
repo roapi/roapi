@@ -16,7 +16,7 @@ pub enum ColumnQError {
     ExpectFormatOption(String),
 
     #[error("Unexpected Google Spreadsheets error: {0}")]
-    GoogleSpeadsheets(String),
+    GoogleSpreadsheets(String),
 
     #[error("Error loading JSON: {0}")]
     LoadJson(String),
