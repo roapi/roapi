@@ -26,9 +26,10 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
     let delta_table = deltalake::open_table(uri_str).await?;
     let parsed_uri = t.parsed_uri()?;
     let blob_type = io::BlobStoreType::try_from(parsed_uri.scheme())?;
+    let batch_size = t.batch_size;
 
     if *use_memory_table {
-        to_mem_table(delta_table, blob_type).await
+        to_mem_table(delta_table, blob_type, batch_size).await
     } else {
         to_delta_table(delta_table, blob_type).await
     }
@@ -75,10 +76,8 @@ fn read_partition<R: Read>(mut r: R, batch_size: usize) -> Result<Vec<RecordBatc
 pub async fn to_mem_table(
     delta_table: deltalake::DeltaTable,
     blob_type: io::BlobStoreType,
+    batch_size: usize,
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
-    // TODO: make batch size configurable
-    let batch_size = 1024;
-
     if delta_table.get_files().is_empty() {
         return Err(ColumnQError::LoadDelta("empty delta table".to_string()));
     }

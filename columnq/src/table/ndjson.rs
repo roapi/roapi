@@ -11,8 +11,7 @@ use crate::table::TableSource;
 pub async fn to_mem_table(
     t: &TableSource,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
-    // TODO: make batch size configurable
-    let batch_size = 1024;
+    let batch_size = t.batch_size;
 
     let schema_ref: SchemaRef = match &t.schema {
         Some(table_schema) => Arc::new(table_schema.into()),

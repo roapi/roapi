@@ -21,7 +21,7 @@ pub async fn to_mem_table(
     let delimiter = opt.delimiter;
     let projection = opt.projection.as_ref();
 
-    let batch_size = 1024;
+    let batch_size = t.batch_size;
 
     debug!("inferring csv table schema...");
     let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
