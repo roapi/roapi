@@ -37,6 +37,14 @@ impl From<&TableColumn> for arrow::datatypes::Field {
     }
 }
 
+impl From<TableColumn> for arrow::datatypes::Field {
+    fn from(c: TableColumn) -> Self {
+        // TODO: update upstream arrow::datatypes::Field::new to support taking owned string as
+        // name argument
+        arrow::datatypes::Field::new(&c.name, c.data_type, c.nullable)
+    }
+}
+
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct TableSchema {
@@ -48,6 +56,17 @@ impl From<&TableSchema> for arrow::datatypes::Schema {
         arrow::datatypes::Schema::new(
             s.columns
                 .iter()
+                .map(|c| c.into())
+                .collect::<Vec<arrow::datatypes::Field>>(),
+        )
+    }
+}
+
+impl From<TableSchema> for arrow::datatypes::Schema {
+    fn from(s: TableSchema) -> Self {
+        arrow::datatypes::Schema::new(
+            s.columns
+                .into_iter()
                 .map(|c| c.into())
                 .collect::<Vec<arrow::datatypes::Field>>(),
         )

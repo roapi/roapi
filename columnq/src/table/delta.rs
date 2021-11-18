@@ -140,7 +140,7 @@ mod tests {
         )
         .await?;
 
-        validate_statistics(t.scan(&None, 1024, &[], None)?.statistics());
+        validate_statistics(t.scan(&None, 1024, &[], None).await?.statistics());
 
         match t.as_any().downcast_ref::<MemTable>() {
             Some(_) => Ok(()),
