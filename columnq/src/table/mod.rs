@@ -277,6 +277,8 @@ pub struct TableSource {
     pub io_source: TableIoSource,
     pub schema: Option<TableSchema>,
     pub option: Option<TableLoadOption>,
+    #[serde(default = "TableSource::default_batch_size")]
+    pub batch_size: usize
 }
 
 impl TableSource {
@@ -285,12 +287,18 @@ impl TableSource {
             name: name.into(),
             io_source: source.into(),
             schema: None,
-            option: None,
+            option: None, 
+            batch_size: Self::default_batch_size(),
         }
     }
 
     pub fn new_with_uri(name: impl Into<String>, uri: impl Into<String>) -> Self {
         Self::new(name, uri.into())
+    }
+
+    #[inline]
+    pub fn default_batch_size() -> usize {
+        1024
     }
 
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
@@ -502,6 +510,21 @@ schema:
         Ok(())
     }
 
+    #[test]
+    fn batch_size_deserialisation() -> anyhow::Result<()> {
+        let table_source: TableSource = serde_yaml::from_str(
+            r#"
+name: "ubuntu_ami"
+uri: "test_data/ubuntu-ami.json"
+batch_size: 512
+"#,
+        )?;
+        
+        assert_eq!(table_source.batch_size, 512);
+        
+        Ok(())
+    }
+    
     #[test]
     fn test_parse_table_uri() {
         let t = parse_table_uri_arg("t=a/b/c").unwrap();
