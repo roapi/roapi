@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{BufReader, Read};
 use std::sync::Arc;
 
 use datafusion::arrow;
@@ -10,7 +10,8 @@ use crate::error::ColumnQError;
 use crate::table::{TableLoadOption, TableSchema, TableSource};
 
 fn json_value_from_reader<R: Read>(r: R) -> Result<Value, ColumnQError> {
-    serde_json::from_reader(r).map_err(ColumnQError::json_parse)
+    let reader = BufReader::new(r);
+    serde_json::from_reader(reader).map_err(ColumnQError::json_parse)
 }
 
 fn json_partition_to_vec(
