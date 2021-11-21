@@ -11,8 +11,7 @@ name = "columnq"
 path = "src/lib.rs"
 
 [dependencies]
-datafusion = "5"
-# datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "af34cec956c8d67b2520a266e74683d7bdcb3099" }
+datafusion = "6"
 
 log = "0"
 regex = "1"

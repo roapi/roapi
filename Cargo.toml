@@ -7,12 +7,13 @@ members = [
 ]
 
 [patch.crates-io]
-datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "af34cec956c8d67b2520a266e74683d7bdcb3099" }
+# datafusion = { git = "https://github.com/apache/arrow-datafusion.git", rev = "e62cb455955e120cfe9d8935aa3ebc8726369d15" }
+datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "07bc2c754805f536fe1cd873dbe6adfc0a21cbb3" }
 
-deltalake = { git = "https://github.com/houqp/delta-rs.git", rev = "cbf1126e70f8578f192dced7286ea9d63d9f629e" }
+deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "70f520a15ae7884c46142bfb0dbc8790f43d8701" }
 
 [patch."https://github.com/apache/arrow-datafusion"]
-datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "af34cec956c8d67b2520a266e74683d7bdcb3099" }
+datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "07bc2c754805f536fe1cd873dbe6adfc0a21cbb3" }
 
 [profile.dev]
 split-debuginfo = "unpacked"

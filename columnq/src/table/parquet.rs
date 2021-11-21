@@ -7,7 +7,9 @@ use crate::table::{TableLoadOption, TableOptionParquet, TableSource};
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
-use datafusion::datasource::parquet::ParquetTable;
+use datafusion::datasource::file_format::parquet::ParquetFormat;
+use datafusion::datasource::listing::{ListingOptions, ListingTable};
+use datafusion::datasource::object_store::local::LocalFileSystem;
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::{ArrowReader, ParquetFileArrowReader};
 use datafusion::parquet::file::reader::SerializedFileReader;
@@ -23,11 +25,26 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
     if *use_memory_table {
         to_mem_table(t).await
     } else {
-        Ok(Arc::new(
-            ParquetTable::try_new(t.parsed_uri()?, 4).map_err(|err| {
-                ColumnQError::LoadParquet(format!("failed to load parquet: '{}'", err.to_string()))
-            })?,
-        ))
+        let table_uri = t.parsed_uri()?;
+        let table_path = table_uri.path().to_string();
+        // TODO: pick datafusion object store based on uri
+        let df_object_store = Arc::new(LocalFileSystem {});
+        let list_opt = ListingOptions::new(Arc::new(ParquetFormat::default()));
+        let file_schema = match &t.schema {
+            Some(s) => Arc::new(s.into()),
+            None => {
+                list_opt
+                    .infer_schema(df_object_store.clone(), &table_path)
+                    .await?
+            }
+        };
+
+        Ok(Arc::new(ListingTable::new(
+            df_object_store,
+            table_path,
+            file_schema,
+            list_opt,
+        )))
     }
 }
 
@@ -105,16 +122,16 @@ mod tests {
         )
         .await?;
 
-        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(500));
         let stats = stats.column_statistics.unwrap();
         assert_eq!(stats[0].null_count, Some(245));
         assert_eq!(stats[1].null_count, Some(373));
         assert_eq!(stats[2].null_count, Some(237));
 
-        match t.as_any().downcast_ref::<ParquetTable>() {
+        match t.as_any().downcast_ref::<ListingTable>() {
             Some(_) => Ok(()),
-            None => panic!("must be of type datafusion::datasource::parquet::ParquetTable"),
+            None => panic!("must be of type datafusion::datasource::listing::ListingTable"),
         }
     }
 
@@ -135,7 +152,7 @@ mod tests {
             Some("protobuf")
         );
 
-        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(500));
 
         Ok(())
@@ -165,7 +182,7 @@ mod tests {
             Some("protobuf")
         );
 
-        let stats = t.scan(&None, 1024, &[], None)?.statistics();
+        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(1500));
 
         Ok(())
