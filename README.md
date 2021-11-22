@@ -224,8 +224,9 @@ Query layer:
   - [x] GraphQL
   - [x] SQL
   - [x] join between tables
-  - [x] support query on nested struct fields
-  - [ ] index
+  - [x] access to array elements by index
+  - [x] access to nested struct fields by key
+  - [ ] column index
   - protocol
     - [ ] gRPC
     - [ ] MySQL
