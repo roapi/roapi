@@ -297,7 +297,7 @@ pub struct TableSource {
     pub schema: Option<TableSchema>,
     pub option: Option<TableLoadOption>,
     #[serde(default = "TableSource::default_batch_size")]
-    pub batch_size: usize
+    pub batch_size: usize,
 }
 
 impl TableSource {
@@ -306,7 +306,7 @@ impl TableSource {
             name: name.into(),
             io_source: source.into(),
             schema: None,
-            option: None, 
+            option: None,
             batch_size: Self::default_batch_size(),
         }
     }
@@ -317,7 +317,7 @@ impl TableSource {
 
     #[inline]
     pub fn default_batch_size() -> usize {
-        1024
+        8192
     }
 
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
@@ -538,12 +538,12 @@ uri: "test_data/ubuntu-ami.json"
 batch_size: 512
 "#,
         )?;
-        
+
         assert_eq!(table_source.batch_size, 512);
-        
+
         Ok(())
     }
-    
+
     #[test]
     fn test_parse_table_uri() {
         let t = parse_table_uri_arg("t=a/b/c").unwrap();
