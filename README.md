@@ -41,7 +41,7 @@ pre-built binaries for each platform. Pre-built docker images are also available
 ### Install from source
 
 ```bash
-cargo install --locked --git https://github.com/roapi/roapi --branch main --bin roapi-http
+cargo install --locked --git https://github.com/roapi/roapi --branch main --bins roapi-http
 ```
 
 
