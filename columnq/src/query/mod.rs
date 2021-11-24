@@ -8,7 +8,7 @@ pub fn column_sort_expr_desc(column: String) -> Expr {
     }
 }
 
-pub fn column_sort_expr_asc(column: String) -> Expr {
+pub fn column_sort_expr_asc(column: impl Into<String>) -> Expr {
     Expr::Sort {
         expr: Box::new(Expr::Column(Column::from_name(column))),
         asc: true,
