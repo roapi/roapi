@@ -89,12 +89,6 @@ pub fn table_query_to_df(
                     .collect::<Vec<_>>();
                 df = df.sort(sort_exprs).map_err(QueryError::invalid_sort)?;
             }
-            // limit=100
-            "limit" => {
-                df = df
-                    .limit(val.parse::<usize>().map_err(num_parse_err)?)
-                    .map_err(QueryError::invalid_limit)?;
-            }
             // filter[col1]eq='foo'
             // filter[col2]lt=2
             _ if key.starts_with("filter[") => match RE_REST_FILTER.captures(key) {
@@ -167,6 +161,13 @@ pub fn table_query_to_df(
         }
     }
 
+    // limit=100
+    // limit needs to be applied after sort to make sure the result is deterministics
+    if let Some(val) = params.get("limit") {
+        let limit = val.parse::<usize>().map_err(num_parse_err)?;
+        df = df.limit(limit).map_err(QueryError::invalid_limit)?;
+    }
+
     Ok(df)
 }
 
@@ -187,6 +188,27 @@ mod tests {
     use datafusion::execution::context::ExecutionContext;
 
     use crate::test_util::*;
+
+    #[tokio::test]
+    async fn limit_after_order() -> anyhow::Result<()> {
+        let mut dfctx = ExecutionContext::new();
+        register_table_ubuntu_ami(&mut dfctx).await?;
+        let mut params = HashMap::<String, String>::new();
+        params.insert("limit".to_string(), "10".to_string());
+        params.insert("sort".to_string(), "ami_id".to_string());
+
+        let df = table_query_to_df(&dfctx, "ubuntu_ami", &params)?;
+
+        assert_eq_df(
+            df,
+            dfctx
+                .table("ubuntu_ami")?
+                .sort(vec![column_sort_expr_asc("ami_id")])?
+                .limit(10)?,
+        );
+
+        Ok(())
+    }
 
     #[tokio::test]
     async fn simple_filter() -> anyhow::Result<()> {

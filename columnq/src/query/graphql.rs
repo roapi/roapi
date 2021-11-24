@@ -278,6 +278,7 @@ pub fn query_to_df(
         .select_columns(&column_names)
         .map_err(invalid_selection_set)?;
 
+    let mut limit = None;
     for (key, value) in &field.arguments {
         match *key {
             "filter" => match value {
@@ -308,29 +309,38 @@ pub fn query_to_df(
                     )));
                 }
             },
-            "limit" => match value {
-                Value::Int(n) => {
-                    let limit = n.as_i64().ok_or_else(|| {
-                        invalid_query(format!(
-                            "invalid 64bits integer number in limit argument: {}",
-                            value,
-                        ))
-                    })?;
-                    df = df
-                        .limit(usize::try_from(limit).map_err(|_| {
-                            invalid_query(format!("limit value too large: {}", value))
-                        })?)
-                        .map_err(QueryError::invalid_limit)?;
-                }
-                other => {
-                    return Err(invalid_query(format!(
-                        "limit argument takes int as value, got: {}",
-                        other,
-                    )));
-                }
-            },
+            // handle limit after sort so the result is deterministics
+            "limit" => {
+                limit = Some(value);
+            }
             other => {
                 return Err(invalid_query(format!("invalid query argument: {}", other)));
+            }
+        }
+    }
+
+    if let Some(value) = limit {
+        match value {
+            Value::Int(n) => {
+                let limit = n.as_i64().ok_or_else(|| {
+                    invalid_query(format!(
+                        "invalid 64bits integer number in limit argument: {}",
+                        value,
+                    ))
+                })?;
+                df = df
+                    .limit(
+                        usize::try_from(limit).map_err(|_| {
+                            invalid_query(format!("limit value too large: {}", value))
+                        })?,
+                    )
+                    .map_err(QueryError::invalid_limit)?;
+            }
+            other => {
+                return Err(invalid_query(format!(
+                    "limit argument takes int as value, got: {}",
+                    other,
+                )));
             }
         }
     }
@@ -383,6 +393,36 @@ mod tests {
             .select(vec![col("Address"), col("Bed"), col("Bath")])?
             .filter(col("Bath").gt_eq(lit(2i64)))?
             .filter(col("Bed").gt(lit(3i64)))?;
+
+        assert_eq_df(df, expected_df);
+
+        Ok(())
+    }
+
+    #[test]
+    fn limit_after_order() -> anyhow::Result<()> {
+        let mut dfctx = ExecutionContext::new();
+        register_table_properties(&mut dfctx)?;
+
+        let df = query_to_df(
+            &dfctx,
+            r#"{
+                properties(
+                    limit: 10
+                    sort: [
+                        { field: "Bed" }
+                    ]
+                ) {
+                    Address
+                }
+            }"#,
+        )?;
+
+        let expected_df = dfctx
+            .table("properties")?
+            .select(vec![col("Address")])?
+            .sort(vec![column_sort_expr_asc("Bed")])?
+            .limit(10)?;
 
         assert_eq_df(df, expected_df);
 
