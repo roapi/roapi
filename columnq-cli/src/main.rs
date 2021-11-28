@@ -159,7 +159,7 @@ async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let app = clap::App::new("Columnq")
-        .version("0.0.1")
+        .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
         .about("OLAP the Unix way.")
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)
