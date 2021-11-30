@@ -261,6 +261,45 @@ pub fn query_to_df(
         .table(field.name)
         .map_err(|e| QueryError::invalid_table(e, field.name))?;
 
+    let mut filter = None;
+    let mut sort = None;
+    let mut limit = None;
+    for (key, value) in &field.arguments {
+        match *key {
+            "filter" => {
+                filter = Some(value);
+            }
+            "sort" => {
+                sort = Some(value);
+            }
+            "limit" => {
+                limit = Some(value);
+            }
+            other => {
+                return Err(invalid_query(format!("invalid query argument: {}", other)));
+            }
+        }
+    }
+
+    // apply filter
+    if let Some(value) = filter {
+        match value {
+            Value::Object(filters) => {
+                for (col, filter) in filters {
+                    for p in to_datafusion_predicates(col, filter)? {
+                        df = df.filter(p).map_err(QueryError::invalid_filter)?;
+                    }
+                }
+            }
+            other => {
+                return Err(invalid_query(format!(
+                    "filter argument takes object as value, got: {}",
+                    other
+                )));
+            }
+        }
+    }
+
     // apply projection
     let column_names = field
         .selection_set
@@ -278,47 +317,24 @@ pub fn query_to_df(
         .select_columns(&column_names)
         .map_err(invalid_selection_set)?;
 
-    let mut limit = None;
-    for (key, value) in &field.arguments {
-        match *key {
-            "filter" => match value {
-                Value::Object(filters) => {
-                    for (col, filter) in filters {
-                        for p in to_datafusion_predicates(col, filter)? {
-                            df = df.filter(p).map_err(QueryError::invalid_filter)?;
-                        }
-                    }
-                }
-                other => {
-                    return Err(invalid_query(format!(
-                        "filter argument takes object as value, got: {}",
-                        other
-                    )));
-                }
-            },
-            "sort" => match value {
-                Value::List(sort_options) => {
-                    df = df
-                        .sort(to_datafusion_sort_columns(sort_options)?)
-                        .map_err(QueryError::invalid_sort)?;
-                }
-                other => {
-                    return Err(invalid_query(format!(
-                        "sort argument takes list as value, got: {}",
-                        other
-                    )));
-                }
-            },
-            // handle limit after sort so the result is deterministics
-            "limit" => {
-                limit = Some(value);
+    // apply sort
+    if let Some(value) = sort {
+        match value {
+            Value::List(sort_options) => {
+                df = df
+                    .sort(to_datafusion_sort_columns(sort_options)?)
+                    .map_err(QueryError::invalid_sort)?;
             }
             other => {
-                return Err(invalid_query(format!("invalid query argument: {}", other)));
+                return Err(invalid_query(format!(
+                    "sort argument takes list as value, got: {}",
+                    other
+                )));
             }
         }
     }
 
+    // apply limit
     if let Some(value) = limit {
         match value {
             Value::Int(n) => {
@@ -390,9 +406,9 @@ mod tests {
 
         let expected_df = dfctx
             .table("properties")?
-            .select(vec![col("Address"), col("Bed"), col("Bath")])?
             .filter(col("Bath").gt_eq(lit(2i64)))?
-            .filter(col("Bed").gt(lit(3i64)))?;
+            .filter(col("Bed").gt(lit(3i64)))?
+            .select(vec![col("Address"), col("Bed"), col("Bath")])?;
 
         assert_eq_df(df, expected_df);
 
@@ -400,7 +416,7 @@ mod tests {
     }
 
     #[test]
-    fn limit_after_order() -> anyhow::Result<()> {
+    fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
         let mut dfctx = ExecutionContext::new();
         register_table_properties(&mut dfctx)?;
 
@@ -408,19 +424,24 @@ mod tests {
             &dfctx,
             r#"{
                 properties(
+                    filter: {
+                        Bed: { gt: 3 }
+                    }
                     limit: 10
                     sort: [
                         { field: "Bed" }
                     ]
                 ) {
                     Address
+                    Bed
                 }
             }"#,
         )?;
 
         let expected_df = dfctx
             .table("properties")?
-            .select(vec![col("Address")])?
+            .filter(col("Bed").gt(lit(3i64)))?
+            .select(vec![col("Address"), col("Bed")])?
             .sort(vec![column_sort_expr_asc("Bed")])?
             .limit(10)?;
 
