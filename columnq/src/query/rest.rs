@@ -67,98 +67,93 @@ pub fn table_query_to_df(
         .table(table_name)
         .map_err(|e| QueryError::invalid_table(e, table_name))?;
 
-    for (key, val) in params {
-        match key.as_str() {
-            // columns=col1,col2,col3
-            "columns" => {
-                let column_names = val.split(',').collect::<Vec<_>>();
-                df = df
-                    .select_columns(&column_names)
-                    .map_err(QueryError::invalid_projection)?;
-            }
-            // sort=col1,-col2
-            // - denotes DESC sort order
-            "sort" => {
-                let sort_columns = val.split(',');
-                let sort_exprs = sort_columns
-                    .map(|val| match val.chars().next() {
-                        Some('-') => column_sort_expr_desc(val[1..].to_string()),
-                        Some('+') => column_sort_expr_asc(val[1..].to_string()),
-                        _ => column_sort_expr_asc(val.to_string()),
-                    })
-                    .collect::<Vec<_>>();
-                df = df.sort(sort_exprs).map_err(QueryError::invalid_sort)?;
-            }
-            // filter[col1]eq='foo'
-            // filter[col2]lt=2
-            _ if key.starts_with("filter[") => match RE_REST_FILTER.captures(key) {
-                Some(caps) => {
-                    let col_expr: Box<Expr> = Box::new(match caps.name("column") {
-                        Some(column) => {
-                            Expr::Column(Column::from_name(column.as_str().to_string()))
-                        }
-                        None => {
-                            return Err(QueryError {
-                                error: "rest_query".to_string(),
-                                message: format!("missing column from filter `{}`", key),
-                            });
-                        }
-                    });
+    // filter[col1]eq='foo'
+    // filter[col2]lt=2
+    for (key, val) in params.iter().filter(|(k, _)| k.starts_with("filter[")) {
+        match RE_REST_FILTER.captures(key) {
+            Some(caps) => {
+                let col_expr: Box<Expr> = Box::new(match caps.name("column") {
+                    Some(column) => Expr::Column(Column::from_name(column.as_str().to_string())),
+                    None => {
+                        return Err(QueryError {
+                            error: "rest_query".to_string(),
+                            message: format!("missing column from filter `{}`", key),
+                        });
+                    }
+                });
 
-                    let predicate = match caps.name("op") {
-                        None => Expr::BinaryExpr {
+                let predicate = match caps.name("op") {
+                    None => Expr::BinaryExpr {
+                        left: col_expr,
+                        op: Operator::Eq,
+                        right: Box::new(rest_query_value_to_expr(val)?),
+                    },
+                    Some(m) => match m.as_str() {
+                        "eq" | "" => Expr::BinaryExpr {
                             left: col_expr,
                             op: Operator::Eq,
                             right: Box::new(rest_query_value_to_expr(val)?),
                         },
-                        Some(m) => match m.as_str() {
-                            "eq" | "" => Expr::BinaryExpr {
-                                left: col_expr,
-                                op: Operator::Eq,
-                                right: Box::new(rest_query_value_to_expr(val)?),
-                            },
-                            "lt" => Expr::BinaryExpr {
-                                left: col_expr,
-                                op: Operator::Lt,
-                                right: Box::new(rest_query_value_to_expr(val)?),
-                            },
-                            "lte" | "lteq" => Expr::BinaryExpr {
-                                left: col_expr,
-                                op: Operator::LtEq,
-                                right: Box::new(rest_query_value_to_expr(val)?),
-                            },
-                            "gt" => Expr::BinaryExpr {
-                                left: col_expr,
-                                op: Operator::Gt,
-                                right: Box::new(rest_query_value_to_expr(val)?),
-                            },
-                            "gte" | "gteq" => Expr::BinaryExpr {
-                                left: col_expr,
-                                op: Operator::GtEq,
-                                right: Box::new(rest_query_value_to_expr(val)?),
-                            },
-                            _ => {
-                                return Err(QueryError {
-                                    error: "rest_query".to_string(),
-                                    message: format!("unsupported filter operator {}", m.as_str()),
-                                });
-                            }
+                        "lt" => Expr::BinaryExpr {
+                            left: col_expr,
+                            op: Operator::Lt,
+                            right: Box::new(rest_query_value_to_expr(val)?),
                         },
-                    };
+                        "lte" | "lteq" => Expr::BinaryExpr {
+                            left: col_expr,
+                            op: Operator::LtEq,
+                            right: Box::new(rest_query_value_to_expr(val)?),
+                        },
+                        "gt" => Expr::BinaryExpr {
+                            left: col_expr,
+                            op: Operator::Gt,
+                            right: Box::new(rest_query_value_to_expr(val)?),
+                        },
+                        "gte" | "gteq" => Expr::BinaryExpr {
+                            left: col_expr,
+                            op: Operator::GtEq,
+                            right: Box::new(rest_query_value_to_expr(val)?),
+                        },
+                        _ => {
+                            return Err(QueryError {
+                                error: "rest_query".to_string(),
+                                message: format!("unsupported filter operator {}", m.as_str()),
+                            });
+                        }
+                    },
+                };
 
-                    df = df.filter(predicate).map_err(QueryError::invalid_filter)?;
-                }
-                None => {
-                    return Err(QueryError {
-                        error: "rest_query".to_string(),
-                        message: format!("invalid filter condition {}", key),
-                    });
-                }
-            },
-            _ => {
-                // ignore unsupported query params
+                df = df.filter(predicate).map_err(QueryError::invalid_filter)?;
+            }
+            None => {
+                return Err(QueryError {
+                    error: "rest_query".to_string(),
+                    message: format!("invalid filter condition {}", key),
+                });
             }
         }
+    }
+
+    // columns=col1,col2,col3
+    if let Some(val) = params.get("columns") {
+        let column_names = val.split(',').collect::<Vec<_>>();
+        df = df
+            .select_columns(&column_names)
+            .map_err(QueryError::invalid_projection)?;
+    }
+
+    // sort=col1,-col2
+    // - denotes DESC sort order
+    if let Some(val) = params.get("sort") {
+        let sort_columns = val.split(',');
+        let sort_exprs = sort_columns
+            .map(|val| match val.chars().next() {
+                Some('-') => column_sort_expr_desc(val[1..].to_string()),
+                Some('+') => column_sort_expr_asc(val[1..].to_string()),
+                _ => column_sort_expr_asc(val.to_string()),
+            })
+            .collect::<Vec<_>>();
+        df = df.sort(sort_exprs).map_err(QueryError::invalid_sort)?;
     }
 
     // limit=100
@@ -186,16 +181,20 @@ mod tests {
 
     use datafusion::arrow::array::*;
     use datafusion::execution::context::ExecutionContext;
+    use datafusion::prelude::*;
 
     use crate::test_util::*;
 
     #[tokio::test]
-    async fn limit_after_order() -> anyhow::Result<()> {
+    async fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
         let mut dfctx = ExecutionContext::new();
         register_table_ubuntu_ami(&mut dfctx).await?;
+
         let mut params = HashMap::<String, String>::new();
         params.insert("limit".to_string(), "10".to_string());
         params.insert("sort".to_string(), "ami_id".to_string());
+        params.insert("columns".to_string(), "ami_id,version".to_string());
+        params.insert("filter[arch]".to_string(), "'amd64'".to_string());
 
         let df = table_query_to_df(&dfctx, "ubuntu_ami", &params)?;
 
@@ -203,6 +202,8 @@ mod tests {
             df,
             dfctx
                 .table("ubuntu_ami")?
+                .filter(col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))))?
+                .select(vec![col("ami_id"), col("version")])?
                 .sort(vec![column_sort_expr_asc("ami_id")])?
                 .limit(10)?,
         );

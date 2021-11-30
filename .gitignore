@@ -1,3 +1,6 @@
 /target
 .idea/
 .DS_Store
+
+# vim
+*.swp
