@@ -3,6 +3,7 @@ mod helpers;
 use std::collections::HashMap;
 
 use anyhow::Result;
+use async_process::Command;
 use columnq::arrow::datatypes::Schema;
 use tokio;
 
@@ -229,5 +230,36 @@ async fn test_graphql_post_selection() -> Result<()> {
             { "version": "12.04 LTS", "name": "precise" }
         ])
     );
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_http2() -> Result<()> {
+    let table = helpers::get_uk_cities_table();
+    let (app, address) = helpers::test_api_app(vec![table]).await;
+    tokio::spawn(app.run_until_stopped());
+
+    // ~ % curl -sI --http2-prior-knowledge localhost:8080/api/schema -o/dev/null -w '%{http_version}\n'
+    // 2
+
+    let http_version = Command::new("curl")
+        .arg("-s")
+        .arg("-I")
+        .arg("--http2-prior-knowledge")
+        .arg(format!("{}/api/schema", address))
+        .arg("-o")
+        .arg("/dev/null")
+        .arg("-w")
+        .arg("'%{http_version}\n'")
+        .output()
+        .await?
+        .stdout;
+
+    let two = vec!['\'', '2', '\n', '\'']
+        .iter()
+        .map(|c| *c as u8)
+        .collect::<Vec<_>>();
+
+    assert_eq!(http_version, two);
     Ok(())
 }
