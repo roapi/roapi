@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.4.2"
+version = "0.4.3"
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 authors = ["QP Hou <dave2008713@gmail.com>"]
