@@ -18,7 +18,7 @@ pub struct Application {
 impl Application {
     pub async fn build(config: Config) -> anyhow::Result<Self> {
         let default_host = "127.0.0.1";
-        let default_port = std::env::var("PORT").unwrap_or("8080".to_string());
+        let default_port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
         let default_addr = default_host.to_string() + ":" + &default_port.to_string();
         let addr = (config.addr)
             .clone()
