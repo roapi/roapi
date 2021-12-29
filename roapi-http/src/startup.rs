@@ -17,9 +17,12 @@ pub struct Application {
 
 impl Application {
     pub async fn build(config: Config) -> anyhow::Result<Self> {
+        let default_host = "127.0.0.1";
+        let default_port = std::env::var("PORT").unwrap_or("8080".to_string());
+        let default_addr = default_host.to_string() + ":" + &default_port.to_string();
         let addr = (config.addr)
             .clone()
-            .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+            .unwrap_or_else(|| default_addr.to_string());
         let listener = TcpListener::bind(addr)?;
         let port = listener.local_addr().unwrap().port();
 
