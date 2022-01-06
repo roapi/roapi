@@ -12,7 +12,7 @@ on:
 
 env:
   # NOTE: this env is also defined in build.yml
-  RUST_TC_NIGHTLY_VER: "2021-09-25"
+  RUST_TC_NIGHTLY_VER: "2022-01-05"
 
 jobs:
   validate-release-tag:
