@@ -8,7 +8,7 @@ on:
 
 env:
   # NOTE: this env is also defined in roapi_http_release.yml and columnq_cli_release.yml
-  RUST_TC_NIGHTLY_VER: "2021-09-25"
+  RUST_TC_NIGHTLY_VER: "2022-01-05"
 
 jobs:
   build:
