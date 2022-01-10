@@ -14,7 +14,7 @@ pub struct Config {
 
 fn table_arg() -> clap::Arg<'static> {
     clap::Arg::new("table")
-        .about("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
+        .help("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
         .takes_value(true)
         .required(false)
         .number_of_values(1)
@@ -26,7 +26,7 @@ fn table_arg() -> clap::Arg<'static> {
 
 fn address_arg() -> clap::Arg<'static> {
     clap::Arg::new("addr")
-        .about("bind address")
+        .help("bind address")
         .required(false)
         .takes_value(true)
         .value_name("IP:PORT")
@@ -36,7 +36,7 @@ fn address_arg() -> clap::Arg<'static> {
 
 fn config_arg() -> clap::Arg<'static> {
     clap::Arg::new("config")
-        .about("config file path")
+        .help("config file path")
         .required(false)
         .takes_value(true)
         .long("config")

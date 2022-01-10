@@ -33,7 +33,7 @@ fn config_path() -> anyhow::Result<PathBuf> {
 
 fn table_arg() -> clap::Arg<'static> {
     clap::Arg::new("table")
-        .about("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
+        .long_help("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
         .takes_value(true)
         .required(false)
         .number_of_values(1)
@@ -169,13 +169,13 @@ async fn main() -> anyhow::Result<()> {
                 .setting(clap::AppSettings::ArgRequiredElseHelp)
                 .args(&[
                     clap::Arg::new("SQL")
-                        .about("SQL query to execute")
+                        .help("SQL query to execute")
                         .index(1)
                         .required(true)
                         .takes_value(true)
                         .number_of_values(1),
                     clap::Arg::new("output")
-                        .about("Query output format")
+                        .help("Query output format")
                         .long("output")
                         .short('o')
                         .required(false)
