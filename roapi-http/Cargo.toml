@@ -1,6 +1,6 @@
 [package]
 name = "roapi-http"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -34,7 +34,7 @@ serde = "1"
 serde_json = "1"
 serde_derive = "1"
 serde_yaml = "0.8"
-clap = { version = ">=3.0.0-beta.2,<4", features = ["color"] }
+clap = { version = "3", features = ["color"] }
 thiserror = "1"
 anyhow = "1"
 
