@@ -30,6 +30,9 @@ See below for a high level diagram:
 ### Install pre-built binary
 
 ```bash
+# if you are using homebrew
+brew install roapi
+# or if you prefer python / pip
 pip install roapi-http
 ```
 
