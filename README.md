@@ -9,21 +9,20 @@ Arrow](https://github.com/apache/arrow) and
 [Datafusion](https://github.com/apache/arrow-datafusion). The
 core of its design can be boiled down to the following:
 
-* [Query frontends](https://roapi.github.io/docs/api/query/index.html) to
-translate SQL, GraphQL and REST API queries into
-Datafusion plans.
-* Datafusion for query plan execution.
-* [Data layer](https://roapi.github.io/docs/config/dataset-formats/index.html)
-to load datasets from a variety of sources and formats with automatic schema
-inference.
-* [Response encoding layer](https://roapi.github.io/docs/api/response.html) to
-serialize intermediate Arrow record batch into various formats requested by
-client.
+- [Query frontends](https://roapi.github.io/docs/api/query/index.html) to
+  translate SQL, GraphQL and REST API queries into
+  Datafusion plans.
+- Datafusion for query plan execution.
+- [Data layer](https://roapi.github.io/docs/config/dataset-formats/index.html)
+  to load datasets from a variety of sources and formats with automatic schema
+  inference.
+- [Response encoding layer](https://roapi.github.io/docs/api/response.html) to
+  serialize intermediate Arrow record batch into various formats requested by
+  client.
 
 See below for a high level diagram:
 
 <img alt="roapi-design-diagram" src="https://roapi.github.io/docs/images/roapi.svg">
-
 
 ## Installation
 
@@ -40,13 +39,11 @@ Check out [Github release page](https://github.com/roapi/roapi/releases) for
 pre-built binaries for each platform. Pre-built docker images are also available at
 [ghcr.io/roapi/roapi-http](https://github.com/orgs/roapi/packages/container/package/roapi-http).
 
-
 ### Install from source
 
 ```bash
 cargo install --locked --git https://github.com/roapi/roapi --branch main --bins roapi-http
 ```
-
 
 ## Usage
 
@@ -62,6 +59,7 @@ roapi-http \
 ```
 
 For windows, full scheme(file:// or filesystem://) must filled, and use double quote(") instead of single quote(') to escape windows cmdline limit:
+
 ```bash
 roapi-http \
     --table "uk_cities=file://d:/path/to/uk_cities_with_headers.csv" \
@@ -89,7 +87,6 @@ Get inferred schema for all tables:
 ```bash
 curl 'localhost:8080/api/schema'
 ```
-
 
 ### Config file
 
@@ -147,7 +144,6 @@ documentation](https://roapi.github.io/docs/config/config-file.html) for more
 options including [using Google spreadsheet as a table
 source](https://roapi.github.io/docs/config/dataset-formats/gsheet.html).
 
-
 ### Response serialization
 
 By default, ROAPI encodes responses in JSON format, but you can request
@@ -160,7 +156,6 @@ curl -X POST \
     localhost:8080/api/sql
 ```
 
-
 ### REST API query interface
 
 You can query tables through REST API by sending `GET` requests to
@@ -168,10 +163,10 @@ You can query tables through REST API by sending `GET` requests to
 
 REST query frontend currently supports the following query operators:
 
-* columns
-* sort
-* limit
-* filter
+- columns
+- sort
+- limit
+- filter
 
 To sort column `col1` in ascending order and `col2` in descending order, set
 query param to: `sort=col1,-col2`.
@@ -180,7 +175,6 @@ To find all rows with `col1` equal to string `'foo'`, set query param to:
 `filter[col1]='foo'`. You can also do basic comparisons with filters, for
 example predicate `0 <= col2 < 5` can be expressed as
 `filter[col2]gte=0&filter[col2]lt=5`.
-
 
 ### GraphQL query interface
 
@@ -191,27 +185,19 @@ GraphQL query frontend supports the same set of operators supported by [REST
 query frontend](https://roapi.github.io/docs/api/query/rest.html). Here how is
 you can apply various operators in a query:
 
-
 ```graphql
 {
-    table_name(
-        filter: {
-            col1: false
-            col2: { gteq: 4, lt: 1000 }
-        }
-        sort: [
-            { field: "col2", order: "desc" }
-            { field: "col3" }
-        ]
-        limit: 100
-    ) {
-        col1
-        col2
-        col3
-    }
+  table_name(
+    filter: { col1: false, col2: { gteq: 4, lt: 1000 } }
+    sort: [{ field: "col2", order: "desc" }, { field: "col3" }]
+    limit: 100
+  ) {
+    col1
+    col2
+    col3
+  }
 }
 ```
-
 
 ### SQL query interface
 
@@ -219,51 +205,53 @@ To query tables using a subset of standard SQL, send the query through `POST`
 request to `/api/sql` endpoint. This is the only query interface that supports
 table joins.
 
-
 ## Features
 
 Query layer:
-  - [x] REST API GET
-  - [x] GraphQL
-  - [x] SQL
-  - [x] join between tables
-  - [x] access to array elements by index
-  - [x] access to nested struct fields by key
-  - [ ] column index
-  - protocol
-    - [ ] gRPC
-    - [ ] MySQL
-    - [ ] Postgres
 
-Response serialization:
-  - [x] JSON `application/json`
-  - [x] Arrow `application/vnd.apache.arrow.stream`
-  - [x] Parquet `application/vnd.apache.parquet`
-  - [ ] msgpack
-
-Data layer:
-  - [x] filesystem
-  - [x] HTTP/HTTPS
-  - [x] S3
-  - [ ] GCS
-  - [x] Google spreadsheet
+- [x] REST API GET
+- [x] GraphQL
+- [x] SQL
+- [x] join between tables
+- [x] access to array elements by index
+- [x] access to nested struct fields by key
+- [ ] column index
+- protocol
+  - [ ] gRPC
   - [ ] MySQL
   - [ ] Postgres
-  - [ ] Airtable
-  - Data format
-    - [x] CSV
-    - [x] JSON
-    - [x] NDJSON
-    - [x] parquet
-    - [ ] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
-    - [x] [DeltaLake](https://delta.io/)
+
+Response serialization:
+
+- [x] JSON `application/json`
+- [x] Arrow `application/vnd.apache.arrow.stream`
+- [x] Parquet `application/vnd.apache.parquet`
+- [ ] msgpack
+
+Data layer:
+
+- [x] filesystem
+- [x] HTTP/HTTPS
+- [x] S3
+- [ ] GCS
+- [x] Google spreadsheet
+- [ ] MySQL
+- [ ] Postgres
+- [ ] Airtable
+- Data format
+  - [x] CSV
+  - [x] JSON
+  - [x] NDJSON
+  - [x] parquet
+  - [ ] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
+  - [x] [DeltaLake](https://delta.io/)
 
 Misc:
-  - [ ] auto gen OpenAPI doc for rest layer
-  - [ ] query input type conversion based on table schema
-  - [ ] stream arrow encoding response
-  - [ ] authentication layer
 
+- [ ] auto gen OpenAPI doc for rest layer
+- [ ] query input type conversion based on table schema
+- [ ] stream arrow encoding response
+- [ ] authentication layer
 
 ## Development
 
@@ -277,7 +265,6 @@ wraps `columnq` with a HTTP based API layer. It serializes Arrow record batches
 produced by `columnq` into different formats based on client request.
 
 Building ROAPI with `simd` optimization requires nightly rust toolchain.
-
 
 ### Build Docker image
 
