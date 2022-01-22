@@ -84,21 +84,13 @@ async fn gs_api_get(token: &str, url: &str) -> Result<reqwest::Response, ColumnQ
     Client::builder()
         .build()
         .map_err(|e| {
-            ColumnQError::GoogleSpreadsheets(format!(
-                "Failed to initialize HTTP client: {}",
-                e.to_string()
-            ))
+            ColumnQError::GoogleSpreadsheets(format!("Failed to initialize HTTP client: {}", e))
         })?
         .get(url)
         .bearer_auth(token)
         .send()
         .await
-        .map_err(|e| {
-            ColumnQError::GoogleSpreadsheets(format!(
-                "Failed to send API request: {}",
-                e.to_string()
-            ))
-        })
+        .map_err(|e| ColumnQError::GoogleSpreadsheets(format!("Failed to send API request: {}", e)))
 }
 
 fn coerce_type(l: DataType, r: DataType) -> DataType {
@@ -220,7 +212,7 @@ async fn fetch_auth_token(
         .map_err(|e| {
             ColumnQError::GoogleSpreadsheets(format!(
                 "Error reading application secret from disk: {}",
-                e.to_string()
+                e
             ))
         })?;
 
@@ -230,14 +222,14 @@ async fn fetch_auth_token(
         .map_err(|e| {
             ColumnQError::GoogleSpreadsheets(format!(
                 "Error building service account authenticator: {}",
-                e.to_string()
+                e
             ))
         })?;
 
     let scopes = &["https://www.googleapis.com/auth/spreadsheets.readonly"];
 
     sa.token(scopes).await.map_err(|e| {
-        ColumnQError::GoogleSpreadsheets(format!("Failed to obtain OAuth2 token: {}", e.to_string()))
+        ColumnQError::GoogleSpreadsheets(format!("Failed to obtain OAuth2 token: {}", e))
     })
 }
 
@@ -257,14 +249,11 @@ async fn resolve_sheet_title<'a, 'b, 'c, 'd>(
     .await?
     .error_for_status()
     .map_err(|e| {
-        ColumnQError::GoogleSpreadsheets(format!(
-            "Failed to resolve sheet title from API: {}",
-            e.to_string()
-        ))
+        ColumnQError::GoogleSpreadsheets(format!("Failed to resolve sheet title from API: {}", e))
     })?;
 
     let spreadsheets = resp.json::<Spreadsheets>().await.map_err(|e| {
-        ColumnQError::GoogleSpreadsheets(format!("Failed to parse API response: {}", e.to_string()))
+        ColumnQError::GoogleSpreadsheets(format!("Failed to parse API response: {}", e))
     })?;
 
     // when sheet id is not specified from config, try to parse it from URI
@@ -340,14 +329,11 @@ pub async fn to_mem_table(
     .await?
     .error_for_status()
     .map_err(|e| {
-        ColumnQError::GoogleSpreadsheets(format!(
-            "Failed to load sheet value from API: {}",
-            e.to_string()
-        ))
+        ColumnQError::GoogleSpreadsheets(format!("Failed to load sheet value from API: {}", e))
     })?;
 
     let sheet = resp.json::<SpreadsheetValues>().await.map_err(|e| {
-        ColumnQError::GoogleSpreadsheets(format!("Failed to parse API response: {}", e.to_string()))
+        ColumnQError::GoogleSpreadsheets(format!("Failed to parse API response: {}", e))
     })?;
 
     let batch = sheet_values_to_record_batch(&sheet.values)?;

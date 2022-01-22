@@ -25,10 +25,7 @@ impl From<graphql_parser::query::ParseError> for QueryError {
 fn invalid_selection_set(error: datafusion::error::DataFusionError) -> QueryError {
     QueryError {
         error: "invalid_selection_set".to_string(),
-        message: format!(
-            "failed to apply selection set for query: {}",
-            error.to_string()
-        ),
+        message: format!("failed to apply selection set for query: {}", error),
     }
 }
 

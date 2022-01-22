@@ -472,7 +472,7 @@ pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
 
     // parse extra options from table uri
     let mut option_json = serde_json::map::Map::new();
-    for opt_str in uri_args.into_iter() {
+    for opt_str in uri_args {
         let mut parts = opt_str.splitn(2, '=');
         let opt_key = parts
             .next()

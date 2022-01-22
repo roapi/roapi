@@ -105,52 +105,49 @@ impl QueryError {
     pub fn plan_sql(error: DataFusionError) -> Self {
         Self {
             error: "plan_sql".to_string(),
-            message: format!(
-                "Failed to plan execution from SQL query: {}",
-                error.to_string()
-            ),
+            message: format!("Failed to plan execution from SQL query: {}", error),
         }
     }
 
     pub fn invalid_sort(error: DataFusionError) -> Self {
         Self {
             error: "invalid_sort".to_string(),
-            message: format!("Failed to apply sort operator: {}", error.to_string()),
+            message: format!("Failed to apply sort operator: {}", error),
         }
     }
 
     pub fn invalid_filter(error: DataFusionError) -> Self {
         Self {
             error: "invalid_filter".to_string(),
-            message: format!("Failed to apply filter operator: {}", error.to_string()),
+            message: format!("Failed to apply filter operator: {}", error),
         }
     }
 
     pub fn invalid_limit(error: DataFusionError) -> Self {
         Self {
             error: "invalid_limit".to_string(),
-            message: format!("Failed to apply limit operator: {}", error.to_string()),
+            message: format!("Failed to apply limit operator: {}", error),
         }
     }
 
     pub fn invalid_projection(error: DataFusionError) -> Self {
         Self {
             error: "invalid_projection".to_string(),
-            message: format!("Failed to apply projection operator: {}", error.to_string()),
+            message: format!("Failed to apply projection operator: {}", error),
         }
     }
 
     pub fn query_exec(error: DataFusionError) -> Self {
         Self {
             error: "query_execution".to_string(),
-            message: format!("Failed to execute query: {}", error.to_string()),
+            message: format!("Failed to execute query: {}", error),
         }
     }
 
     pub fn invalid_table(error: DataFusionError, table_name: &str) -> Self {
         Self {
             error: "invalid_table".to_string(),
-            message: format!("Failed to load table {}: {}", table_name, error.to_string()),
+            message: format!("Failed to load table {}: {}", table_name, error),
         }
     }
 }

@@ -49,7 +49,7 @@ fn rest_query_value_to_expr(v: &str) -> Result<Expr, QueryError> {
 fn num_parse_err(e: std::num::ParseIntError) -> QueryError {
     QueryError {
         error: "invalid_numeric_param".to_string(),
-        message: format!("Failed to parse numeric parameter value: {}", e.to_string()),
+        message: format!("Failed to parse numeric parameter value: {}", e),
     }
 }
 
@@ -202,7 +202,9 @@ mod tests {
             df,
             dfctx
                 .table("ubuntu_ami")?
-                .filter(col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))))?
+                .filter(
+                    col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))),
+                )?
                 .select(vec![col("ami_id"), col("version")])?
                 .sort(vec![column_sort_expr_asc("ami_id")])?
                 .limit(10)?,
