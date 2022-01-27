@@ -13,7 +13,11 @@ fn json_schema_from_reader<R: Read>(r: R) -> Result<Schema, ColumnQError> {
     Ok(infer_json_schema(&mut reader, None)?)
 }
 
-fn decode_json_from_reader<R: Read>(r: R, schema_ref: SchemaRef, batch_size: usize) -> Result<Vec<RecordBatch>, ColumnQError> {
+fn decode_json_from_reader<R: Read>(
+    r: R,
+    schema_ref: SchemaRef,
+    batch_size: usize,
+) -> Result<Vec<RecordBatch>, ColumnQError> {
     let decoder = Decoder::new(schema_ref, batch_size, None);
     let mut reader = BufReader::new(r);
     let mut value_reader = ValueIter::new(&mut reader, None);
@@ -42,8 +46,12 @@ pub async fn to_mem_table(
         }
     };
 
-    let partitions: Vec<Vec<RecordBatch>> = 
-            partitions_from_table_source!(t, |reader| decode_json_from_reader(reader, schema_ref.clone(), batch_size))?;
+    let partitions: Vec<Vec<RecordBatch>> =
+        partitions_from_table_source!(t, |reader| decode_json_from_reader(
+            reader,
+            schema_ref.clone(),
+            batch_size
+        ))?;
 
     Ok(datafusion::datasource::MemTable::try_new(
         schema_ref, partitions,
