@@ -1,15 +1,12 @@
-use std::sync::Arc;
-
-use axum::body::Body;
-use axum::extract;
-use axum::http::Response;
-
 use crate::api::{bytes_to_json_resp, HandlerContext};
 use crate::error::ApiErrResp;
+use axum::extract;
+use axum::response::IntoResponse;
+use std::sync::Arc;
 
 pub async fn schema(
     state: extract::Extension<Arc<HandlerContext>>,
-) -> Result<Response<Body>, ApiErrResp> {
+) -> Result<impl IntoResponse, ApiErrResp> {
     let ctx = state.0;
     let payload =
         serde_json::to_vec(ctx.cq.schema_map()).map_err(ApiErrResp::json_serialization)?;
@@ -19,7 +16,7 @@ pub async fn schema(
 pub async fn get_by_table_name(
     state: extract::Extension<Arc<HandlerContext>>,
     extract::Path(table_name): extract::Path<String>,
-) -> Result<Response<Body>, ApiErrResp> {
+) -> Result<impl IntoResponse, ApiErrResp> {
     let ctx = state.0;
     let payload = serde_json::to_vec(
         ctx.cq
