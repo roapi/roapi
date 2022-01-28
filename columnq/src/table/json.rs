@@ -60,7 +60,8 @@ fn json_vec_to_partition(
 
     // decode to arrow record batch
     let decoder = arrow::json::reader::Decoder::new(Arc::new(schema.clone()), batch_size, None);
-    let batch = {
+    let mut batches = vec![];
+    {
         // enclose values_iter in its own scope so it won't brrow schema_ref til end of this
         // function
         let mut values_iter: Box<dyn Iterator<Item = arrow::error::Result<Value>>>;
@@ -88,23 +89,22 @@ fn json_vec_to_partition(
             Box::new(json_rows.into_iter().map(Ok))
         };
 
-        // decode whole array into single record batch
-        decoder
-            .next_batch(&mut values_iter)
-            .map_err(|e| {
+        loop {
+            match decoder.next_batch(&mut values_iter).map_err(|e| {
                 ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {}", e))
-            })?
-            .ok_or_else(|| {
-                ColumnQError::LoadJson("JSON data results in empty arrow record batch".to_string())
-            })?
-    };
+            })? {
+                Some(batch) => batches.push(batch),
+                None => break,
+            }
+        }
+    }
 
-    Ok((schema, vec![batch]))
+    Ok((schema, batches))
 }
 
-pub async fn to_mem_table(
+async fn to_partitions(
     t: &TableSource,
-) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+) -> Result<(Option<Schema>, Vec<Vec<RecordBatch>>), ColumnQError> {
     let batch_size = t.batch_size;
     let array_encoded = match &t.option {
         Some(TableLoadOption::json { array_encoded, .. }) => array_encoded.unwrap_or(false),
@@ -157,6 +157,13 @@ pub async fn to_mem_table(
         })
         .collect::<Result<Vec<Vec<RecordBatch>>, ColumnQError>>()?;
 
+    Ok((merged_schema, partitions))
+}
+
+pub async fn to_mem_table(
+    t: &TableSource,
+) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+    let (merged_schema, partitions) = to_partitions(t).await?;
     Ok(datafusion::datasource::MemTable::try_new(
         Arc::new(
             merged_schema
@@ -220,6 +227,20 @@ mod tests {
 
         assert_eq!(obj_keys, expected_obj_keys);
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_multiple_batches() -> Result<(), ColumnQError> {
+        let mut source = TableSource::new(
+            "spacex_launches".to_string(),
+            test_data_path("spacex_launches.json"),
+        );
+        source.batch_size = 1;
+        let (_, p) = to_partitions(&source).await?;
+        assert_eq!(p.len(), 1);
+        assert_eq!(p[0][0].num_rows(), source.batch_size);
+        assert_eq!(p[0].len(), 132);
         Ok(())
     }
 }
