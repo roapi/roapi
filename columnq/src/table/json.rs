@@ -89,13 +89,10 @@ fn json_vec_to_partition(
             Box::new(json_rows.into_iter().map(Ok))
         };
 
-        loop {
-            match decoder.next_batch(&mut values_iter).map_err(|e| {
-                ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {}", e))
-            })? {
-                Some(batch) => batches.push(batch),
-                None => break,
-            }
+        while let Some(batch) = decoder.next_batch(&mut values_iter).map_err(|e| {
+            ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {}", e))
+        })? {
+            batches.push(batch);
         }
     }
 
