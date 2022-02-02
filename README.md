@@ -130,7 +130,7 @@ tables:
       format: "json"
 
   - name: "github_jobs"
-    uri: "https://jobs.github.com/positions.json"
+    uri: "https://web.archive.org/web/20210507025928if_/https://jobs.github.com/positions.json"
 ```
 
 To run serve tables using config file:
