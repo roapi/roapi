@@ -141,7 +141,7 @@ fn infer_schema(rows: &[Vec<String>]) -> Schema {
             let dt = dt_iter.fold(dt_init, coerce_type);
 
             // normalize column name by replacing space with under score
-            Field::new(&col_name.replace(" ", "_"), dt, false)
+            Field::new(&col_name.replace(" ", "_"), dt, true)
         })
         .collect();
     Schema::new(fields)
@@ -165,36 +165,43 @@ fn sheet_values_to_record_batch(values: &[Vec<String>]) -> Result<RecordBatch, C
             Ok(match field.data_type() {
                 DataType::Boolean => Arc::new(
                     rows_iter
-                        .map(|row| Some(parse_boolean(&row[i])))
+                        .map(|row| row.get(i).map(|v| parse_boolean(v)))
                         .collect::<BooleanArray>(),
                 ) as ArrayRef,
                 DataType::Int64 => Arc::new(
                     rows_iter
                         .map(|row| {
-                            Ok(Some(row[i].parse::<i64>().map_err(|_| {
-                                ColumnQError::GoogleSpreadsheets(format!(
-                                    "Expect int64 value, got: {}",
-                                    row[i]
-                                ))
-                            })?))
+                            row.get(i)
+                                .map(|v| {
+                                    v.parse::<i64>().map_err(|_| {
+                                        ColumnQError::GoogleSpreadsheets(format!(
+                                            "Expect int64 value, got: {}",
+                                            row[i]
+                                        ))
+                                    })
+                                })
+                                .transpose()
                         })
                         .collect::<Result<PrimitiveArray<Int64Type>, ColumnQError>>()?,
                 ) as ArrayRef,
                 DataType::Float64 => Arc::new(
                     rows_iter
                         .map(|row| {
-                            Ok(Some(row[i].parse::<f64>().map_err(|_| {
-                                ColumnQError::GoogleSpreadsheets(format!(
-                                    "Expect float64 value, got: {}",
-                                    row[i]
-                                ))
-                            })?))
+                            row.get(i)
+                                .map(|v| {
+                                    v.parse::<f64>().map_err(|_| {
+                                        ColumnQError::GoogleSpreadsheets(format!(
+                                            "Expect float64 value, got: {}",
+                                            row[i]
+                                        ))
+                                    })
+                                })
+                                .transpose()
                         })
                         .collect::<Result<PrimitiveArray<Float64Type>, ColumnQError>>()?,
                 ) as ArrayRef,
 
-                _ => Arc::new(rows_iter.map(|row| Some(&row[i])).collect::<StringArray>())
-                    as ArrayRef,
+                _ => Arc::new(rows_iter.map(|row| row.get(i)).collect::<StringArray>()) as ArrayRef,
             })
         })
         .collect::<Result<Vec<ArrayRef>, ColumnQError>>()?;
@@ -424,15 +431,15 @@ mod tests {
         assert_eq!(
             schema,
             Schema::new(vec![
-                Field::new("Address", DataType::Utf8, false),
-                Field::new("Image", DataType::Utf8, false),
-                Field::new("Landlord", DataType::Utf8, false),
-                Field::new("Bed", DataType::Int64, false),
-                Field::new("Bath", DataType::Int64, false),
-                Field::new("Occupied", DataType::Boolean, false),
-                Field::new("Monthly_Rent", DataType::Utf8, false),
-                Field::new("Lease_Expiration_Date", DataType::Utf8, false),
-                Field::new("Days_Until_Expiration", DataType::Utf8, false),
+                Field::new("Address", DataType::Utf8, true),
+                Field::new("Image", DataType::Utf8, true),
+                Field::new("Landlord", DataType::Utf8, true),
+                Field::new("Bed", DataType::Int64, true),
+                Field::new("Bath", DataType::Int64, true),
+                Field::new("Occupied", DataType::Boolean, true),
+                Field::new("Monthly_Rent", DataType::Utf8, true),
+                Field::new("Lease_Expiration_Date", DataType::Utf8, true),
+                Field::new("Days_Until_Expiration", DataType::Utf8, true),
             ])
         );
     }
@@ -454,6 +461,70 @@ mod tests {
         assert_eq!(
             batch.column(2).as_ref(),
             Arc::new(StringArray::from(vec!["Roger", "Sam", "Daniel", "Roger"])).as_ref(),
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn unaligned_sheetvalue_to_record_batch() -> anyhow::Result<()> {
+        // empty cells at the end of a row will not be returned from the server
+        let sheet = SpreadsheetValues {
+            range: "Properties!A1:AB1000".to_string(),
+            major_dimension: "ROWS".to_string(),
+            values: vec![
+                row(&[
+                    "Address",
+                    "Image",
+                    "Landlord",
+                    "Bed",
+                    "Bath",
+                    "Occupied",
+                    "Monthly Rent",
+                    "Lease Expiration Date",
+                    "Days Until Expiration",
+                ]),
+                row(&[
+                    "Bothell, WA",
+                    "https://a.com/1.jpeg",
+                    "Roger",
+                    "3",
+                    "2",
+                    "FALSE",
+                    "$2,000",
+                    "10/23/2020",
+                    "Expired",
+                ]),
+                row(&[
+                    "Shoreline, WA",
+                    "https://a.com/3.jpeg",
+                    "Roger",
+                    "1",
+                    "1",
+                    "TRUE",
+                    "$1,200",
+                ]),
+            ],
+        };
+
+        let batch = sheet_values_to_record_batch(&sheet.values)?;
+
+        assert_eq!(batch.num_columns(), 9);
+        assert_eq!(
+            batch.column(3).as_ref(),
+            Arc::new(Int64Array::from(vec![3, 1])).as_ref(),
+        );
+        assert_eq!(
+            batch.column(5).as_ref(),
+            Arc::new(BooleanArray::from(vec![false, true])).as_ref(),
+        );
+        assert_eq!(
+            batch.column(2).as_ref(),
+            Arc::new(StringArray::from(vec!["Roger", "Roger"])).as_ref(),
+        );
+        assert_eq!(
+            batch.column(8).as_ref(),
+            Arc::new(StringArray::from(vec![Some("Expired"), None])).as_ref(),
         );
 
         Ok(())

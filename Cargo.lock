@@ -212,7 +212,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tower",
- "tower-http 0.1.2",
+ "tower-http",
  "tower-layer",
  "tower-service",
 ]
@@ -421,7 +421,7 @@ dependencies = [
 
 [[package]]
 name = "columnq"
-version = "0.4.3"
+version = "0.4.5"
 dependencies = [
  "anyhow",
  "bytes",
@@ -454,7 +454,7 @@ dependencies = [
 
 [[package]]
 name = "columnq-cli"
-version = "0.2.1"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -1165,12 +1165,6 @@ dependencies = [
  "http",
  "pin-project-lite",
 ]
-
-[[package]]
-name = "http-range-header"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bfe8eed0a9285ef776bb792479ea3834e8b94e13d615c2f66d03dd50a435a29"
 
 [[package]]
 name = "httparse"
@@ -2126,7 +2120,7 @@ dependencies = [
 
 [[package]]
 name = "roapi-http"
-version = "0.5.2"
+version = "0.5.4"
 dependencies = [
  "anyhow",
  "async-process",
@@ -2145,7 +2139,7 @@ dependencies = [
  "snmalloc-rs",
  "thiserror",
  "tokio",
- "tower-http 0.2.0",
+ "tower-http",
  "tower-layer",
  "tracing",
 ]
@@ -3103,24 +3097,6 @@ dependencies = [
  "http",
  "http-body",
  "pin-project",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "tower-http"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39ee603d6e665ecc7e0f8d479eedb4626bd4726f0ee6119cee5b3a6bf184cac0"
-dependencies = [
- "bitflags",
- "bytes",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "http-range-header",
- "pin-project-lite",
  "tower-layer",
  "tower-service",
 ]
