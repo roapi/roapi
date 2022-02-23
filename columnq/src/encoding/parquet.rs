@@ -5,7 +5,7 @@ use datafusion::parquet::errors::ParquetError;
 pub fn record_batches_to_bytes(
     batches: &[arrow::record_batch::RecordBatch],
 ) -> Result<Vec<u8>, ParquetError> {
-    let cursor = parquet::util::cursor::InMemoryWriteableCursor::default();
+    let cursor = parquet::file::writer::InMemoryWriteableCursor::default();
     {
         if !batches.is_empty() {
             let schema = batches[0].schema();

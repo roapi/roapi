@@ -57,6 +57,12 @@ pub enum ColumnQError {
         source: datafusion::error::DataFusionError,
     },
 
+    #[error("Serde error: {source}")]
+    Serde {
+        #[from]
+        source: serde_json::Error,
+    },
+
     #[error("Generic error: {0}")]
     Generic(String),
 }

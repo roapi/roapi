@@ -1,20 +1,6 @@
 [workspace]
 
-members = [
-    "columnq",
-    "columnq-cli",
-    "roapi-http",
-]
-
-[patch.crates-io]
-datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "50a98805cdd6d5383f0c124d449ed549ca13428a" }
-# datafusion = { path = "/home/houqp/Documents/code/delta/arrow-datafusion/datafusion" }
-
-deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "70f520a15ae7884c46142bfb0dbc8790f43d8701" }
-
-[patch."https://github.com/apache/arrow-datafusion"]
-datafusion = { git = "https://github.com/houqp/arrow-datafusion.git", rev = "50a98805cdd6d5383f0c124d449ed549ca13428a" }
-# datafusion = { path = "/home/houqp/Documents/code/delta/arrow-datafusion/datafusion" }
+members = ["columnq", "columnq-cli", "roapi-http"]
 
 [profile.dev]
 split-debuginfo = "unpacked"

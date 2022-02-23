@@ -11,7 +11,7 @@ name = "columnq"
 path = "src/lib.rs"
 
 [dependencies]
-datafusion = "6"
+datafusion = "7"
 
 log = "0"
 regex = "1"
@@ -42,7 +42,7 @@ hyper-tls = { version = "0.5.0", default-features = false, optional = true }
 hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
 
 
-deltalake = { version = "0", default-features = false, features = [
+deltalake = { git = "https://github.com/delta-io/delta-rs.git", rev = "f5e4b5f94393b517d3d88c200d7169cce11b304b", default-features = false, features = [
     "datafusion-ext",
 ] }
 

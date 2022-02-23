@@ -32,7 +32,7 @@ impl ApiErrResp {
         }
     }
 
-    pub fn json_serialization(_: serde_json::Error) -> Self {
+    pub fn json_serialization(_: columnq::error::ColumnQError) -> Self {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,
             error: "json_serialization".to_string(),

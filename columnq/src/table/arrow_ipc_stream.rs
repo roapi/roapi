@@ -75,7 +75,7 @@ mod tests {
         )
         .await?;
 
-        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
+        let stats = t.scan(&None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37 * 3));
 
         Ok(())
@@ -87,7 +87,7 @@ mod tests {
 
         let t = to_mem_table(&TableSource::new("uk_cities".to_string(), test_path)).await?;
 
-        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
+        let stats = t.scan(&None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37));
 
         Ok(())

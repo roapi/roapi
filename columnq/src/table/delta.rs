@@ -84,8 +84,8 @@ pub async fn to_mem_table(
 
     let delta_schema = delta_table.get_schema()?;
 
-    let paths = delta_table.get_file_uris();
-    let path_iter = paths.iter().map(|s| s.as_str());
+    let paths = delta_table.get_file_uris().collect::<Vec<String>>();
+    let path_iter = paths.iter().map(|s| s.as_ref());
 
     let partitions: Vec<Vec<RecordBatch>> = match blob_type {
         io::BlobStoreType::FileSystem => io::fs::partitions_from_iterator(
@@ -140,7 +140,7 @@ mod tests {
         )
         .await?;
 
-        validate_statistics(t.scan(&None, 1024, &[], None).await?.statistics());
+        validate_statistics(t.scan(&None, &[], None).await?.statistics());
 
         match t.as_any().downcast_ref::<MemTable>() {
             Some(_) => Ok(()),

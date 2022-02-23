@@ -158,15 +158,18 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
 async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    let app = clap::App::new("Columnq")
+    let app = clap::Command::new("Columnq")
         .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
         .about("OLAP the Unix way.")
-        .setting(clap::AppSettings::SubcommandRequiredElseHelp)
+        .arg_required_else_help(true)
+        .subcommand_required(true)
+        // .setting(clap::Command::SubcommandRequiredElseHelp)
+        // .setting(clap::Command::ar)
         .subcommand(
-            clap::App::new("sql")
+            clap::Command::new("sql")
                 .about("Query tables with SQL")
-                .setting(clap::AppSettings::ArgRequiredElseHelp)
+                .arg_required_else_help(true)
                 .args(&[
                     clap::Arg::new("SQL")
                         .help("SQL query to execute")
@@ -188,9 +191,9 @@ async fn main() -> anyhow::Result<()> {
                 ]),
         )
         .subcommand(
-            clap::App::new("console")
+            clap::Command::new("console")
                 .about("Query tables through an interactive console")
-                .setting(clap::AppSettings::ArgRequiredElseHelp)
+                .arg_required_else_help(true)
                 .args(&[table_arg()]),
         );
     let matches = app.get_matches();

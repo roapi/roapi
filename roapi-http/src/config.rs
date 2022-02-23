@@ -44,13 +44,13 @@ fn config_arg() -> clap::Arg<'static> {
 }
 
 pub fn get_configuration() -> Result<Config, anyhow::Error> {
-    let matches = clap::App::new("roapi-http")
+    let matches = clap::Command::new("roapi-http")
         .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
         .about(
             "Create full-fledged APIs for static datasets without writing a single line of code.",
         )
-        .setting(clap::AppSettings::ArgRequiredElseHelp)
+        .arg_required_else_help(true)
         .args(&[address_arg(), config_arg(), table_arg()])
         .get_matches();
 
