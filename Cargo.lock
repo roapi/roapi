@@ -190,11 +190,12 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "axum"
-version = "0.3.4"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b4e96976b2022b23b2199168ff9b281e9ddc1aa795607d5cb7146868ca5c101"
+checksum = "157d3c6bef9a248ecf0492f05bb91019ced3c5b0f4cd9ec09b16d06596e1e743"
 dependencies = [
  "async-trait",
+ "axum-core",
  "bitflags",
  "bytes",
  "futures-util",
@@ -202,6 +203,7 @@ dependencies = [
  "http-body",
  "hyper",
  "matchit",
+ "memchr",
  "mime",
  "percent-encoding",
  "pin-project-lite",
@@ -210,11 +212,24 @@ dependencies = [
  "serde_urlencoded 0.7.0",
  "sync_wrapper",
  "tokio",
- "tokio-util",
  "tower",
  "tower-http",
  "tower-layer",
  "tower-service",
+]
+
+[[package]]
+name = "axum-core"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6dbcda393bef9c87572779cb8ef916f12d77750b27535dd6819fa86591627a51"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "http",
+ "http-body",
+ "mime",
 ]
 
 [[package]]
@@ -429,7 +444,7 @@ dependencies = [
  "deltalake",
  "futures",
  "graphql-parser",
- "hyper-rustls 0.22.1",
+ "hyper-rustls 0.23.0",
  "hyper-tls",
  "lazy_static",
  "log",
@@ -444,7 +459,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
- "sqlparser 0.10.0",
+ "sqlparser 0.14.0",
  "tempdir",
  "thiserror",
  "tokio",
@@ -726,9 +741,9 @@ dependencies = [
 
 [[package]]
 name = "dirs"
-version = "3.0.2"
+version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30baa043103c9d0c2a57cf537cc2f35623889dc0d405e6c3cccfadbc81c71309"
+checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
 dependencies = [
  "dirs-sys",
 ]
@@ -1167,6 +1182,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "http-range-header"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bfe8eed0a9285ef776bb792479ea3834e8b94e13d615c2f66d03dd50a435a29"
+
+[[package]]
 name = "httparse"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1292,6 +1313,15 @@ name = "ipnet"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68f2d64f2edebec4ce84ad108148e67e1064789bee435edc5b60ad398714a3a9"
+
+[[package]]
+name = "itertools"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9a9d19fa1e79b6215ff29b9d6880b706147f16e9b1dbb1e4e5947b5b02bc5e3"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "itoa"
@@ -1454,9 +1484,9 @@ checksum = "a3e378b66a060d48947b590737b30a1be76706c8dd7b8ba0f2fe3989c68a853f"
 
 [[package]]
 name = "matchit"
-version = "0.4.4"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58b6f41fdfbec185dd3dff58b51e323f5bc61692c0de38419a957b0dcfccca3c"
+checksum = "9376a4f0340565ad675d11fc1419227faf5f60cd7ac9cb2e7185a471f30af833"
 
 [[package]]
 name = "md-5"
@@ -2705,18 +2735,18 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "sqlparser"
-version = "0.10.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dbcb26aebf44a0993c3c95e41d13860131b6cbf52edb2c53230056baa4d733f"
+checksum = "760e624412a15d5838ae04fad01037beeff1047781431d74360cddd6b3c1c784"
 dependencies = [
  "log",
 ]
 
 [[package]]
 name = "sqlparser"
-version = "0.12.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "760e624412a15d5838ae04fad01037beeff1047781431d74360cddd6b3c1c784"
+checksum = "b8f192f29f4aa49e57bebd0aa05858e0a1f32dd270af36efe49edb82cbfffab6"
 dependencies = [
  "log",
 ]
@@ -3087,16 +3117,19 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.1.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f70061b0592867f0a60e67a6e699da5fe000c88a360a5b92ebdba9d73b2238c"
+checksum = "2bb284cac1883d54083a0edbdc9cabf931dfed87455f8c7266c01ece6394a43a"
 dependencies = [
+ "bitflags",
  "bytes",
  "futures-core",
  "futures-util",
  "http",
  "http-body",
- "pin-project",
+ "http-range-header",
+ "pin-project-lite",
+ "tower",
  "tower-layer",
  "tower-service",
 ]
@@ -3498,10 +3531,12 @@ dependencies = [
 
 [[package]]
 name = "yup-oauth2"
-version = "5.1.0"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2573621fa28865489bdf556cdb8703604f4e8498612e3041a212ac20e59c4aeb"
+checksum = "be15a5884649e56124b89f40b634c2bfaef7346c858e0e0ea7c7374f6ffff945"
 dependencies = [
+ "anyhow",
+ "async-trait",
  "base64",
  "chrono",
  "futures",
@@ -3509,6 +3544,7 @@ dependencies = [
  "hyper",
  "hyper-rustls 0.22.1",
  "hyper-tls",
+ "itertools",
  "log",
  "percent-encoding",
  "rustls 0.19.1",

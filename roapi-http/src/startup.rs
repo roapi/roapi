@@ -33,7 +33,7 @@ impl Application {
         let routes = api::routes::register_app_routes();
         let cors = tower_http::cors::CorsLayer::new()
             .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
-            .allow_origin(tower_http::cors::any())
+            .allow_origin(tower_http::cors::Any)
             .allow_credentials(false);
         let mut app = routes
             .layer(axum::AddExtensionLayer::new(Arc::new(handler_ctx)))

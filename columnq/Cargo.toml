@@ -17,15 +17,18 @@ log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.10"
-yup-oauth2 = { version = "5.1", default-features = false }
+sqlparser = "0.14"
+yup-oauth2 = { version = "6.2", default-features = false }
 thiserror = "1"
 serde_json = "1"
 serde_derive = "1"
 serde = "1"
 uriparse = "0"
 bytes = { version = "1" }
-reqwest = { version = "0.11", default-features = false, features = ["blocking", "json"] }
+reqwest = { version = "0.11", default-features = false, features = [
+    "blocking",
+    "json",
+] }
 
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
@@ -36,10 +39,12 @@ rusoto_s3 = { version = "0.47", default-features = false }
 rusoto_credential = { version = "0.47" }
 rusoto_sts = { version = "0.47", default-features = false }
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
-hyper-rustls = { version = "0.22.1", default-features = false, optional = true }
+hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
 
 
-deltalake = { version = "0", default-features = false, features = ["datafusion-ext"] }
+deltalake = { version = "0", default-features = false, features = [
+    "datafusion-ext",
+] }
 
 [dev-dependencies]
 anyhow = "1"
@@ -49,7 +54,29 @@ pretty_assertions = "*"
 
 [features]
 default = ["rustls"]
-rustls = ["reqwest/rustls-tls", "rusoto_core/rustls", "rusoto_core/rustls", "rusoto_sts/rustls", "deltalake/s3-rustls", "yup-oauth2/hyper-rustls"]
-native-tls-vendored = ["reqwest/native-tls-vendored", "hyper-tls/vendored", "rusoto_core/native-tls", "rusoto_s3/native-tls", "rusoto_sts/native-tls", "deltalake/s3", "yup-oauth2/hyper-tls"]
-native-tls = ["reqwest/native-tls", "rusoto_core/native-tls", "rusoto_s3/native-tls", "rusoto_sts/native-tls", "deltalake/s3", "yup-oauth2/hyper-tls"]
+rustls = [
+    "reqwest/rustls-tls",
+    "rusoto_core/rustls",
+    "rusoto_core/rustls",
+    "rusoto_sts/rustls",
+    "deltalake/s3-rustls",
+    "yup-oauth2/hyper-rustls",
+]
+native-tls-vendored = [
+    "reqwest/native-tls-vendored",
+    "hyper-tls/vendored",
+    "rusoto_core/native-tls",
+    "rusoto_s3/native-tls",
+    "rusoto_sts/native-tls",
+    "deltalake/s3",
+    "yup-oauth2/hyper-tls",
+]
+native-tls = [
+    "reqwest/native-tls",
+    "rusoto_core/native-tls",
+    "rusoto_s3/native-tls",
+    "rusoto_sts/native-tls",
+    "deltalake/s3",
+    "yup-oauth2/hyper-tls",
+]
 simd = ["datafusion/simd"]

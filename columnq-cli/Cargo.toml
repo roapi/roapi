@@ -23,7 +23,7 @@ rustyline = { version = "9" }
 env_logger = { version = "0" }
 anyhow = { version = "1" }
 clap = { version = "3", features = ["color"] }
-dirs = { version = "3" }
+dirs = { version = "4" }
 
 [features]
 default = ["rustls", "snmalloc"]
