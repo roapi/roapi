@@ -32,18 +32,22 @@ mod tests {
         let mut dfctx = ExecutionContext::new();
         register_table_properties(&mut dfctx)?;
 
+        println!("1");
+
         let batches = exec_query(
             &dfctx,
             r#"
-            SELECT DISTINCT(Landlord), COUNT(Address)
+            SELECT DISTINCT(landlord), COUNT(address)
             FROM properties
-            GROUP BY Landlord
-            ORDER BY Landlord
+            GROUP BY landlord
+            ORDER BY landlord
             "#,
         )
         .await?;
 
         let batch = &batches[0];
+
+        println!("2");
 
         assert_eq!(
             batch.column(0).as_ref(),
