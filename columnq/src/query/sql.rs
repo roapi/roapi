@@ -32,8 +32,6 @@ mod tests {
         let mut dfctx = ExecutionContext::new();
         register_table_properties(&mut dfctx)?;
 
-        println!("1");
-
         let batches = exec_query(
             &dfctx,
             r#"
@@ -46,8 +44,6 @@ mod tests {
         .await?;
 
         let batch = &batches[0];
-
-        println!("2");
 
         assert_eq!(
             batch.column(0).as_ref(),
