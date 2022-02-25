@@ -390,22 +390,22 @@ mod tests {
             r#"{
                 properties(
                     filter: {
-                        Bed: { gt: 3 }
-                        Bath: { gteq: 2 }
+                        bed: { gt: 3 }
+                        bath: { gteq: 2 }
                     }
                 ) {
-                    Address
-                    Bed
-                    Bath
+                    address
+                    bed
+                    bath
                 }
             }"#,
         )?;
 
         let expected_df = dfctx
             .table("properties")?
-            .filter(col("Bath").gt_eq(lit(2i64)))?
-            .filter(col("Bed").gt(lit(3i64)))?
-            .select(vec![col("Address"), col("Bed"), col("Bath")])?;
+            .filter(col("bath").gt_eq(lit(2i64)))?
+            .filter(col("bed").gt(lit(3i64)))?
+            .select(vec![col("address"), col("bed"), col("bath")])?;
 
         assert_eq_df(df, expected_df);
 
@@ -422,24 +422,24 @@ mod tests {
             r#"{
                 properties(
                     filter: {
-                        Bed: { gt: 3 }
+                        bed: { gt: 3 }
                     }
                     limit: 10
                     sort: [
-                        { field: "Bed" }
+                        { field: "bed" }
                     ]
                 ) {
-                    Address
-                    Bed
+                    address
+                    bed
                 }
             }"#,
         )?;
 
         let expected_df = dfctx
             .table("properties")?
-            .filter(col("Bed").gt(lit(3i64)))?
-            .select(vec![col("Address"), col("Bed")])?
-            .sort(vec![column_sort_expr_asc("Bed")])?
+            .filter(col("bed").gt(lit(3i64)))?
+            .select(vec![col("address"), col("bed")])?
+            .sort(vec![column_sort_expr_asc("bed")])?
             .limit(10)?;
 
         assert_eq_df(df, expected_df);
@@ -457,13 +457,13 @@ mod tests {
             r#"{
                 properties(
                     filter: {
-                        Occupied: false
-                        Bed: { gteq: 4 }
+                        occupied: false
+                        bed: { gteq: 4 }
                     }
                 ) {
-                    Address
-                    Bed
-                    Bath
+                    address
+                    bed
+                    bath
                 }
             }"#,
         )
