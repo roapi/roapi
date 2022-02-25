@@ -64,30 +64,30 @@ fn json_vec_to_partition(
     {
         // enclose values_iter in its own scope so it won't brrow schema_ref til end of this
         // function
-        let mut values_iter: Box<dyn Iterator<Item = arrow::error::Result<Value>>>;
-        values_iter = if array_encoded {
-            // convert row array to object based on schema
-            // TODO: support array_encoded read in upstream arrow json reader instead
-            Box::new(json_rows.into_iter().map(|json_row| {
-                let mut m = serde_json::map::Map::new();
-                schema.fields().iter().enumerate().try_for_each(|(i, f)| {
-                    match json_row.get(i) {
-                        Some(x) => {
-                            m.insert(f.name().to_string(), x.clone());
-                            Ok(())
+        let mut values_iter: Box<dyn Iterator<Item = arrow::error::Result<Value>>> =
+            if array_encoded {
+                // convert row array to object based on schema
+                // TODO: support array_encoded read in upstream arrow json reader instead
+                Box::new(json_rows.into_iter().map(|json_row| {
+                    let mut m = serde_json::map::Map::new();
+                    schema.fields().iter().enumerate().try_for_each(|(i, f)| {
+                        match json_row.get(i) {
+                            Some(x) => {
+                                m.insert(f.name().to_string(), x.clone());
+                                Ok(())
+                            }
+                            None => Err(arrow::error::ArrowError::JsonError(format!(
+                                "arry encoded JSON row missing column {:?} : {:?}",
+                                i, json_row
+                            ))),
                         }
-                        None => Err(arrow::error::ArrowError::JsonError(format!(
-                            "arry encoded JSON row missing column {:?} : {:?}",
-                            i, json_row
-                        ))),
-                    }
-                })?;
-                Ok(Value::Object(m))
-            }))
-        } else {
-            // no need to convert row since each row is already an object
-            Box::new(json_rows.into_iter().map(Ok))
-        };
+                    })?;
+                    Ok(Value::Object(m))
+                }))
+            } else {
+                // no need to convert row since each row is already an object
+                Box::new(json_rows.into_iter().map(Ok))
+            };
 
         while let Some(batch) = decoder.next_batch(&mut values_iter).map_err(|e| {
             ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {}", e))

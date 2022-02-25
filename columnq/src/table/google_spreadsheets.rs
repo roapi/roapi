@@ -141,7 +141,7 @@ fn infer_schema(rows: &[Vec<String>]) -> Schema {
             let dt = dt_iter.fold(dt_init, coerce_type);
 
             // normalize column name by replacing space with under score
-            Field::new(&col_name.replace(" ", "_"), dt, true)
+            Field::new(&col_name.replace(' ', "_"), dt, true)
         })
         .collect();
     Schema::new(fields)

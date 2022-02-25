@@ -123,7 +123,7 @@ fn list_objects<'a>(
                             .map(|t| ContinuationToken::Value(Some(t)))
                             .unwrap_or(ContinuationToken::End);
 
-                        state.obj_iter = list_resp.contents.unwrap_or_else(Vec::new).into_iter();
+                        state.obj_iter = list_resp.contents.unwrap_or_default().into_iter();
                         state.obj_iter.next().map(|obj| {
                             (obj.key.ok_or_else(ColumnQError::s3_obj_missing_key), state)
                         })

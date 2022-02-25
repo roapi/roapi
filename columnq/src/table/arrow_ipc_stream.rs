@@ -30,8 +30,7 @@ pub async fn to_mem_table(
             Arc::new(Schema::try_merge(
                 schema_and_partitions
                     .iter_mut()
-                    .map(|v| if !(v.1).is_empty() { v.0.take() } else { None })
-                    .flatten()
+                    .flat_map(|v| if !(v.1).is_empty() { v.0.take() } else { None })
                     .collect::<Vec<_>>(),
             )?)
         }
