@@ -22,7 +22,7 @@ snmalloc-rs = { version = "0.2", optional = true }
 # dependencies related to axum
 tokio = { version = "1", features = ["rt-multi-thread"] }
 hyper = { version = "0", features = ["http1", "server", "stream", "runtime"] }
-axum = { version = "0.3", features = ["default", "http2"] }
+axum = { version = "0.4", features = ["default", "http2"] }
 tower-http = { version = "0", features = ["cors"] }
 tower-layer = "0"
 tracing = "0"
@@ -47,7 +47,10 @@ simd = ["columnq/simd"]
 snmalloc = ["snmalloc-rs"]
 
 [dev-dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"]}
+reqwest = { version = "0.11", default-features = false, features = [
+    "json",
+    "rustls-tls",
+] }
 async-process = "1.3.0"
 
 # TODO: uncomment this when we exclude roapi-http from root workspace

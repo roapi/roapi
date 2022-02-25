@@ -8,7 +8,7 @@ use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::file_format::parquet::ParquetFormat;
-use datafusion::datasource::listing::{ListingOptions, ListingTable};
+use datafusion::datasource::listing::{ListingOptions, ListingTable, ListingTableConfig};
 use datafusion::datasource::object_store::local::LocalFileSystem;
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::{ArrowReader, ParquetFileArrowReader};
@@ -39,12 +39,11 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
             }
         };
 
-        Ok(Arc::new(ListingTable::new(
-            df_object_store,
-            table_path,
-            file_schema,
-            list_opt,
-        )))
+        Ok(Arc::new(ListingTable::try_new(
+            ListingTableConfig::new(df_object_store, table_path)
+                .with_schema(file_schema)
+                .with_listing_options(list_opt),
+        )?))
     }
 }
 
@@ -122,7 +121,7 @@ mod tests {
         )
         .await?;
 
-        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
+        let stats = t.scan(&None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(500));
         let stats = stats.column_statistics.unwrap();
         assert_eq!(stats[0].null_count, Some(245));
@@ -152,7 +151,7 @@ mod tests {
             Some("protobuf")
         );
 
-        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
+        let stats = t.scan(&None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(500));
 
         Ok(())
@@ -182,7 +181,7 @@ mod tests {
             Some("protobuf")
         );
 
-        let stats = t.scan(&None, 1024, &[], None).await?.statistics();
+        let stats = t.scan(&None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(1500));
 
         Ok(())

@@ -32,7 +32,7 @@ impl ApiErrResp {
         }
     }
 
-    pub fn json_serialization(_: serde_json::Error) -> Self {
+    pub fn json_serialization(_: columnq::error::ColumnQError) -> Self {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,
             error: "json_serialization".to_string(),
@@ -108,13 +108,10 @@ impl fmt::Display for ApiErrResp {
 }
 
 impl axum::response::IntoResponse for ApiErrResp {
-    type Body = axum::body::Body;
-    type BodyError = <Self::Body as axum::body::HttpBody>::Error;
+    fn into_response(self) -> axum::response::Response {
+        let payload = serde_json::to_string(&self).unwrap();
+        let body = axum::body::boxed(axum::body::Full::from(payload));
 
-    fn into_response(self) -> Response<axum::body::Body> {
-        let payload = serde_json::to_vec(&self).unwrap();
-        let mut res = Response::new(axum::body::Body::from(payload));
-        *res.status_mut() = self.code;
-        res
+        Response::builder().status(self.code).body(body).unwrap()
     }
 }

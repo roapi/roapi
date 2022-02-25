@@ -35,10 +35,10 @@ mod tests {
         let batches = exec_query(
             &dfctx,
             r#"
-            SELECT DISTINCT(Landlord), COUNT(Address)
+            SELECT DISTINCT(landlord), COUNT(address)
             FROM properties
-            GROUP BY Landlord
-            ORDER BY Landlord
+            GROUP BY landlord
+            ORDER BY landlord
             "#,
         )
         .await?;

@@ -19,13 +19,13 @@ pub fn test_data_path(relative_path: &str) -> String {
 
 fn properties_table() -> anyhow::Result<MemTable> {
     let schema = Arc::new(Schema::new(vec![
-        Field::new("Address", DataType::Utf8, false),
-        Field::new("Landlord", DataType::Utf8, false),
-        Field::new("Bed", DataType::Int64, false),
-        Field::new("Bath", DataType::Int64, false),
-        Field::new("Occupied", DataType::Boolean, false),
-        Field::new("Monthly_Rent", DataType::Utf8, false),
-        Field::new("Lease_Expiration_Date", DataType::Utf8, false),
+        Field::new("address", DataType::Utf8, false),
+        Field::new("landlord", DataType::Utf8, false),
+        Field::new("bed", DataType::Int64, false),
+        Field::new("bath", DataType::Int64, false),
+        Field::new("occupied", DataType::Boolean, false),
+        Field::new("monthly_rent", DataType::Utf8, false),
+        Field::new("lease_expiration_date", DataType::Utf8, false),
     ]));
 
     let record_batch = RecordBatch::try_new(

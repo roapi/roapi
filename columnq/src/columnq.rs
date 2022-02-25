@@ -36,6 +36,13 @@ impl ColumnQ {
         &self.schema_map
     }
 
+    pub fn serializable_schema_map(&self) -> HashMap<&String, &arrow::datatypes::Schema> {
+        self.schema_map
+            .iter()
+            .map(|(k, v)| (k, v.as_ref()))
+            .collect()
+    }
+
     pub async fn query_graphql(
         &self,
         query: &str,
