@@ -8,7 +8,7 @@ pub async fn schema(
     state: extract::Extension<Arc<HandlerContext>>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
     let ctx = state.0;
-    let schema = ctx.cq.serializable_schema_map();
+    let schema = ctx.cq.schema_map();
     let payload = serde_json::to_vec(&schema)
         .map_err(columnq::error::ColumnQError::from)
         .map_err(ApiErrResp::json_serialization)?;
@@ -22,9 +22,10 @@ pub async fn get_by_table_name(
     let ctx = state.0;
     let payload = serde_json::to_vec(
         ctx.cq
-            .serializable_schema_map()
+            .schema_map()
             .get(&table_name)
-            .ok_or_else(|| ApiErrResp::not_found("invalid table name"))?,
+            .ok_or_else(|| ApiErrResp::not_found("invalid table name"))?
+            .as_ref(),
     )
     .map_err(columnq::error::ColumnQError::from)
     .map_err(ApiErrResp::json_serialization)?;
