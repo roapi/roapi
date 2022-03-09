@@ -87,5 +87,6 @@ pub mod rest;
 pub mod routes;
 pub mod schema;
 pub mod sql;
+pub mod register;
 
 pub use routes::register_app_routes;

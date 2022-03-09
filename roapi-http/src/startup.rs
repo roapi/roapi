@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+use axum::extract::Extension;
 use axum::http::Method;
+use tokio::sync::Mutex;
 use std::net::TcpListener;
 use std::sync::Arc;
+use columnq::table::TableSource;
 
 use crate::api;
 use crate::api::HandlerContext;
@@ -35,8 +39,12 @@ impl Application {
             .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
             .allow_origin(tower_http::cors::Any)
             .allow_credentials(false);
+        let tables = config.tables.iter()
+            .map(|t| (t.name.clone(), t.clone()))
+            .collect::<HashMap<String, TableSource>>();
         let mut app = routes
-            .layer(axum::AddExtensionLayer::new(Arc::new(handler_ctx)))
+            .layer(Extension(Arc::new(Mutex::new(handler_ctx))))
+            .layer(Extension(Arc::new(Mutex::new(tables))))
             .layer(cors);
         if log::log_enabled!(log::Level::Info) {
             // only add logger layer if level >= INFO

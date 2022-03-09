@@ -2,12 +2,13 @@ use crate::api::{bytes_to_json_resp, HandlerContext};
 use crate::error::ApiErrResp;
 use axum::extract;
 use axum::response::IntoResponse;
+use tokio::sync::Mutex;
 use std::sync::Arc;
 
 pub async fn schema(
-    state: extract::Extension<Arc<HandlerContext>>,
+    state: extract::Extension<Arc<Mutex<HandlerContext>>>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
-    let ctx = state.0;
+    let ctx = state.0.lock().await;
     let schema = ctx.cq.schema_map();
     let payload = serde_json::to_vec(&schema)
         .map_err(columnq::error::ColumnQError::from)
@@ -16,10 +17,10 @@ pub async fn schema(
 }
 
 pub async fn get_by_table_name(
-    state: extract::Extension<Arc<HandlerContext>>,
+    state: extract::Extension<Arc<Mutex<HandlerContext>>>,
     extract::Path(table_name): extract::Path<String>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
-    let ctx = state.0;
+    let ctx = state.0.lock().await;
     let payload = serde_json::to_vec(
         ctx.cq
             .schema_map()
