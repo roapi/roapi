@@ -4,7 +4,7 @@ use axum::extract::{Extension, Json};
 use columnq::{error::ColumnQError, table::TableSource};
 use log::info;
 use serde::Deserialize;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::error::ApiErrResp;
 
@@ -18,11 +18,11 @@ pub struct SourceConfig {
 }
 
 pub async fn register_table(
-    Extension(state): Extension<Arc<Mutex<HandlerContext>>>,
+    Extension(state): Extension<Arc<RwLock<HandlerContext>>>,
     Extension(tables): Extension<Arc<Mutex<HashMap<String, TableSource>>>>,
     Json(body): Json<Vec<SourceConfig>>,
 ) -> Result<(), ApiErrResp> {
-    let mut ctx = state.lock().await;
+    let mut ctx = state.write().await;
     let mut tables = tables.lock().await;
     for config in body {
         if let Some(ref uri) = config.uri {

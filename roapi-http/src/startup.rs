@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use axum::extract::Extension;
 use axum::http::Method;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use std::net::TcpListener;
 use std::sync::Arc;
 use columnq::table::TableSource;
@@ -43,7 +43,7 @@ impl Application {
             .map(|t| (t.name.clone(), t.clone()))
             .collect::<HashMap<String, TableSource>>();
         let mut app = routes
-            .layer(Extension(Arc::new(Mutex::new(handler_ctx))))
+            .layer(Extension(Arc::new(RwLock::new(handler_ctx))))
             .layer(Extension(Arc::new(Mutex::new(tables))))
             .layer(cors);
         if log::log_enabled!(log::Level::Info) {
