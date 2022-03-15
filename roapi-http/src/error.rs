@@ -4,6 +4,7 @@ use axum::http;
 use axum::http::Response;
 use columnq::datafusion::arrow;
 use columnq::datafusion::parquet;
+use columnq::error::ColumnQError;
 use columnq::error::QueryError;
 use serde::Serializer;
 use serde_derive::Serialize;
@@ -77,6 +78,22 @@ impl ApiErrResp {
             code: http::StatusCode::BAD_REQUEST,
             error: "read_query".to_string(),
             message: format!("Failed to decode utf-8 query: {}", error),
+        }
+    }
+
+    pub fn register_table(error: String) -> Self {
+        Self {
+            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+            error: "register_table".to_string(),
+            message: error,
+        }
+    }
+
+    pub fn load_table(error: ColumnQError) -> Self {
+        Self {
+            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+            error: "load_table".to_string(),
+            message: error.to_string(),
         }
     }
 }
