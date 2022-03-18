@@ -4,11 +4,11 @@ use axum::extract::{Extension, Json};
 use columnq::{error::ColumnQError, table::TableSource};
 use log::info;
 use serde::Deserialize;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::Mutex;
 
 use crate::error::ApiErrResp;
 
-use super::HandlerContext;
+use super::HandlerCtxType;
 
 #[derive(Debug, Deserialize)]
 pub struct SourceConfig {
@@ -18,18 +18,19 @@ pub struct SourceConfig {
 }
 
 pub async fn register_table(
-    Extension(state): Extension<Arc<RwLock<HandlerContext>>>,
+    Extension(ctx): Extension<Arc<HandlerCtxType>>,
     Extension(tables): Extension<Arc<Mutex<HashMap<String, TableSource>>>>,
     Json(body): Json<Vec<SourceConfig>>,
 ) -> Result<(), ApiErrResp> {
-    let mut ctx = state.write().await;
+    if let HandlerCtxType::NoLock(_) = *ctx {
+        return Err(ApiErrResp::read_only_mode());
+    }
     let mut tables = tables.lock().await;
     for config in body {
         if let Some(ref uri) = config.uri {
             let t = TableSource::new_with_uri(&config.table_name, uri);
             info!("loading `{}` as table `{}`", t.io_source, config.table_name);
-            ctx.cq
-                .load_table(&t)
+            ctx.load_table(&t)
                 .await
                 .map_err(ColumnQError::from)
                 .map_err(ApiErrResp::load_table)?;
@@ -40,8 +41,7 @@ pub async fn register_table(
             );
         } else if let Some(t) = tables.get(&config.table_name) {
             info!("Re register table {}", t.name);
-            ctx.cq
-                .load_table(t)
+            ctx.load_table(t)
                 .await
                 .map_err(ColumnQError::from)
                 .map_err(ApiErrResp::load_table)?;

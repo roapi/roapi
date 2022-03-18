@@ -6,7 +6,7 @@ use std::net::TcpListener;
 use std::sync::Arc;
 use columnq::table::TableSource;
 
-use crate::api;
+use crate::api::{self, HandlerCtxType};
 use crate::api::HandlerContext;
 use crate::config::Config;
 use crate::layers::HttpLoggerLayer;
@@ -33,6 +33,11 @@ impl Application {
         let handler_ctx = HandlerContext::new(&config)
             .await
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        let handler_ctx = if config.read_only {
+            HandlerCtxType::NoLock(handler_ctx)
+        } else {
+            HandlerCtxType::RwLock(RwLock::new(handler_ctx))
+        };
 
         let routes = api::routes::register_app_routes();
         let cors = tower_http::cors::CorsLayer::new()
@@ -43,7 +48,7 @@ impl Application {
             .map(|t| (t.name.clone(), t.clone()))
             .collect::<HashMap<String, TableSource>>();
         let mut app = routes
-            .layer(Extension(Arc::new(RwLock::new(handler_ctx))))
+            .layer(Extension(Arc::new(handler_ctx)))
             .layer(Extension(Arc::new(Mutex::new(tables))))
             .layer(cors);
         if log::log_enabled!(log::Level::Info) {

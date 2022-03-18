@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::TryFrom;
 
 use axum::body::Body;
@@ -8,7 +9,11 @@ use columnq::datafusion::arrow;
 use columnq::encoding;
 use columnq::encoding::ContentType;
 use columnq::ColumnQ;
+use columnq::error::ColumnQError;
+use columnq::error::QueryError;
+use columnq::table::TableSource;
 use log::info;
+use tokio::sync::RwLock;
 
 use crate::config::Config;
 use crate::error::ApiErrResp;
@@ -33,6 +38,73 @@ impl HandlerContext {
         }
 
         Ok(Self { cq })
+    }
+}
+
+pub enum HandlerCtxType {
+    RwLock(RwLock<HandlerContext>),
+    NoLock(HandlerContext),
+}
+
+impl HandlerCtxType {
+    pub async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError> {
+        match self {
+            HandlerCtxType::RwLock(ctx) => {
+                let mut ctx = ctx.write().await;
+                ctx.cq.load_table(table).await
+            }
+            _ => Err(ColumnQError::Generic("Current is read only".to_string())),
+        }
+    }
+
+    pub async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef> {
+        match self {
+            HandlerCtxType::RwLock(ctx) => {
+                let ctx = ctx.read().await;
+                ctx.cq.schema_map().clone()
+            }
+            HandlerCtxType::NoLock(ctx) => ctx.cq.schema_map().clone(),
+        }
+    }
+
+    pub async fn query_graphql(
+        &self,
+        query: &str,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+        match self {
+            HandlerCtxType::RwLock(ctx) => {
+                let ctx = ctx.read().await;
+                ctx.cq.query_graphql(query).await
+            }
+            HandlerCtxType::NoLock(ctx) => ctx.cq.query_graphql(query).await,
+        }
+    }
+
+    pub async fn query_sql(
+        &self,
+        query: &str,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+        match self {
+            HandlerCtxType::RwLock(ctx) => {
+                let ctx = ctx.read().await;
+                ctx.cq.query_sql(query).await
+            }
+            HandlerCtxType::NoLock(ctx) => ctx.cq.query_sql(query).await,
+        }
+    }
+
+    pub async fn query_rest_table(
+        &self,
+        table_name: &str,
+        params: &HashMap<String, String>,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+        match self {
+            HandlerCtxType::RwLock(ctx) => {
+                let ctx = ctx.read().await;
+                ctx.cq.query_rest_table(table_name, params).await
+            }
+            HandlerCtxType::NoLock(ctx) => ctx.cq.query_rest_table(table_name, params).await,
+        }
     }
 }
 

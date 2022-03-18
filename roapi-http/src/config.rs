@@ -10,6 +10,7 @@ use std::fs;
 pub struct Config {
     pub addr: Option<String>,
     pub tables: Vec<TableSource>,
+    pub read_only: bool,
 }
 
 fn table_arg() -> clap::Arg<'static> {
@@ -34,6 +35,17 @@ fn address_arg() -> clap::Arg<'static> {
         .short('a')
 }
 
+fn read_only_arg() -> clap::Arg<'static> {
+    clap::Arg::new("read-only")
+        .help("Start roapi-http in read-only mode")
+        .required(false)
+        .takes_value(true)
+        .default_value("true")
+        .value_name("BOOLEAN")
+        .long("read-only")
+        .short('r')
+}
+
 fn config_arg() -> clap::Arg<'static> {
     clap::Arg::new("config")
         .help("config file path")
@@ -51,7 +63,7 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
             "Create full-fledged APIs for static datasets without writing a single line of code.",
         )
         .arg_required_else_help(true)
-        .args(&[address_arg(), config_arg(), table_arg()])
+        .args(&[address_arg(), config_arg(), read_only_arg(), table_arg()])
         .get_matches();
 
     let mut config: Config = match matches.value_of("config") {
@@ -73,6 +85,8 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
     if let Some(addr) = matches.value_of("addr") {
         config.addr = Some(addr.to_string());
     }
+
+    config.read_only = matches.value_of("read-only").unwrap().parse::<bool>()?;
 
     Ok(config)
 }
