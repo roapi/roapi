@@ -1,15 +1,22 @@
-use crate::api;
-
 use axum::{
     routing::{get, post},
     Router,
 };
 
-pub fn register_app_routes() -> Router {
-    Router::new()
-        .route("/api/tables/:table_name", get(api::rest::get_table))
-        .route("/api/sql", post(api::sql::post))
-        .route("/api/graphql", post(api::graphql::post))
-        .route("/api/schema", get(api::schema::schema))
-        .route("/api/table", post(api::register::register_table))
+use crate::api::{self, HandlerCtx};
+
+pub fn register_app_routes<H: HandlerCtx>() -> Router {
+    let mut router = Router::new()
+        .route("/api/tables/:table_name", get(api::rest::get_table::<H>))
+        .route("/api/sql", post(api::sql::post::<H>))
+        .route("/api/graphql", post(api::graphql::post::<H>))
+        .route("/api/schema", get(api::schema::schema::<H>));
+
+    if H::read_only_mode() {
+        router = router.route("/api/table", post(api::register::register_table_read_only));
+    } else {
+        router = router.route("/api/table", post(api::register::register_table::<H>));
+    }
+
+    router
 }

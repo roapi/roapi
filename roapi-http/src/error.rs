@@ -89,6 +89,14 @@ impl ApiErrResp {
         }
     }
 
+    pub fn read_only_mode() -> Self {
+        Self {
+            code: http::StatusCode::FORBIDDEN,
+            error: "read_only_mode".to_string(),
+            message: "Write operation is not allowed in read-only mode".to_string(),
+        }
+    }
+
     pub fn load_table(error: ColumnQError) -> Self {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,

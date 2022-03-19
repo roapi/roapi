@@ -10,6 +10,8 @@ use std::fs;
 pub struct Config {
     pub addr: Option<String>,
     pub tables: Vec<TableSource>,
+    #[serde(default)]
+    pub disable_read_only: bool,
 }
 
 fn table_arg() -> clap::Arg<'static> {
@@ -34,6 +36,15 @@ fn address_arg() -> clap::Arg<'static> {
         .short('a')
 }
 
+fn read_only_arg() -> clap::Arg<'static> {
+    clap::Arg::new("disable-read-only")
+        .help("Start roapi-http in read write mode")
+        .required(false)
+        .takes_value(false)
+        .long("disable-read-only")
+        .short('d')
+}
+
 fn config_arg() -> clap::Arg<'static> {
     clap::Arg::new("config")
         .help("config file path")
@@ -51,7 +62,7 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
             "Create full-fledged APIs for static datasets without writing a single line of code.",
         )
         .arg_required_else_help(true)
-        .args(&[address_arg(), config_arg(), table_arg()])
+        .args(&[address_arg(), config_arg(), read_only_arg(), table_arg()])
         .get_matches();
 
     let mut config: Config = match matches.value_of("config") {
@@ -72,6 +83,10 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
 
     if let Some(addr) = matches.value_of("addr") {
         config.addr = Some(addr.to_string());
+    }
+
+    if matches.is_present("disable-read-only") {
+        config.disable_read_only = true;
     }
 
     Ok(config)
