@@ -49,16 +49,21 @@ pub trait HandlerCtx: Send + Sync + 'static {
     fn read_only_mode() -> bool;
 
     async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError>;
-    // FIXME: avoid clone
-    async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef>;
+
+    async fn schemas_json_bytes(&self) -> Result<Vec<u8>, ApiErrResp>;
+
+    async fn table_schema_json_bytes(&self, table_name: &str) -> Result<Vec<u8>, ApiErrResp>;
+
     async fn query_graphql(
         &self,
         query: &str,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+
     async fn query_sql(
         &self,
         query: &str,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+
     async fn query_rest_table(
         &self,
         table_name: &str,
@@ -81,8 +86,23 @@ impl HandlerCtx for RawHandlerContext {
     }
 
     #[inline]
-    async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef> {
-        self.cq.schema_map().clone()
+    async fn schemas_json_bytes(&self) -> Result<Vec<u8>, ApiErrResp> {
+        serde_json::to_vec(self.cq.schema_map())
+            .map_err(columnq::error::ColumnQError::from)
+            .map_err(ApiErrResp::json_serialization)
+    }
+
+    #[inline]
+    async fn table_schema_json_bytes(&self, table_name: &str) -> Result<Vec<u8>, ApiErrResp> {
+        serde_json::to_vec(
+            self.cq
+                .schema_map()
+                .get(table_name)
+                .ok_or_else(|| ApiErrResp::not_found("invalid table name"))?
+                .as_ref(),
+        )
+        .map_err(columnq::error::ColumnQError::from)
+        .map_err(ApiErrResp::json_serialization)
     }
 
     #[inline]
@@ -125,9 +145,25 @@ impl HandlerCtx for ConcurrentHandlerContext {
     }
 
     #[inline]
-    async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef> {
+    async fn schemas_json_bytes(&self) -> Result<Vec<u8>, ApiErrResp> {
         let ctx = self.read().await;
-        ctx.cq.schema_map().clone()
+        serde_json::to_vec(ctx.cq.schema_map())
+            .map_err(columnq::error::ColumnQError::from)
+            .map_err(ApiErrResp::json_serialization)
+    }
+
+    #[inline]
+    async fn table_schema_json_bytes(&self, table_name: &str) -> Result<Vec<u8>, ApiErrResp> {
+        let ctx = self.read().await;
+        serde_json::to_vec(
+            ctx.cq
+                .schema_map()
+                .get(table_name)
+                .ok_or_else(|| ApiErrResp::not_found("invalid table name"))?
+                .as_ref(),
+        )
+        .map_err(columnq::error::ColumnQError::from)
+        .map_err(ApiErrResp::json_serialization)
     }
 
     #[inline]
