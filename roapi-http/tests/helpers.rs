@@ -16,7 +16,7 @@ pub async fn test_api_app(tables: Vec<TableSource>) -> (Application, String) {
     let config = Config {
         addr: "localhost:0".to_string().into(),
         tables: tables,
-        read_only: false,
+        disable_read_only: false,
     };
 
     let app = Application::build(config)
