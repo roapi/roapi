@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
+use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::header;
 use axum::http::Response;
@@ -8,22 +9,22 @@ use axum::response::IntoResponse;
 use columnq::datafusion::arrow;
 use columnq::encoding;
 use columnq::encoding::ContentType;
-use columnq::ColumnQ;
 use columnq::error::ColumnQError;
 use columnq::error::QueryError;
 use columnq::table::TableSource;
+use columnq::ColumnQ;
 use log::info;
 use tokio::sync::RwLock;
 
 use crate::config::Config;
 use crate::error::ApiErrResp;
 
-pub struct HandlerContext {
+pub struct RawHandlerContext {
     pub cq: ColumnQ,
     // TODO: store pre serialized schema in handler context
 }
 
-impl HandlerContext {
+impl RawHandlerContext {
     pub async fn new(config: &Config) -> anyhow::Result<Self> {
         let mut cq = ColumnQ::new();
 
@@ -41,70 +42,120 @@ impl HandlerContext {
     }
 }
 
-pub enum HandlerCtxType {
-    RwLock(RwLock<HandlerContext>),
-    NoLock(HandlerContext),
+pub type ConcurrentHandlerContext = RwLock<RawHandlerContext>;
+
+#[async_trait]
+pub trait HandlerCtx: Send + Sync + 'static {
+    fn read_only_mode() -> bool;
+
+    async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError>;
+    // FIXME: avoid clone
+    async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef>;
+    async fn query_graphql(
+        &self,
+        query: &str,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+    async fn query_sql(
+        &self,
+        query: &str,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+    async fn query_rest_table(
+        &self,
+        table_name: &str,
+        params: &HashMap<String, String>,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
 }
 
-impl HandlerCtxType {
-    pub async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError> {
-        match self {
-            HandlerCtxType::RwLock(ctx) => {
-                let mut ctx = ctx.write().await;
-                ctx.cq.load_table(table).await
-            }
-            _ => Err(ColumnQError::Generic("Current is read only".to_string())),
-        }
+#[async_trait]
+impl HandlerCtx for RawHandlerContext {
+    #[inline]
+    fn read_only_mode() -> bool {
+        true
     }
 
-    pub async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef> {
-        match self {
-            HandlerCtxType::RwLock(ctx) => {
-                let ctx = ctx.read().await;
-                ctx.cq.schema_map().clone()
-            }
-            HandlerCtxType::NoLock(ctx) => ctx.cq.schema_map().clone(),
-        }
+    #[inline]
+    async fn load_table(&self, _table: &TableSource) -> Result<(), ColumnQError> {
+        Err(ColumnQError::Generic(
+            "Table update not supported in read only mode".to_string(),
+        ))
     }
 
-    pub async fn query_graphql(
+    #[inline]
+    async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef> {
+        self.cq.schema_map().clone()
+    }
+
+    #[inline]
+    async fn query_graphql(
         &self,
         query: &str,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
-        match self {
-            HandlerCtxType::RwLock(ctx) => {
-                let ctx = ctx.read().await;
-                ctx.cq.query_graphql(query).await
-            }
-            HandlerCtxType::NoLock(ctx) => ctx.cq.query_graphql(query).await,
-        }
+        self.cq.query_graphql(query).await
     }
 
-    pub async fn query_sql(
+    #[inline]
+    async fn query_sql(
         &self,
         query: &str,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
-        match self {
-            HandlerCtxType::RwLock(ctx) => {
-                let ctx = ctx.read().await;
-                ctx.cq.query_sql(query).await
-            }
-            HandlerCtxType::NoLock(ctx) => ctx.cq.query_sql(query).await,
-        }
+        self.cq.query_sql(query).await
     }
 
-    pub async fn query_rest_table(
+    #[inline]
+    async fn query_rest_table(
         &self,
         table_name: &str,
         params: &HashMap<String, String>,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
-        match self {
-            HandlerCtxType::RwLock(ctx) => {
-                let ctx = ctx.read().await;
-                ctx.cq.query_rest_table(table_name, params).await
-            }
-            HandlerCtxType::NoLock(ctx) => ctx.cq.query_rest_table(table_name, params).await,
-        }
+        self.cq.query_rest_table(table_name, params).await
+    }
+}
+
+#[async_trait]
+impl HandlerCtx for ConcurrentHandlerContext {
+    #[inline]
+    fn read_only_mode() -> bool {
+        false
+    }
+
+    #[inline]
+    async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError> {
+        let mut ctx = self.write().await;
+        ctx.cq.load_table(table).await
+    }
+
+    #[inline]
+    async fn schema_map(&self) -> HashMap<String, arrow::datatypes::SchemaRef> {
+        let ctx = self.read().await;
+        ctx.cq.schema_map().clone()
+    }
+
+    #[inline]
+    async fn query_graphql(
+        &self,
+        query: &str,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+        let ctx = self.read().await;
+        ctx.cq.query_graphql(query).await
+    }
+
+    #[inline]
+    async fn query_sql(
+        &self,
+        query: &str,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+        let ctx = self.read().await;
+        ctx.cq.query_sql(query).await
+    }
+
+    #[inline]
+    async fn query_rest_table(
+        &self,
+        table_name: &str,
+        params: &HashMap<String, String>,
+    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+        let ctx = self.read().await;
+        ctx.cq.query_rest_table(table_name, params).await
     }
 }
 
@@ -155,10 +206,10 @@ pub fn encode_record_batches(
 }
 
 pub mod graphql;
+pub mod register;
 pub mod rest;
 pub mod routes;
 pub mod schema;
 pub mod sql;
-pub mod register;
 
 pub use routes::register_app_routes;

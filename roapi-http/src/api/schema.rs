@@ -4,10 +4,10 @@ use axum::extract;
 use axum::response::IntoResponse;
 use std::sync::Arc;
 
-use super::HandlerCtxType;
+use super::HandlerCtx;
 
-pub async fn schema(
-    state: extract::Extension<Arc<HandlerCtxType>>,
+pub async fn schema<H: HandlerCtx>(
+    state: extract::Extension<Arc<H>>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
     let ctx = state.0;
     let schema = ctx.schema_map().await;
@@ -17,8 +17,8 @@ pub async fn schema(
     Ok(bytes_to_json_resp(payload))
 }
 
-pub async fn get_by_table_name(
-    state: extract::Extension<Arc<HandlerCtxType>>,
+pub async fn get_by_table_name<H: HandlerCtx>(
+    state: extract::Extension<Arc<H>>,
     extract::Path(table_name): extract::Path<String>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
     let ctx = state.0;

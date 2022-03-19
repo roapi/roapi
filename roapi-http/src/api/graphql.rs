@@ -7,10 +7,10 @@ use std::sync::Arc;
 use crate::api::{encode_record_batches, encode_type_from_hdr};
 use crate::error::ApiErrResp;
 
-use super::HandlerCtxType;
+use super::HandlerCtx;
 
-pub async fn post(
-    state: extract::Extension<Arc<HandlerCtxType>>,
+pub async fn post<H: HandlerCtx>(
+    state: extract::Extension<Arc<H>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<impl IntoResponse, ApiErrResp> {
