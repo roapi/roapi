@@ -10,26 +10,15 @@ pub async fn schema<H: HandlerCtx>(
     state: extract::Extension<Arc<H>>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
     let ctx = state.0;
-    let schema = ctx.schema_map().await;
-    let payload = serde_json::to_vec(&schema)
-        .map_err(columnq::error::ColumnQError::from)
-        .map_err(ApiErrResp::json_serialization)?;
+    let payload = ctx.schemas_json_bytes().await?;
     Ok(bytes_to_json_resp(payload))
 }
 
 pub async fn get_by_table_name<H: HandlerCtx>(
     state: extract::Extension<Arc<H>>,
-    extract::Path(table_name): extract::Path<String>,
+    extract::Path(table_name): extract::Path<&str>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
     let ctx = state.0;
-    let payload = serde_json::to_vec(
-        ctx.schema_map()
-            .await
-            .get(&table_name)
-            .ok_or_else(|| ApiErrResp::not_found("invalid table name"))?
-            .as_ref(),
-    )
-    .map_err(columnq::error::ColumnQError::from)
-    .map_err(ApiErrResp::json_serialization)?;
+    let payload = ctx.table_schema_json_bytes(table_name).await?;
     Ok(bytes_to_json_resp(payload))
 }
