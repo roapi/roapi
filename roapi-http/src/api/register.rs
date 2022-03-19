@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 
 use crate::error::ApiErrResp;
 
-use super::HandlerCtxType;
+use super::HandlerCtx;
 
 #[derive(Debug, Deserialize)]
 pub struct SourceConfig {
@@ -17,14 +17,11 @@ pub struct SourceConfig {
     pub uri: Option<String>,
 }
 
-pub async fn register_table(
-    Extension(ctx): Extension<Arc<HandlerCtxType>>,
+pub async fn register_table<H: HandlerCtx>(
+    Extension(ctx): Extension<Arc<H>>,
     Extension(tables): Extension<Arc<Mutex<HashMap<String, TableSource>>>>,
     Json(body): Json<Vec<SourceConfig>>,
 ) -> Result<(), ApiErrResp> {
-    if let HandlerCtxType::NoLock(_) = *ctx {
-        return Err(ApiErrResp::read_only_mode());
-    }
     let mut tables = tables.lock().await;
     for config in body {
         if let Some(ref uri) = config.uri {
@@ -53,4 +50,8 @@ pub async fn register_table(
         }
     }
     Ok(())
+}
+
+pub async fn register_table_read_only() -> Result<(), ApiErrResp> {
+    Err(ApiErrResp::read_only_mode())
 }

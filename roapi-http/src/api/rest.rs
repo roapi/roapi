@@ -6,10 +6,10 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::HandlerCtxType;
+use super::HandlerCtx;
 
-pub async fn get_table(
-    Extension(ctx): extract::Extension<Arc<HandlerCtxType>>,
+pub async fn get_table<H: HandlerCtx>(
+    Extension(ctx): extract::Extension<Arc<H>>,
     headers: HeaderMap,
     extract::Path(table_name): extract::Path<String>,
     extract::Query(params): extract::Query<HashMap<String, String>>,

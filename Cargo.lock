@@ -2236,6 +2236,7 @@ version = "0.5.4"
 dependencies = [
  "anyhow",
  "async-process",
+ "async-trait",
  "axum",
  "clap",
  "columnq",

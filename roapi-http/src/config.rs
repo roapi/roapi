@@ -10,7 +10,8 @@ use std::fs;
 pub struct Config {
     pub addr: Option<String>,
     pub tables: Vec<TableSource>,
-    pub read_only: bool,
+    #[serde(default)]
+    pub disable_read_only: bool,
 }
 
 fn table_arg() -> clap::Arg<'static> {
@@ -36,14 +37,12 @@ fn address_arg() -> clap::Arg<'static> {
 }
 
 fn read_only_arg() -> clap::Arg<'static> {
-    clap::Arg::new("read-only")
-        .help("Start roapi-http in read-only mode")
+    clap::Arg::new("disable-read-only")
+        .help("Start roapi-http in read write mode")
         .required(false)
-        .takes_value(true)
-        .default_value("true")
-        .value_name("BOOLEAN")
-        .long("read-only")
-        .short('r')
+        .takes_value(false)
+        .long("disable-read-only")
+        .short('d')
 }
 
 fn config_arg() -> clap::Arg<'static> {
@@ -86,7 +85,9 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         config.addr = Some(addr.to_string());
     }
 
-    config.read_only = matches.value_of("read-only").unwrap().parse::<bool>()?;
+    if matches.is_present("disable-read-only") {
+        config.disable_read_only = true;
+    }
 
     Ok(config)
 }

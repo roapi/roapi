@@ -1,13 +1,14 @@
-use std::collections::HashMap;
 use axum::extract::Extension;
 use axum::http::Method;
-use tokio::sync::{Mutex, RwLock};
+use columnq::table::TableSource;
+use std::collections::HashMap;
 use std::net::TcpListener;
 use std::sync::Arc;
-use columnq::table::TableSource;
+use tokio::sync::{Mutex, RwLock};
 
-use crate::api::{self, HandlerCtxType};
-use crate::api::HandlerContext;
+use crate::api;
+use crate::api::ConcurrentHandlerContext;
+use crate::api::RawHandlerContext;
 use crate::config::Config;
 use crate::layers::HttpLoggerLayer;
 
@@ -29,36 +30,42 @@ impl Application {
             .unwrap_or_else(|| default_addr.to_string());
         let listener = TcpListener::bind(addr)?;
         let port = listener.local_addr().unwrap().port();
+        let server = axum::Server::from_tcp(listener).unwrap();
 
-        let handler_ctx = HandlerContext::new(&config)
+        let handler_ctx = RawHandlerContext::new(&config)
             .await
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-        let handler_ctx = if config.read_only {
-            HandlerCtxType::NoLock(handler_ctx)
-        } else {
-            HandlerCtxType::RwLock(RwLock::new(handler_ctx))
-        };
 
-        let routes = api::routes::register_app_routes();
         let cors = tower_http::cors::CorsLayer::new()
             .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
             .allow_origin(tower_http::cors::Any)
             .allow_credentials(false);
-        let tables = config.tables.iter()
+        let tables = config
+            .tables
+            .iter()
             .map(|t| (t.name.clone(), t.clone()))
             .collect::<HashMap<String, TableSource>>();
-        let mut app = routes
-            .layer(Extension(Arc::new(handler_ctx)))
+
+        let mut app = if config.disable_read_only {
+            let ctx_ext = Arc::new(RwLock::new(handler_ctx));
+            let routes = api::routes::register_app_routes::<ConcurrentHandlerContext>();
+            routes.layer(Extension(ctx_ext))
+        } else {
+            let ctx_ext = Arc::new(handler_ctx);
+            let routes = api::routes::register_app_routes::<RawHandlerContext>();
+            routes.layer(Extension(ctx_ext))
+        };
+
+        app = app
             .layer(Extension(Arc::new(Mutex::new(tables))))
             .layer(cors);
+
         if log::log_enabled!(log::Level::Info) {
             // only add logger layer if level >= INFO
             app = app.layer(HttpLoggerLayer::new());
         }
-        let server = axum::Server::from_tcp(listener)
-            .unwrap()
-            .serve(app.into_make_service());
 
+        let server = server.serve(app.into_make_service());
         Ok(Self { port, server })
     }
 
