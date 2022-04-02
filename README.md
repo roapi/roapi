@@ -205,6 +205,28 @@ To query tables using a subset of standard SQL, send the query through `POST`
 request to `/api/sql` endpoint. This is the only query interface that supports
 table joins.
 
+
+### Key value lookup
+
+You can pick two columns from a table to use a key and value to create a quick
+keyvalue store API by adding the following lines to the config:
+
+```yaml
+kvstores:
+  - name: "launch_name"
+    uri: "test_data/spacex_launches.json"
+    key: id
+    value: name
+```
+
+Key value lookup can be done through simple HTTP GET requests:
+
+```bash
+curl -v localhost:8080/api/kv/launch_name/600f9a8d8f798e2a4d5f979e
+Starlink-21 (v1.0)%
+```
+
+
 ## Features
 
 Query layer:
@@ -220,6 +242,7 @@ Query layer:
   - [ ] gRPC
   - [ ] MySQL
   - [ ] Postgres
+- [x] Key value lookup
 
 Response serialization:
 

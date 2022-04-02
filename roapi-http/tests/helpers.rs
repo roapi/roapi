@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use columnq::datafusion::arrow;
-use columnq::table::{TableColumn, TableLoadOption, TableSchema, TableSource};
+use columnq::table::{KeyValueSource, TableColumn, TableLoadOption, TableSchema, TableSource};
 use roapi_http::config::Config;
 use roapi_http::startup::Application;
 
@@ -12,11 +12,23 @@ pub fn test_data_path(relative_path: &str) -> String {
     d.to_string_lossy().to_string()
 }
 
-pub async fn test_api_app(tables: Vec<TableSource>) -> (Application, String) {
+pub async fn test_api_app_with_tables(tables: Vec<TableSource>) -> (Application, String) {
+    test_api_app(tables, vec![]).await
+}
+
+pub async fn test_api_app_with_kvstores(kvstores: Vec<KeyValueSource>) -> (Application, String) {
+    test_api_app(vec![], kvstores).await
+}
+
+pub async fn test_api_app(
+    tables: Vec<TableSource>,
+    kvstores: Vec<KeyValueSource>,
+) -> (Application, String) {
     let config = Config {
         addr: "localhost:0".to_string().into(),
-        tables: tables,
+        tables,
         disable_read_only: false,
+        kvstores,
     };
 
     let app = Application::build(config)
@@ -109,4 +121,13 @@ pub fn get_ubuntu_ami_table() -> TableSource {
                 },
             ],
         })
+}
+
+pub fn get_spacex_launch_name_kvstore() -> KeyValueSource {
+    KeyValueSource::new(
+        "spacex_launch_name",
+        test_data_path("spacex_launches.json"),
+        "id",
+        "name",
+    )
 }

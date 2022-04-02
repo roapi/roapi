@@ -300,6 +300,18 @@ pub struct TableSource {
     pub batch_size: usize,
 }
 
+impl From<KeyValueSource> for TableSource {
+    fn from(kv: KeyValueSource) -> Self {
+        Self {
+            name: kv.name,
+            io_source: kv.io_source,
+            schema: kv.schema,
+            option: kv.option,
+            batch_size: Self::default_batch_size(),
+        }
+    }
+}
+
 impl TableSource {
     pub fn new(name: impl Into<String>, source: impl Into<TableIoSource>) -> Self {
         Self {
@@ -494,6 +506,46 @@ pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
         Ok(t.with_option(opt))
     } else {
         Ok(t)
+    }
+}
+
+#[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct KeyValueSource {
+    pub name: String,
+    pub key: String,
+    pub value: String,
+    #[serde(flatten)]
+    pub io_source: TableIoSource,
+    pub schema: Option<TableSchema>,
+    pub option: Option<TableLoadOption>,
+}
+
+impl KeyValueSource {
+    pub fn new(
+        name: impl Into<String>,
+        source: impl Into<TableIoSource>,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            key: key.into(),
+            value: value.into(),
+            io_source: source.into(),
+            schema: None,
+            option: None,
+        }
+    }
+
+    pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
+        self.option = Some(option.into());
+        self
+    }
+
+    pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
+        self.schema = Some(schema.into());
+        self
     }
 }
 

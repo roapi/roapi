@@ -25,11 +25,11 @@ where
 }
 
 impl ApiErrResp {
-    pub fn not_found(message: &str) -> Self {
+    pub fn not_found(message: impl Into<String>) -> Self {
         Self {
             code: http::StatusCode::NOT_FOUND,
             error: "not_found".to_string(),
-            message: message.to_string(),
+            message: message.into(),
         }
     }
 

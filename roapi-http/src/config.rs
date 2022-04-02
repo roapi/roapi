@@ -3,6 +3,7 @@ use serde_derive::Deserialize;
 use anyhow::{Context, Result};
 
 use columnq::table::parse_table_uri_arg;
+use columnq::table::KeyValueSource;
 use columnq::table::TableSource;
 use std::fs;
 
@@ -12,6 +13,8 @@ pub struct Config {
     pub tables: Vec<TableSource>,
     #[serde(default)]
     pub disable_read_only: bool,
+    #[serde(default)]
+    pub kvstores: Vec<KeyValueSource>,
 }
 
 fn table_arg() -> clap::Arg<'static> {
