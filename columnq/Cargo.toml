@@ -17,7 +17,7 @@ log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.14"
+sqlparser = "0.15"
 yup-oauth2 = { version = "6.2", default-features = false, features= [
     "service_account",
 ] }
