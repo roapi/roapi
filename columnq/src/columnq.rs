@@ -59,7 +59,7 @@ impl ColumnQ {
 
         let filters = &[];
         let exec_plan = table.scan(&projections, filters, None).await?;
-        let batches = collect(exec_plan, self.dfctx.runtime_env()).await?;
+        let batches = collect(exec_plan, self.dfctx.task_ctx()).await?;
         let mut kv = HashMap::new();
         for batch in batches {
             let col_key = batch
