@@ -1,25 +1,25 @@
 use std::collections::HashMap;
 
 use datafusion::arrow;
-pub use datafusion::execution::context::ExecutionConfig;
-use datafusion::execution::context::ExecutionContext;
+pub use datafusion::execution::context::SessionConfig;
+use datafusion::execution::context::SessionContext;
 
 use crate::error::{ColumnQError, QueryError};
 use crate::query;
 use crate::table::{self, TableSource};
 
 pub struct ColumnQ {
-    dfctx: ExecutionContext,
+    dfctx: SessionContext,
     schema_map: HashMap<String, arrow::datatypes::SchemaRef>,
 }
 
 impl ColumnQ {
     pub fn new() -> Self {
-        Self::new_with_config(ExecutionConfig::default())
+        Self::new_with_config(SessionConfig::default())
     }
 
-    pub fn new_with_config(config: ExecutionConfig) -> Self {
-        let dfctx = ExecutionContext::with_config(config);
+    pub fn new_with_config(config: SessionConfig) -> Self {
+        let dfctx = SessionContext::with_config(config);
         let schema_map = HashMap::<String, arrow::datatypes::SchemaRef>::new();
         Self { dfctx, schema_map }
     }

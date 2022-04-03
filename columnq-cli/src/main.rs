@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use columnq::datafusion::arrow::util::pretty;
 use columnq::table::parse_table_uri_arg;
-use columnq::{encoding, ColumnQ, ExecutionConfig};
+use columnq::{encoding, ColumnQ, SessionConfig};
 
 #[cfg(snmalloc)]
 #[global_allocator]
@@ -87,7 +87,7 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
 }
 
 async fn cmd_console(args: &clap::ArgMatches) -> anyhow::Result<()> {
-    let config = ExecutionConfig::default().with_information_schema(true);
+    let config = SessionConfig::default().with_information_schema(true);
     let mut cq = ColumnQ::new_with_config(config);
 
     if let Some(tables) = args.values_of("table") {
@@ -107,7 +107,7 @@ fn bytes_to_stdout(bytes: &[u8]) -> anyhow::Result<()> {
 }
 
 async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
-    let config = ExecutionConfig::default().with_information_schema(true);
+    let config = SessionConfig::default().with_information_schema(true);
     let mut cq = ColumnQ::new_with_config(config);
 
     if let Some(tables) = args.values_of("table") {

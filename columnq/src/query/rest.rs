@@ -54,10 +54,10 @@ fn num_parse_err(e: std::num::ParseIntError) -> QueryError {
 }
 
 pub fn table_query_to_df(
-    dfctx: &datafusion::execution::context::ExecutionContext,
+    dfctx: &datafusion::execution::context::SessionContext,
     table_name: &str,
     params: &HashMap<String, String>,
-) -> Result<Arc<dyn datafusion::dataframe::DataFrame>, QueryError> {
+) -> Result<Arc<datafusion::dataframe::DataFrame>, QueryError> {
     lazy_static! {
         static ref RE_REST_FILTER: Regex =
             Regex::new(r"filter\[(?P<column>.+)\](?P<op>.+)?").unwrap();
@@ -167,7 +167,7 @@ pub fn table_query_to_df(
 }
 
 pub async fn query_table(
-    dfctx: &datafusion::execution::context::ExecutionContext,
+    dfctx: &datafusion::execution::context::SessionContext,
     table_name: &str,
     params: &HashMap<String, String>,
 ) -> Result<Vec<RecordBatch>, QueryError> {
@@ -180,14 +180,14 @@ mod tests {
     use super::*;
 
     use datafusion::arrow::array::*;
-    use datafusion::execution::context::ExecutionContext;
+    use datafusion::execution::context::SessionContext;
     use datafusion::prelude::*;
 
     use crate::test_util::*;
 
     #[tokio::test]
     async fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
-        let mut dfctx = ExecutionContext::new();
+        let mut dfctx = SessionContext::new();
         register_table_ubuntu_ami(&mut dfctx).await?;
 
         let mut params = HashMap::<String, String>::new();
@@ -215,7 +215,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple_filter() -> anyhow::Result<()> {
-        let mut dfctx = ExecutionContext::new();
+        let mut dfctx = SessionContext::new();
         register_table_ubuntu_ami(&mut dfctx).await?;
         let mut params = HashMap::<String, String>::new();
 

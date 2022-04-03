@@ -5,15 +5,15 @@ use datafusion::arrow;
 use crate::error::QueryError;
 
 pub async fn exec_query(
-    dfctx: &datafusion::execution::context::ExecutionContext,
+    dfctx: &datafusion::execution::context::SessionContext,
     sql: &str,
 ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
     let plan = dfctx
         .create_logical_plan(sql)
         .map_err(QueryError::plan_sql)?;
 
-    let df: Arc<dyn datafusion::dataframe::DataFrame> = Arc::new(
-        datafusion::execution::dataframe_impl::DataFrameImpl::new(dfctx.state.clone(), &plan),
+    let df: Arc<datafusion::dataframe::DataFrame> = Arc::new(
+        datafusion::dataframe::DataFrame::new(dfctx.state.clone(), &plan),
     );
 
     df.collect().await.map_err(QueryError::query_exec)
@@ -22,14 +22,14 @@ pub async fn exec_query(
 #[cfg(test)]
 mod tests {
     use arrow::array::*;
-    use datafusion::execution::context::ExecutionContext;
+    use datafusion::execution::context::SessionContext;
 
     use super::*;
     use crate::test_util::*;
 
     #[tokio::test]
     async fn group_by_aggregation() -> anyhow::Result<()> {
-        let mut dfctx = ExecutionContext::new();
+        let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
         let batches = exec_query(

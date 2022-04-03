@@ -181,9 +181,9 @@ fn to_datafusion_predicates<'a, 'b>(
 }
 
 pub fn query_to_df(
-    dfctx: &datafusion::execution::context::ExecutionContext,
+    dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
-) -> Result<Arc<dyn datafusion::dataframe::DataFrame>, QueryError> {
+) -> Result<Arc<datafusion::dataframe::DataFrame>, QueryError> {
     let doc = parse_query::<&str>(q)?;
 
     let def = match doc.definitions.len() {
@@ -362,7 +362,7 @@ pub fn query_to_df(
 }
 
 pub async fn exec_query(
-    dfctx: &datafusion::execution::context::ExecutionContext,
+    dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
 ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
     query_to_df(dfctx, q)?
@@ -374,7 +374,7 @@ pub async fn exec_query(
 #[cfg(test)]
 mod tests {
     use datafusion::arrow::array::*;
-    use datafusion::execution::context::ExecutionContext;
+    use datafusion::execution::context::SessionContext;
     use datafusion::logical_plan::{col, lit};
 
     use super::*;
@@ -382,7 +382,7 @@ mod tests {
 
     #[test]
     fn simple_query_planning() -> anyhow::Result<()> {
-        let mut dfctx = ExecutionContext::new();
+        let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
         let df = query_to_df(
@@ -414,7 +414,7 @@ mod tests {
 
     #[test]
     fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
-        let mut dfctx = ExecutionContext::new();
+        let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
         let df = query_to_df(
@@ -449,7 +449,7 @@ mod tests {
 
     #[tokio::test]
     async fn boolean_literal_as_predicate_operand() -> anyhow::Result<()> {
-        let mut dfctx = ExecutionContext::new();
+        let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
         let batches = exec_query(
