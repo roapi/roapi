@@ -13,7 +13,7 @@ pub async fn to_mem_table(
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
     debug!("loading arrow table data...");
     let mut schema_and_partitions = partitions_from_table_source!(t, |mut r| {
-        let arrow_file_reader = arrow::ipc::reader::FileReader::try_new(&mut r)?;
+        let arrow_file_reader = arrow::ipc::reader::FileReader::try_new(&mut r, None)?;
         let schema = (*arrow_file_reader.schema()).clone();
 
         arrow_file_reader
