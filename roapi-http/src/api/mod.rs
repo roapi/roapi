@@ -28,14 +28,20 @@ impl RawHandlerContext {
     pub async fn new(config: &Config) -> anyhow::Result<Self> {
         let mut cq = ColumnQ::new();
 
-        if config.tables.is_empty() {
-            anyhow::bail!("No table found in tables config");
+        if config.tables.is_empty() && config.kvstores.is_empty() {
+            anyhow::bail!("No table nor kvstore found in config");
         }
 
         for t in config.tables.iter() {
             info!("loading `{}` as table `{}`", t.io_source, t.name);
             cq.load_table(t).await?;
             info!("registered `{}` as table `{}`", t.io_source, t.name);
+        }
+
+        for k in config.kvstores.iter() {
+            info!("loading `{}` as kv store `{}`", k.io_source, k.name);
+            cq.load_kv(k.clone()).await?;
+            info!("registered `{}` as kv store `{}`", k.io_source, k.name);
         }
 
         Ok(Self { cq })
@@ -69,6 +75,8 @@ pub trait HandlerCtx: Send + Sync + 'static {
         table_name: &str,
         params: &HashMap<String, String>,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+
+    async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError>;
 }
 
 #[async_trait]
@@ -128,6 +136,11 @@ impl HandlerCtx for RawHandlerContext {
         params: &HashMap<String, String>,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
         self.cq.query_rest_table(table_name, params).await
+    }
+
+    #[inline]
+    async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError> {
+        Ok(self.cq.kv_get(kv_name, key)?.cloned())
     }
 }
 
@@ -193,6 +206,12 @@ impl HandlerCtx for ConcurrentHandlerContext {
         let ctx = self.read().await;
         ctx.cq.query_rest_table(table_name, params).await
     }
+
+    #[inline]
+    async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError> {
+        let ctx = self.read().await;
+        Ok(ctx.cq.kv_get(kv_name, key)?.cloned())
+    }
 }
 
 #[inline]
@@ -242,6 +261,7 @@ pub fn encode_record_batches(
 }
 
 pub mod graphql;
+pub mod kv;
 pub mod register;
 pub mod rest;
 pub mod routes;

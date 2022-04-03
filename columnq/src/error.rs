@@ -87,6 +87,10 @@ impl ColumnQError {
     pub fn s3_obj_missing_key() -> Self {
         Self::S3Store("Missing key in S3 object list item".to_string())
     }
+
+    pub fn invalid_kv_key_type() -> Self {
+        Self::Generic("keyvalue store key datatype should be a string".to_string())
+    }
 }
 
 impl From<URIReferenceError> for ColumnQError {
@@ -154,6 +158,13 @@ impl QueryError {
         Self {
             error: "invalid_table".to_string(),
             message: format!("Failed to load table {}: {}", table_name, error),
+        }
+    }
+
+    pub fn invalid_kv_name(kv_name: &str) -> Self {
+        Self {
+            error: "invalid_kv_name".to_string(),
+            message: format!("keyvalue store name `{}` doesn't exist", kv_name),
         }
     }
 }

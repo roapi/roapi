@@ -10,7 +10,7 @@ use tokio;
 #[tokio::test]
 async fn test_schema() -> Result<()> {
     let json_table = helpers::get_spacex_table();
-    let (app, address) = helpers::test_api_app(vec![json_table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![json_table]).await;
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_get(&format!("{}/api/schema", address), None).await;
@@ -24,7 +24,7 @@ async fn test_schema() -> Result<()> {
 #[tokio::test]
 async fn test_uk_cities_sql_post() -> Result<()> {
     let table = helpers::get_uk_cities_table();
-    let (app, address) = helpers::test_api_app(vec![table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
@@ -51,7 +51,7 @@ async fn test_uk_cities_sql_post() -> Result<()> {
 #[tokio::test]
 async fn test_sql_invalid_post() -> Result<()> {
     let table = helpers::get_uk_cities_table();
-    let (app, address) = helpers::test_api_app(vec![table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(&format!("{}/api/sql", address), "SELECT city FROM").await;
@@ -72,7 +72,7 @@ async fn test_sql_invalid_post() -> Result<()> {
 #[tokio::test]
 async fn test_ubuntu_ami_sql_post() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
-    let (app, address) = helpers::test_api_app(vec![table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
@@ -99,7 +99,7 @@ async fn test_ubuntu_ami_sql_post() -> Result<()> {
 #[tokio::test]
 async fn test_rest_get() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
-    let (app, address) = helpers::test_api_app(vec![table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
     let accept_headers = vec![
         None,
@@ -146,7 +146,7 @@ async fn test_rest_get() -> Result<()> {
 #[tokio::test]
 async fn test_graphql_post_query_op() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
-    let (app, address) = helpers::test_api_app(vec![table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
@@ -192,7 +192,7 @@ async fn test_graphql_post_query_op() -> Result<()> {
 #[tokio::test]
 async fn test_graphql_post_selection() -> Result<()> {
     let table = helpers::get_ubuntu_ami_table();
-    let (app, address) = helpers::test_api_app(vec![table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
@@ -236,7 +236,7 @@ async fn test_graphql_post_selection() -> Result<()> {
 #[tokio::test]
 async fn test_http2() -> Result<()> {
     let table = helpers::get_uk_cities_table();
-    let (app, address) = helpers::test_api_app(vec![table]).await;
+    let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
 
     // ~ % curl -sI --http2-prior-knowledge localhost:8080/api/schema -o/dev/null -w '%{http_version}\n'
@@ -261,5 +261,25 @@ async fn test_http2() -> Result<()> {
         .collect::<Vec<_>>();
 
     assert_eq!(http_version, two);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_kvstore_get() -> Result<()> {
+    let store = helpers::get_spacex_launch_name_kvstore();
+    let (app, address) = helpers::test_api_app_with_kvstores(vec![store]).await;
+    tokio::spawn(app.run_until_stopped());
+
+    let response = helpers::http_get(
+        &format!(
+            "{}/api/kv/spacex_launch_name/600f9a8d8f798e2a4d5f979e",
+            address
+        ),
+        None,
+    )
+    .await;
+
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.text().await?, "Starlink-21 (v1.0)");
     Ok(())
 }
