@@ -2,7 +2,7 @@ use crate::error::ColumnQError;
 use cfg_if::cfg_if;
 
 cfg_if! {
-    if #[cfg(feature = "connectorx")] {
+    if #[cfg(feature = "database")] {
         use connectorx::prelude::*;
         use connectorx::sources::mysql::BinaryProtocol;
         use datafusion::arrow::record_batch::RecordBatch;
@@ -17,7 +17,7 @@ pub enum DatabaseLoader {
 }
 
 impl DatabaseLoader {
-    #[cfg(feature = "connectorx")]
+    #[cfg(feature = "database")]
     pub async fn to_mem_table(
         &self,
         t: &TableSource,
@@ -62,7 +62,7 @@ impl DatabaseLoader {
         )?)
     }
 
-    #[cfg(not(feature = "connectorx"))]
+    #[cfg(not(feature = "database"))]
     pub async fn to_mem_table(
         &self,
         _t: &TableSource,
@@ -73,7 +73,7 @@ impl DatabaseLoader {
     }
 }
 
-#[cfg(feature = "connectorx")]
+#[cfg(feature = "database")]
 #[cfg(test)]
 mod tests {
     use datafusion::datasource::TableProvider;
