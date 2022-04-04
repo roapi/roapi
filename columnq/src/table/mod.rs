@@ -445,18 +445,12 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::delta { .. } => delta::to_datafusion_table(t).await?,
             TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
-            TableLoadOption::mysql { .. } => Arc::new(
-                database::DatabaseLoader::MySQL
-                    .to_mem_table(t)
-                    .await
-                    .map_err(|e| ColumnQError::Generic(e.to_string()))?,
-            ),
-            TableLoadOption::sqlite { .. } => Arc::new(
-                database::DatabaseLoader::SQLite
-                    .to_mem_table(t)
-                    .await
-                    .map_err(|e| ColumnQError::Generic(e.to_string()))?,
-            ),
+            TableLoadOption::mysql { .. } => {
+                Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t).await?)
+            }
+            TableLoadOption::sqlite { .. } => {
+                Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t).await?)
+            }
         })
     } else {
         let t: Arc<dyn TableProvider> = match t.extension()? {

@@ -1,8 +1,14 @@
-use connectorx::prelude::*;
-use connectorx::sources::mysql::BinaryProtocol;
-use datafusion::arrow::record_batch::RecordBatch;
-use log::debug;
+use crate::error::ColumnQError;
+use cfg_if::cfg_if;
 
+cfg_if! {
+    if #[cfg(feature = "connectorx")] {
+        use connectorx::prelude::*;
+        use connectorx::sources::mysql::BinaryProtocol;
+        use datafusion::arrow::record_batch::RecordBatch;
+        use log::debug;
+    }
+}
 use crate::table::TableSource;
 
 pub enum DatabaseLoader {
@@ -11,26 +17,31 @@ pub enum DatabaseLoader {
 }
 
 impl DatabaseLoader {
+    #[cfg(feature = "connectorx")]
     pub async fn to_mem_table(
         &self,
         t: &TableSource,
-    ) -> anyhow::Result<datafusion::datasource::MemTable> {
+    ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
         debug!("loading database table data...");
         let queries = &[format!("SELECT * FROM {}", t.name)];
         let mut destination = ArrowDestination::new();
         match self {
             DatabaseLoader::MySQL => {
-                let source = MySQLSource::<BinaryProtocol>::new(t.get_uri_str(), 2)?;
+                let source = MySQLSource::<BinaryProtocol>::new(t.get_uri_str(), 2)
+                    .map_err(|e| ColumnQError::Database(e.to_string()))?;
                 let dispatcher = Dispatcher::<
                     MySQLSource<BinaryProtocol>,
                     ArrowDestination,
                     MySQLArrowTransport<BinaryProtocol>,
                 >::new(source, &mut destination, queries, None);
-                dispatcher.run()?;
+                dispatcher
+                    .run()
+                    .map_err(|e| ColumnQError::Database(e.to_string()))?;
             }
             DatabaseLoader::SQLite => {
                 let uri = t.get_uri_str().replace("sqlite://", "");
-                let source = SQLiteSource::new(&uri, 2)?;
+                let source = SQLiteSource::new(&uri, 2)
+                    .map_err(|e| ColumnQError::Database(e.to_string()))?;
                 let dispatcher =
                     Dispatcher::<SQLiteSource, ArrowDestination, SQLiteArrowTransport>::new(
                         source,
@@ -38,7 +49,9 @@ impl DatabaseLoader {
                         queries,
                         None,
                     );
-                dispatcher.run()?;
+                dispatcher
+                    .run()
+                    .map_err(|e| ColumnQError::Database(e.to_string()))?;
             }
         };
         let schema_ref = destination.arrow_schema();
@@ -48,8 +61,19 @@ impl DatabaseLoader {
             vec![data],
         )?)
     }
+
+    #[cfg(not(feature = "connectorx"))]
+    pub async fn to_mem_table(
+        &self,
+        _t: &TableSource,
+    ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+        Err(ColumnQError::Database(
+            "Enable 'connectorx' feature flag to support this".to_string(),
+        ))
+    }
 }
 
+#[cfg(feature = "connectorx")]
 #[cfg(test)]
 mod tests {
     use datafusion::datasource::TableProvider;

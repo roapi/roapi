@@ -41,7 +41,7 @@ rusoto_credential = { version = "0.47" }
 rusoto_sts = { version = "0.47", default-features = false }
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
 hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
-anyhow = "1"
+cfg-if = "1"
 
 [dependencies.deltalake]
 git = "https://github.com/delta-io/delta-rs.git"
@@ -50,10 +50,11 @@ default-features = false
 features = ["datafusion-ext"]
 
 [dependencies.connectorx]
- git = "https://github.com/sfu-db/connector-x.git"
- rev = "dba588ad26fb41a75d05cd54e08633b8063804c2"
+git = "https://github.com/sfu-db/connector-x.git"
+rev = "dba588ad26fb41a75d05cd54e08633b8063804c2"
 version = "0.2.5"
 features = ["default", "dst_arrow", "src_mysql", "src_sqlite"]
+optional = true
 
 [dev-dependencies]
 anyhow = "1"

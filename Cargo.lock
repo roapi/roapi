@@ -528,6 +528,7 @@ version = "0.4.5"
 dependencies = [
  "anyhow",
  "bytes",
+ "cfg-if",
  "connectorx",
  "datafusion",
  "deltalake",

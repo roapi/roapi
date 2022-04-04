@@ -46,6 +46,7 @@ native-tls-vendored = ["columnq/native-tls-vendored"]
 native-tls = ["columnq/native-tls"]
 simd = ["columnq/simd"]
 snmalloc = ["snmalloc-rs"]
+database = ["columnq/connectorx"]
 
 [dev-dependencies]
 reqwest = { version = "0.11", default-features = false, features = [

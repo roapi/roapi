@@ -65,6 +65,9 @@ pub enum ColumnQError {
 
     #[error("Generic error: {0}")]
     Generic(String),
+
+    #[error("Database error: {0}")]
+    Database(String),
 }
 
 impl ColumnQError {
