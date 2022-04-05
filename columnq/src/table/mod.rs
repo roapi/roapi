@@ -109,12 +109,14 @@ impl TableOptionCsv {
     }
 
     #[inline]
+    #[must_use]
     pub fn with_delimiter(mut self, d: u8) -> Self {
         self.delimiter = d;
         self
     }
 
     #[inline]
+    #[must_use]
     pub fn with_has_header(mut self, has_header: bool) -> Self {
         self.has_header = has_header;
         self
@@ -341,11 +343,13 @@ impl TableSource {
         8192
     }
 
+    #[must_use]
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
         self.option = Some(option.into());
         self
     }
 
+    #[must_use]
     pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
         self.schema = Some(schema.into());
         self
@@ -572,11 +576,13 @@ impl KeyValueSource {
         }
     }
 
+    #[must_use]
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
         self.option = Some(option.into());
         self
     }
 
+    #[must_use]
     pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
         self.schema = Some(schema.into());
         self
