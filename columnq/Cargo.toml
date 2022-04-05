@@ -42,12 +42,6 @@ rusoto_sts = { version = "0.47", default-features = false }
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
 hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
 
-cfg-if = "1"
-postgres = {version = "0.19", features = ["with-chrono-0_4", "with-uuid-0_8", "with-serde_json-1"], optional = true}
-postgres-native-tls = {version = "0.5", optional = true}
-postgres-openssl = {version = "0.5", optional = true}
-url = {version = "2", optional = true}
-
 [dependencies.deltalake]
 git = "https://github.com/delta-io/delta-rs.git"
 rev = "0b99151d3a413bb3d90b318e7a825feb77e62902"
@@ -96,4 +90,4 @@ native-tls = [
     "yup-oauth2/hyper-tls",
 ]
 simd = ["datafusion/simd"]
-database = ["connectorx", "postgres", "postgres-openssl", "url"]
+database = ["connectorx"]

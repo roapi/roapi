@@ -211,6 +211,7 @@ pub enum TableLoadOption {
     arrows {},
     mysql {},
     sqlite {},
+    postgres {},
 }
 
 impl TableLoadOption {
@@ -255,6 +256,7 @@ impl TableLoadOption {
             Self::arrows { .. } => "arrows",
             Self::mysql { .. } => "mysql",
             Self::sqlite { .. } => "sqlite",
+            Self::postgres { .. } => "postgres",
         }
     }
 }
@@ -364,6 +366,7 @@ impl TableSource {
                 match scheme.as_str() {
                     "mysql" => Some(TableLoadOption::mysql {}),
                     "sqlite" => Some(TableLoadOption::sqlite {}),
+                    "postgresql" => Some(TableLoadOption::postgres {}),
                     _ => None,
                 }
             }
@@ -446,10 +449,13 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
             TableLoadOption::mysql { .. } => {
-                Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t).await?)
+                Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?)
             }
             TableLoadOption::sqlite { .. } => {
-                Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t).await?)
+                Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?)
+            }
+            TableLoadOption::postgres { .. } => {
+                Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?)
             }
         })
     } else {
@@ -648,6 +654,7 @@ batch_size: 512
         );
     }
 
+    #[cfg(feature = "database")]
     #[tokio::test]
     async fn test_load_sqlite_table() -> anyhow::Result<()> {
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite.db");
