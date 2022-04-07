@@ -6,7 +6,7 @@ use datafusion::arrow::datatypes::{DataType, Field, Schema};
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::dataframe::DataFrame;
 use datafusion::datasource::MemTable;
-use datafusion::execution::context::ExecutionContext;
+use datafusion::execution::context::SessionContext;
 
 use crate::table;
 
@@ -125,17 +125,17 @@ schema:
     Ok(table::load(&table_source).await?)
 }
 
-pub fn register_table_properties(dfctx: &mut ExecutionContext) -> anyhow::Result<()> {
+pub fn register_table_properties(dfctx: &mut SessionContext) -> anyhow::Result<()> {
     dfctx.register_table("properties", Arc::new(properties_table()?))?;
     Ok(())
 }
 
-pub async fn register_table_ubuntu_ami(dfctx: &mut ExecutionContext) -> anyhow::Result<()> {
+pub async fn register_table_ubuntu_ami(dfctx: &mut SessionContext) -> anyhow::Result<()> {
     dfctx.register_table("ubuntu_ami", ubuntu_ami_table().await?)?;
     Ok(())
 }
 
-pub fn assert_eq_df(df1: Arc<dyn DataFrame>, df2: Arc<dyn DataFrame>) {
+pub fn assert_eq_df(df1: Arc<DataFrame>, df2: Arc<DataFrame>) {
     assert_eq!(
         format!("{:?}", df1.to_logical_plan()),
         format!("{:?}", df2.to_logical_plan())

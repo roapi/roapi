@@ -16,6 +16,7 @@ use crate::error::ColumnQError;
 pub mod arrow_ipc_file;
 pub mod arrow_ipc_stream;
 pub mod csv;
+pub mod database;
 pub mod delta;
 pub mod google_spreadsheets;
 pub mod json;
@@ -108,12 +109,14 @@ impl TableOptionCsv {
     }
 
     #[inline]
+    #[must_use]
     pub fn with_delimiter(mut self, d: u8) -> Self {
         self.delimiter = d;
         self
     }
 
     #[inline]
+    #[must_use]
     pub fn with_has_header(mut self, has_header: bool) -> Self {
         self.has_header = has_header;
         self
@@ -208,6 +211,9 @@ pub enum TableLoadOption {
     delta(TableOptionDelta),
     arrow {},
     arrows {},
+    mysql {},
+    sqlite {},
+    postgres {},
 }
 
 impl TableLoadOption {
@@ -250,6 +256,9 @@ impl TableLoadOption {
             Self::google_spreadsheet(_) | Self::delta { .. } => "",
             Self::arrow { .. } => "arrow",
             Self::arrows { .. } => "arrows",
+            Self::mysql { .. } => "mysql",
+            Self::sqlite { .. } => "sqlite",
+            Self::postgres { .. } => "postgres",
         }
     }
 }
@@ -314,11 +323,13 @@ impl From<KeyValueSource> for TableSource {
 
 impl TableSource {
     pub fn new(name: impl Into<String>, source: impl Into<TableIoSource>) -> Self {
+        let io_source = source.into();
+        let option = Self::parse_option(&io_source);
         Self {
             name: name.into(),
-            io_source: source.into(),
+            io_source,
             schema: None,
-            option: None,
+            option,
             batch_size: Self::default_batch_size(),
         }
     }
@@ -332,11 +343,13 @@ impl TableSource {
         8192
     }
 
+    #[must_use]
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
         self.option = Some(option.into());
         self
     }
 
+    #[must_use]
     pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
         self.schema = Some(schema.into());
         self
@@ -346,6 +359,22 @@ impl TableSource {
         match &self.io_source {
             TableIoSource::Uri(uri) => uri.as_str(),
             TableIoSource::Memory(_) => "memory",
+        }
+    }
+
+    pub fn parse_option(source: &TableIoSource) -> Option<TableLoadOption> {
+        match source {
+            TableIoSource::Uri(uri) => {
+                let uri = URIReference::try_from(uri.as_str()).ok()?;
+                let scheme = uri.scheme()?;
+                match scheme.as_str() {
+                    "mysql" => Some(TableLoadOption::mysql {}),
+                    "sqlite" => Some(TableLoadOption::sqlite {}),
+                    "postgresql" => Some(TableLoadOption::postgres {}),
+                    _ => None,
+                }
+            }
+            TableIoSource::Memory(_) => None,
         }
     }
 
@@ -404,7 +433,7 @@ impl TableSource {
             (None, TableIoSource::Memory(_)) => {
                 return Err(ColumnQError::Generic(
                     "cannot detect table extension from memory IO source, please specify a format option".to_string()
-               ));
+                ));
             }
         })
     }
@@ -423,6 +452,15 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::delta { .. } => delta::to_datafusion_table(t).await?,
             TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
+            TableLoadOption::mysql { .. } => {
+                Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?)
+            }
+            TableLoadOption::sqlite { .. } => {
+                Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?)
+            }
+            TableLoadOption::postgres { .. } => {
+                Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?)
+            }
         })
     } else {
         let t: Arc<dyn TableProvider> = match t.extension()? {
@@ -538,11 +576,13 @@ impl KeyValueSource {
         }
     }
 
+    #[must_use]
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
         self.option = Some(option.into());
         self
     }
 
+    #[must_use]
     pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
         self.schema = Some(schema.into());
         self
@@ -618,5 +658,16 @@ batch_size: 512
                 .with_option(TableLoadOption::csv(TableOptionCsv::default())),
             t
         );
+    }
+
+    #[cfg(feature = "database")]
+    #[tokio::test]
+    async fn test_load_sqlite_table() -> anyhow::Result<()> {
+        let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite.db");
+        let table = load(&t).await?;
+        let stats = table.scan(&None, &[], None).await?.statistics();
+        assert_eq!(stats.num_rows, Some(37));
+
+        Ok(())
     }
 }

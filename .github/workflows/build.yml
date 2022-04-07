@@ -60,10 +60,10 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: simd-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        key: simd-2-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
         restore-keys: |
-          simd-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          simd-${{ runner.os }}-cargo-
+          simd-2-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          simd-2-${{ runner.os }}-cargo-
     - name: Install nightly rust
       uses: actions-rs/toolchain@v1
       with:
@@ -78,6 +78,41 @@ jobs:
         which cargo-cache || cargo install cargo-cache
         cargo cache trim -l 1G
 
+  database_test:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C target-cpu=skylake"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: database-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: |
+            database-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+            database-${{ runner.os }}-cargo-
+      - name: Install nightly rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+          override: true
+      - name: Check
+        run: cargo clippy --features database
+      - name: Build
+        run: cargo build --features database
+      - name: Run tests
+        run: cargo test --features database
+      - name: Trim cache
+        run: |
+          which cargo-cache || cargo install cargo-cache
+          cargo cache trim -l 1G
+
   # make sure native-tls always builds
   openssl_build:
     runs-on: ubuntu-latest
@@ -91,6 +126,10 @@ jobs:
         override: true
     - name: Check
       run: cargo clippy --no-default-features --features=native-tls
+    - name: Trim cache
+      run: |
+        which cargo-cache || cargo install cargo-cache
+        cargo cache trim -l 1G
 
   # cross compile from x86 mac to arm64, this is to make sure universal2
   # release will build without error
@@ -125,7 +164,7 @@ jobs:
         # set SDKROOT for C dependencies
         export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
         cd roapi-http && \
-          cargo build --bin roapi-http --target aarch64-apple-darwin
+          cargo build --bin roapi-http --features database --target aarch64-apple-darwin
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
