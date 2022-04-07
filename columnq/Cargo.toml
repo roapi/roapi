@@ -52,7 +52,7 @@ features = ["datafusion-ext"]
 git = "https://github.com/sfu-db/connector-x.git"
 rev = "dba588ad26fb41a75d05cd54e08633b8063804c2"
 version = "0.2.5"
-features = ["default", "dst_arrow", "src_mysql", "src_sqlite", "src_postgres"]
+features = ["default", "dst_arrow", "src_mysql", "src_sqlite"]
 optional = true
 
 [dev-dependencies]

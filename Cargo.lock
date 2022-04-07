@@ -615,22 +615,14 @@ dependencies = [
  "anyhow",
  "arrow",
  "chrono",
- "csv",
  "fallible-streaming-iterator",
  "fehler",
- "hex",
  "itertools",
  "log",
- "native-tls",
  "num-traits",
- "openssl",
  "owning_ref",
- "postgres",
- "postgres-native-tls",
- "postgres-openssl",
  "r2d2",
  "r2d2_mysql",
- "r2d2_postgres",
  "r2d2_sqlite",
  "rayon",
  "rusqlite",
@@ -638,9 +630,7 @@ dependencies = [
  "serde_json",
  "sqlparser 0.11.0",
  "thiserror",
- "url",
  "urlencoding",
- "uuid",
 ]
 
 [[package]]
@@ -2632,32 +2622,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "postgres-native-tls"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d442770e2b1e244bb5eb03b31c79b65bb2568f413b899eaba850fa945a65954"
-dependencies = [
- "futures",
- "native-tls",
- "tokio",
- "tokio-native-tls",
- "tokio-postgres",
-]
-
-[[package]]
-name = "postgres-openssl"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1de0ea6504e07ca78355a6fb88ad0f36cafe9e696cbc6717f16a207f3a60be72"
-dependencies = [
- "futures",
- "openssl",
- "tokio",
- "tokio-openssl",
- "tokio-postgres",
-]
-
-[[package]]
 name = "postgres-protocol"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2682,12 +2646,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04619f94ba0cc80999f4fc7073607cb825bc739a883cb6d20900fc5e009d6b0d"
 dependencies = [
  "bytes",
- "chrono",
  "fallible-iterator",
  "postgres-protocol",
- "serde",
- "serde_json",
- "uuid",
 ]
 
 [[package]]
@@ -2750,16 +2710,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1d05145690b395f5515feff202b8f4b9429c500f423ef7129175155c3c3a9e2"
 dependencies = [
  "mysql",
- "r2d2",
-]
-
-[[package]]
-name = "r2d2_postgres"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7029c56be658cb54f321e0bee597810ee16796b735fa2559d7056bf06b12230b"
-dependencies = [
- "postgres",
  "r2d2",
 ]
 
@@ -4037,18 +3987,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7d995660bd2b7f8c1568414c1126076c13fbb725c40112dc0120b78eb9b717b"
 dependencies = [
  "native-tls",
- "tokio",
-]
-
-[[package]]
-name = "tokio-openssl"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c08f9ffb7809f1b20c1b398d92acf4cc719874b3b2b2d9ea2f09b4a80350878a"
-dependencies = [
- "futures-util",
- "openssl",
- "openssl-sys",
  "tokio",
 ]
 
