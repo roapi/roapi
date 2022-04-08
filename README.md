@@ -74,6 +74,35 @@ docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi-http:latest --addr 0.0.0.0:8
     --table "test_data/spacex_launches.json"
 ```
 
+For MySQL and SQLite, use parameters like this.
+```
+--table "table_name=mysql://username:password@localhost:3306/database"
+--table "table_name=sqlite://path/to/database"
+```
+
+Want dynamic register data? Add parameter `-d` to command. `--table` parameter cannot be ignored for now.
+```bash
+roapi-http \
+    --table "uk_cities=test_data/uk_cities_with_headers.csv" \
+    -d
+```
+
+Then post config to `/api/table` register data.
+```bash
+curl -X POST http://172.24.16.1:8080/api/table \
+     -H 'Content-Type: application/json' \
+     -d '[
+       {
+         "tableName": "uk_cities2",
+         "uri": "./test_data/uk_cities_with_headers.csv"
+       },
+       {
+         "tableName": "table_name",
+         "uri": "sqlite://path/to/database"
+       }
+     ]'
+```
+
 Query tables using SQL, GraphQL or REST:
 
 ```bash
@@ -240,7 +269,8 @@ Query layer:
 - [ ] column index
 - protocol
   - [ ] gRPC
-  - [ ] MySQL
+  - [x] MySQL
+  - [x] SQLite
   - [ ] Postgres
 - [x] Key value lookup
 
@@ -258,7 +288,8 @@ Data layer:
 - [x] S3
 - [ ] GCS
 - [x] Google spreadsheet
-- [ ] MySQL
+- [x] MySQL
+- [x] SQLite
 - [ ] Postgres
 - [ ] Airtable
 - Data format
