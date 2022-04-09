@@ -269,8 +269,6 @@ Query layer:
 - [ ] column index
 - protocol
   - [ ] gRPC
-  - [x] MySQL
-  - [x] SQLite
   - [ ] Postgres
 - [x] Key value lookup
 
