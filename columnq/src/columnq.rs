@@ -14,7 +14,7 @@ use crate::query;
 use crate::table::{self, KeyValueSource, TableSource};
 
 pub struct ColumnQ {
-    dfctx: SessionContext,
+    pub dfctx: SessionContext,
     schema_map: HashMap<String, arrow::datatypes::SchemaRef>,
     kv_catalog: HashMap<String, Arc<HashMap<String, String>>>,
 }

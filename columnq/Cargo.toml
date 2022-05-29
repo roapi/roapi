@@ -11,13 +11,13 @@ name = "columnq"
 path = "src/lib.rs"
 
 [dependencies]
-datafusion = { git = "https://github.com/apache/arrow-datafusion.git", rev = "f619d43494e182e260423f8333eed9ea789f0cb8", version = "7.0.0" }
+datafusion = "8"
 
 log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.15"
+sqlparser = "0.17"
 yup-oauth2 = { version = "6.2", default-features = false, features= [
     "service_account",
 ] }
@@ -44,14 +44,14 @@ hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
 
 [dependencies.deltalake]
 git = "https://github.com/delta-io/delta-rs.git"
-rev = "0b99151d3a413bb3d90b318e7a825feb77e62902"
+rev = "5a293dd5e899167944cdb447599ed5f3f8916a22"
 default-features = false
 features = ["datafusion-ext"]
 
 [dependencies.connectorx]
-git = "https://github.com/sfu-db/connector-x.git"
-rev = "dba588ad26fb41a75d05cd54e08633b8063804c2"
-version = "0.2.5"
+git = "https://github.com/roapi/connector-x.git"
+branch = "backport_main"
+version = "0.3.1-alpha.1"
 features = ["default", "dst_arrow", "src_mysql", "src_sqlite"]
 optional = true
 

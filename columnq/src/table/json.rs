@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
+use datafusion::arrow::json::reader::{Decoder, DecoderOptions};
 use datafusion::arrow::record_batch::RecordBatch;
 use serde_json::value::Value;
 
@@ -59,7 +60,10 @@ fn json_vec_to_partition(
     };
 
     // decode to arrow record batch
-    let decoder = arrow::json::reader::Decoder::new(Arc::new(schema.clone()), batch_size, None);
+    let decoder = Decoder::new(
+        Arc::new(schema.clone()),
+        DecoderOptions::new().with_batch_size(batch_size),
+    );
     let mut batches = vec![];
     {
         // enclose values_iter in its own scope so it won't brrow schema_ref til end of this

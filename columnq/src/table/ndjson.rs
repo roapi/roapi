@@ -2,7 +2,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 
 use datafusion::arrow::datatypes::{Schema, SchemaRef};
-use datafusion::arrow::json::reader::{infer_json_schema, Decoder, ValueIter};
+use datafusion::arrow::json::reader::{infer_json_schema, Decoder, DecoderOptions, ValueIter};
 use datafusion::arrow::record_batch::RecordBatch;
 
 use crate::error::ColumnQError;
@@ -18,7 +18,10 @@ fn decode_json_from_reader<R: Read>(
     schema_ref: SchemaRef,
     batch_size: usize,
 ) -> Result<Vec<RecordBatch>, ColumnQError> {
-    let decoder = Decoder::new(schema_ref, batch_size, None);
+    let decoder = Decoder::new(
+        schema_ref,
+        DecoderOptions::new().with_batch_size(batch_size),
+    );
     let mut reader = BufReader::new(r);
     let mut value_reader = ValueIter::new(&mut reader, None);
     let mut batches = vec![];
