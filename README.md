@@ -31,7 +31,7 @@ See below for a high level diagram:
 ```bash
 # if you are using homebrew
 brew install roapi
-# or if you prefer python / pip
+# or if you prefer pip
 pip install roapi
 ```
 
@@ -69,7 +69,7 @@ roapi \
 Or using docker:
 
 ```bash
-docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi:latest --addr 0.0.0.0:8080 \
+docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi:latest --addr-http 0.0.0.0:8080 \
     --table "uk_cities=test_data/uk_cities_with_headers.csv" \
     --table "test_data/spacex_launches.json"
 ```
@@ -123,7 +123,9 @@ You can also configure multiple table sources using YAML config, which supports 
 advanced format specific table options:
 
 ```yaml
-addr: 0.0.0.0:8084
+addr:
+  http: 0.0.0.0:8084
+  postgres: 0.0.0.0:5433
 tables:
   - name: "blogs"
     uri: "test_data/blogs.parquet"

@@ -37,10 +37,9 @@ pub async fn test_api_app(
     let app = Application::build(config)
         .await
         .expect("Failed to build application config");
-    let port = app.http_port();
-    let address = format!("http://localhost:{}", port);
 
-    (app, address)
+    let http_base = format!("http://{}", app.http_addr());
+    (app, http_base)
 }
 
 pub async fn http_get(url: &str, accept: Option<&str>) -> reqwest::Response {

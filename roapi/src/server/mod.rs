@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait RunnableServer: Send + Sync {
-    fn port(&self) -> u16;
+    fn addr(&self) -> std::net::SocketAddr;
 
     async fn run(&self) -> anyhow::Result<()>;
 }

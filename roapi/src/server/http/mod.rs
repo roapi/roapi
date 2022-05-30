@@ -21,7 +21,7 @@ pub fn build_http_server<H: RoapiContext>(
     tables: Arc<Mutex<HashMap<String, TableSource>>>,
     config: &Config,
     default_host: String,
-) -> anyhow::Result<(HttpApiServer, u16)> {
+) -> anyhow::Result<(HttpApiServer, std::net::SocketAddr)> {
     let default_http_port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let default_http_addr = [default_host, default_http_port].join(":");
     let http_addr = config
@@ -46,12 +46,11 @@ pub fn build_http_server<H: RoapiContext>(
     }
 
     let listener = TcpListener::bind(http_addr)?;
-    let http_port = listener
+    let addr = listener
         .local_addr()
-        .expect("Failed to get address from listener")
-        .port();
+        .expect("Failed to get address from listener");
     let http_server = axum::Server::from_tcp(listener).unwrap();
     let http_server = http_server.serve(app.into_make_service());
 
-    Ok((http_server, http_port))
+    Ok((http_server, addr))
 }

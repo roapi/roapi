@@ -1,3 +1,7 @@
+// Wire protocol reference:
+// https://www.postgresql.org/docs/current/protocol-message-formats.html
+// https://beta.pgcon.org/2014/schedule/attachments/330_postgres-for-the-wire.pdf
+
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -7,6 +11,7 @@ use convergence::engine::{Engine, Portal};
 use convergence::protocol::{ErrorResponse, FieldDescription, SqlState};
 use convergence::protocol_ext::DataRowBatch;
 use convergence_arrow::table::{record_batch_to_rows, schema_to_field_desc};
+use log::info;
 use sqlparser::ast::Statement;
 use tokio::net::TcpListener;
 
@@ -46,6 +51,7 @@ impl<H: RoapiContext> Engine for RoapiContextEngine<H> {
         statement: &Statement,
     ) -> Result<Vec<FieldDescription>, ErrorResponse> {
         let query = statement.to_string();
+        info!("preparing query: {}", &query);
         let df = self.ctx.sql_to_df(&query).await.map_err(df_err_to_sql)?;
         schema_to_field_desc(&df.schema().clone().into())
     }
@@ -62,7 +68,7 @@ impl<H: RoapiContext> Engine for RoapiContextEngine<H> {
 
 pub struct PostgresServer<H: RoapiContext> {
     pub ctx: Arc<H>,
-    pub port: u16,
+    pub addr: std::net::SocketAddr,
     pub listener: TcpListener,
 }
 
@@ -81,10 +87,9 @@ impl<H: RoapiContext> PostgresServer<H> {
             .expect("Failed to bind address for Postgres server");
         Self {
             ctx,
-            port: listener
+            addr: listener
                 .local_addr()
-                .expect("Failed to get address from listener")
-                .port(),
+                .expect("Failed to get address from listener"),
             listener,
         }
     }
@@ -92,8 +97,8 @@ impl<H: RoapiContext> PostgresServer<H> {
 
 #[async_trait]
 impl<H: RoapiContext> RunnableServer for PostgresServer<H> {
-    fn port(&self) -> u16 {
-        self.port
+    fn addr(&self) -> std::net::SocketAddr {
+        self.addr
     }
 
     async fn run(&self) -> anyhow::Result<()> {

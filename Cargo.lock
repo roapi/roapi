@@ -524,7 +524,7 @@ dependencies = [
 
 [[package]]
 name = "columnq"
-version = "0.4.5"
+version = "0.4.6"
 dependencies = [
  "anyhow",
  "bytes",
@@ -610,7 +610,8 @@ dependencies = [
 [[package]]
 name = "connectorx"
 version = "0.3.1-alpha.1"
-source = "git+https://github.com/roapi/connector-x.git?branch=backport_main#d0cf0a7d1ca9c2826e6b9e5f8588c14ac975c593"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c5690db42d8f378b7e8fbeff38a645ef5adf165968de67de577f897df158252"
 dependencies = [
  "anyhow",
  "arrow",
@@ -2962,7 +2963,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "async-process",
@@ -2972,7 +2973,7 @@ dependencies = [
  "columnq",
  "convergence",
  "convergence-arrow",
- "env_logger 0.8.4",
+ "env_logger 0.9.0",
  "hyper",
  "log",
  "pin-project",
@@ -2985,6 +2986,7 @@ dependencies = [
  "sqlparser 0.17.0",
  "thiserror",
  "tokio",
+ "tokio-postgres",
  "tower-http",
  "tower-layer",
  "tracing",
