@@ -163,8 +163,8 @@ jobs:
       run: |
         # set SDKROOT for C dependencies
         export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-        cd roapi-http && \
-          cargo build --bin roapi-http --features database --target aarch64-apple-darwin
+        cd roapi && \
+          cargo build --bin roapi --features database --target aarch64-apple-darwin
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
@@ -181,7 +181,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: roapi-http:latest
+          tags: roapi:latest
       - name: Test
         run: |
-          docker run --rm roapi-http:latest --help
+          docker run --rm roapi:latest --help

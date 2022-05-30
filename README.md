@@ -32,17 +32,17 @@ See below for a high level diagram:
 # if you are using homebrew
 brew install roapi
 # or if you prefer python / pip
-pip install roapi-http
+pip install roapi
 ```
 
 Check out [Github release page](https://github.com/roapi/roapi/releases) for
 pre-built binaries for each platform. Pre-built docker images are also available at
-[ghcr.io/roapi/roapi-http](https://github.com/orgs/roapi/packages/container/package/roapi-http).
+[ghcr.io/roapi/roapi](https://github.com/orgs/roapi/packages/container/package/roapi).
 
 ### Install from source
 
 ```bash
-cargo install --locked --git https://github.com/roapi/roapi --branch main --bins roapi-http
+cargo install --locked --git https://github.com/roapi/roapi --branch main --bins roapi
 ```
 
 ## Usage
@@ -53,7 +53,7 @@ Spin up APIs for `test_data/uk_cities_with_headers.csv` and
 `test_data/spacex_launches.json`:
 
 ```bash
-roapi-http \
+roapi \
     --table "uk_cities=test_data/uk_cities_with_headers.csv" \
     --table "test_data/spacex_launches.json"
 ```
@@ -61,7 +61,7 @@ roapi-http \
 For windows, full scheme(file:// or filesystem://) must filled, and use double quote(") instead of single quote(') to escape windows cmdline limit:
 
 ```bash
-roapi-http \
+roapi \
     --table "uk_cities=file://d:/path/to/uk_cities_with_headers.csv" \
     --table "file://d:/path/to/test_data/spacex_launches.json"
 ```
@@ -69,7 +69,7 @@ roapi-http \
 Or using docker:
 
 ```bash
-docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi-http:latest --addr 0.0.0.0:8080 \
+docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi:latest --addr 0.0.0.0:8080 \
     --table "uk_cities=test_data/uk_cities_with_headers.csv" \
     --table "test_data/spacex_launches.json"
 ```
@@ -82,7 +82,7 @@ For MySQL and SQLite, use parameters like this.
 
 Want dynamic register data? Add parameter `-d` to command. `--table` parameter cannot be ignored for now.
 ```bash
-roapi-http \
+roapi \
     --table "uk_cities=test_data/uk_cities_with_headers.csv" \
     -d
 ```
@@ -165,7 +165,7 @@ tables:
 To run serve tables using config file:
 
 ```bash
-roapi-http -c ./roapi.yml
+roapi -c ./roapi.yml
 ```
 
 See [config
@@ -269,7 +269,7 @@ Query layer:
 - [ ] column index
 - protocol
   - [ ] gRPC
-  - [ ] Postgres
+  - [x] Postgres
 - [x] Key value lookup
 
 Response serialization:
@@ -312,8 +312,8 @@ self-contained [columnq](https://github.com/roapi/roapi/tree/main/columnq)
 crate. It takes queries and outputs Arrow record batches. Data sources will
 also be loaded and stored in memory as Arrow record batches.
 
-The [roapi-http](https://github.com/roapi/roapi/tree/main/roapi-http) crate
-wraps `columnq` with a HTTP based API layer. It serializes Arrow record batches
+The [roapi](https://github.com/roapi/roapi/tree/main/roapi) crate wraps
+`columnq` with a multi-protocol query layer. It serializes Arrow record batches
 produced by `columnq` into different formats based on client request.
 
 Building ROAPI with `simd` optimization requires nightly rust toolchain.
@@ -321,5 +321,5 @@ Building ROAPI with `simd` optimization requires nightly rust toolchain.
 ### Build Docker image
 
 ```bash
-docker build --rm -t ghcr.io/roapi/roapi-http:latest .
+docker build --rm -t ghcr.io/roapi/roapi:latest .
 ```

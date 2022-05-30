@@ -3,9 +3,9 @@ use axum::extract::{self, Extension};
 use axum::response::IntoResponse;
 use std::sync::Arc;
 
-use super::HandlerCtx;
+use crate::context::RoapiContext;
 
-pub async fn get<H: HandlerCtx>(
+pub async fn get<H: RoapiContext>(
     Extension(ctx): extract::Extension<Arc<H>>,
     extract::Path((kv_name, key)): extract::Path<(String, String)>,
 ) -> Result<impl IntoResponse, ApiErrResp> {

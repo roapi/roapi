@@ -6,9 +6,9 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::HandlerCtx;
+use crate::context::RoapiContext;
 
-pub async fn get_table<H: HandlerCtx>(
+pub async fn get_table<H: RoapiContext>(
     Extension(ctx): extract::Extension<Arc<H>>,
     headers: HeaderMap,
     extract::Path(table_name): extract::Path<String>,

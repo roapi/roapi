@@ -6,9 +6,8 @@ use log::info;
 use serde::Deserialize;
 use tokio::sync::Mutex;
 
+use crate::context::RoapiContext;
 use crate::error::ApiErrResp;
-
-use super::HandlerCtx;
 
 #[derive(Debug, Deserialize)]
 pub struct SourceConfig {
@@ -17,7 +16,7 @@ pub struct SourceConfig {
     pub uri: Option<String>,
 }
 
-pub async fn register_table<H: HandlerCtx>(
+pub async fn register_table<H: RoapiContext>(
     Extension(ctx): Extension<Arc<H>>,
     Extension(tables): Extension<Arc<Mutex<HashMap<String, TableSource>>>>,
     Json(body): Json<Vec<SourceConfig>>,

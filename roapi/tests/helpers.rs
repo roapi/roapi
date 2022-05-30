@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use columnq::datafusion::arrow;
 use columnq::table::{KeyValueSource, TableColumn, TableLoadOption, TableSchema, TableSource};
-use roapi_http::config::Config;
-use roapi_http::startup::Application;
+use roapi::config::{AddrConfig, Config};
+use roapi::startup::Application;
 
 pub fn test_data_path(relative_path: &str) -> String {
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -25,7 +25,10 @@ pub async fn test_api_app(
     kvstores: Vec<KeyValueSource>,
 ) -> (Application, String) {
     let config = Config {
-        addr: "localhost:0".to_string().into(),
+        addr: AddrConfig {
+            http: "localhost:0".to_string().into(),
+            postgres: "localhost:0".to_string().into(),
+        },
         tables,
         disable_read_only: false,
         kvstores,
@@ -34,7 +37,7 @@ pub async fn test_api_app(
     let app = Application::build(config)
         .await
         .expect("Failed to build application config");
-    let port = app.port();
+    let port = app.http_port();
     let address = format!("http://localhost:{}", port);
 
     (app, address)

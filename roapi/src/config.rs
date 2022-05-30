@@ -7,9 +7,15 @@ use columnq::table::KeyValueSource;
 use columnq::table::TableSource;
 use std::fs;
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
+pub struct AddrConfig {
+    pub http: Option<String>,
+    pub postgres: Option<String>,
+}
+
+#[derive(Deserialize, Default, Clone)]
 pub struct Config {
-    pub addr: Option<String>,
+    pub addr: AddrConfig,
     pub tables: Vec<TableSource>,
     #[serde(default)]
     pub disable_read_only: bool,
@@ -29,19 +35,29 @@ fn table_arg() -> clap::Arg<'static> {
         .short('t')
 }
 
-fn address_arg() -> clap::Arg<'static> {
-    clap::Arg::new("addr")
-        .help("bind address")
+fn address_http_arg() -> clap::Arg<'static> {
+    clap::Arg::new("addr-http")
+        .help("HTTP endpoint bind address")
         .required(false)
         .takes_value(true)
         .value_name("IP:PORT")
-        .long("addr")
+        .long("addr-http")
         .short('a')
+}
+
+fn address_postgres_arg() -> clap::Arg<'static> {
+    clap::Arg::new("addr-postgres")
+        .help("Postgres endpoint bind address")
+        .required(false)
+        .takes_value(true)
+        .value_name("IP:PORT")
+        .long("addr-postgres")
+        .short('p')
 }
 
 fn read_only_arg() -> clap::Arg<'static> {
     clap::Arg::new("disable-read-only")
-        .help("Start roapi-http in read write mode")
+        .help("Start roapi in read write mode")
         .required(false)
         .takes_value(false)
         .long("disable-read-only")
@@ -58,14 +74,20 @@ fn config_arg() -> clap::Arg<'static> {
 }
 
 pub fn get_configuration() -> Result<Config, anyhow::Error> {
-    let matches = clap::Command::new("roapi-http")
+    let matches = clap::Command::new("roapi")
         .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
         .about(
             "Create full-fledged APIs for static datasets without writing a single line of code.",
         )
         .arg_required_else_help(true)
-        .args(&[address_arg(), config_arg(), read_only_arg(), table_arg()])
+        .args(&[
+            address_http_arg(),
+            address_postgres_arg(),
+            config_arg(),
+            read_only_arg(),
+            table_arg(),
+        ])
         .get_matches();
 
     let mut config: Config = match matches.value_of("config") {
@@ -84,8 +106,12 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         }
     }
 
-    if let Some(addr) = matches.value_of("addr") {
-        config.addr = Some(addr.to_string());
+    if let Some(addr) = matches.value_of("addr-http") {
+        config.addr.http = Some(addr.to_string());
+    }
+
+    if let Some(addr) = matches.value_of("addr-postgres") {
+        config.addr.postgres = Some(addr.to_string());
     }
 
     if matches.is_present("disable-read-only") {

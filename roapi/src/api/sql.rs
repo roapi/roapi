@@ -7,9 +7,9 @@ use std::sync::Arc;
 use crate::api::{encode_record_batches, encode_type_from_hdr};
 use crate::error::ApiErrResp;
 
-use super::HandlerCtx;
+use crate::context::RoapiContext;
 
-pub async fn post<H: HandlerCtx>(
+pub async fn post<H: RoapiContext>(
     state: extract::Extension<Arc<H>>,
     headers: HeaderMap,
     body: Bytes,

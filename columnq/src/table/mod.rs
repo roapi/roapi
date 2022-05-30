@@ -343,12 +343,14 @@ impl TableSource {
         8192
     }
 
+    #[inline]
     #[must_use]
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
         self.option = Some(option.into());
         self
     }
 
+    #[inline]
     #[must_use]
     pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
         self.schema = Some(schema.into());
