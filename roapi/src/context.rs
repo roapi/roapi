@@ -1,14 +1,10 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
+use std::sync::Arc;
 
 use async_trait::async_trait;
-use axum::body::Body;
-use axum::http::header;
-use axum::http::Response;
-use axum::response::IntoResponse;
 use columnq::datafusion::arrow;
-use columnq::encoding;
-use columnq::encoding::ContentType;
+use columnq::datafusion::dataframe::DataFrame;
+use columnq::datafusion::error::DataFusionError;
 use columnq::error::ColumnQError;
 use columnq::error::QueryError;
 use columnq::table::TableSource;
@@ -19,12 +15,12 @@ use tokio::sync::RwLock;
 use crate::config::Config;
 use crate::error::ApiErrResp;
 
-pub struct RawHandlerContext {
+pub struct RawRoapiContext {
     pub cq: ColumnQ,
     // TODO: store pre serialized schema in handler context
 }
 
-impl RawHandlerContext {
+impl RawRoapiContext {
     pub async fn new(config: &Config) -> anyhow::Result<Self> {
         let mut cq = ColumnQ::new();
 
@@ -48,10 +44,10 @@ impl RawHandlerContext {
     }
 }
 
-pub type ConcurrentHandlerContext = RwLock<RawHandlerContext>;
+pub type ConcurrentRoapiContext = RwLock<RawRoapiContext>;
 
 #[async_trait]
-pub trait HandlerCtx: Send + Sync + 'static {
+pub trait RoapiContext: Send + Sync + 'static {
     fn read_only_mode() -> bool;
 
     async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError>;
@@ -77,10 +73,12 @@ pub trait HandlerCtx: Send + Sync + 'static {
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
 
     async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError>;
+
+    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError>;
 }
 
 #[async_trait]
-impl HandlerCtx for RawHandlerContext {
+impl RoapiContext for RawRoapiContext {
     #[inline]
     fn read_only_mode() -> bool {
         true
@@ -142,10 +140,15 @@ impl HandlerCtx for RawHandlerContext {
     async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError> {
         Ok(self.cq.kv_get(kv_name, key)?.cloned())
     }
+
+    #[inline]
+    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
+        self.cq.dfctx.sql(query).await
+    }
 }
 
 #[async_trait]
-impl HandlerCtx for ConcurrentHandlerContext {
+impl RoapiContext for ConcurrentRoapiContext {
     #[inline]
     fn read_only_mode() -> bool {
         false
@@ -212,60 +215,10 @@ impl HandlerCtx for ConcurrentHandlerContext {
         let ctx = self.read().await;
         Ok(ctx.cq.kv_get(kv_name, key)?.cloned())
     }
-}
 
-#[inline]
-pub fn bytes_to_resp(bytes: Vec<u8>, content_type: &'static str) -> impl IntoResponse {
-    let mut res = Response::new(Body::from(bytes));
-    res.headers_mut().insert(
-        header::CONTENT_TYPE,
-        header::HeaderValue::from_static(content_type),
-    );
-    res
-}
-
-#[inline]
-pub fn bytes_to_json_resp(bytes: Vec<u8>) -> impl IntoResponse {
-    bytes_to_resp(bytes, "application/json")
-}
-
-pub fn encode_type_from_hdr(headers: header::HeaderMap) -> encoding::ContentType {
-    match headers.get(header::ACCEPT) {
-        None => encoding::ContentType::Json,
-        Some(hdr_value) => {
-            encoding::ContentType::try_from(hdr_value.as_bytes()).unwrap_or(ContentType::Json)
-        }
+    #[inline]
+    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
+        let ctx = self.read().await;
+        ctx.cq.dfctx.sql(query).await
     }
 }
-
-pub fn encode_record_batches(
-    content_type: encoding::ContentType,
-    batches: &[arrow::record_batch::RecordBatch],
-) -> Result<impl IntoResponse, ApiErrResp> {
-    let payload = match content_type {
-        encoding::ContentType::Json => encoding::json::record_batches_to_bytes(batches)
-            .map_err(ApiErrResp::json_serialization)?,
-        encoding::ContentType::Csv => encoding::csv::record_batches_to_bytes(batches)
-            .map_err(ApiErrResp::csv_serialization)?,
-        encoding::ContentType::ArrowFile => encoding::arrow::record_batches_to_file_bytes(batches)
-            .map_err(ApiErrResp::arrow_file_serialization)?,
-        encoding::ContentType::ArrowStream => {
-            encoding::arrow::record_batches_to_stream_bytes(batches)
-                .map_err(ApiErrResp::arrow_stream_serialization)?
-        }
-        encoding::ContentType::Parquet => encoding::parquet::record_batches_to_bytes(batches)
-            .map_err(ApiErrResp::parquet_serialization)?,
-    };
-
-    Ok(bytes_to_resp(payload, content_type.to_str()))
-}
-
-pub mod graphql;
-pub mod kv;
-pub mod register;
-pub mod rest;
-pub mod routes;
-pub mod schema;
-pub mod sql;
-
-pub use routes::register_app_routes;

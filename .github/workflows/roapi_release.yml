@@ -1,14 +1,14 @@
-name: roapi-http release
+name: roapi release
 
 on:
   push:
     paths:
       - '.github/workflows/roapi_http_release.yml'
       - 'columnq/**'
-      - 'roapi-http/**'
+      - 'roapi/**'
       - 'Cargo.lock'
     branches: [ main ]
-    tags: [ 'roapi-http-v*' ]
+    tags: [ 'roapi-v*' ]
 
 env:
   # NOTE: this env is also defined in build.yml
@@ -25,8 +25,8 @@ jobs:
         if: "startsWith(github.ref, 'refs/tags/')"
         run: |
           PUSHED_TAG=${GITHUB_REF##*/}
-          CURR_VER=$( grep version roapi-http/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' )
-          if [[ "${PUSHED_TAG}" != "roapi-http-v${CURR_VER}" ]]; then
+          CURR_VER=$( grep version roapi/Cargo.toml | head -n 1 | awk '{print $3}' | tr -d '"' )
+          if [[ "${PUSHED_TAG}" != "roapi-v${CURR_VER}" ]]; then
             echo "Cargo metadata has version set to ${CURR_VER}, but got pushed tag ${PUSHED_TAG}."
             exit 1
           fi
@@ -53,8 +53,8 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels - x86_64
         run: |
-          maturin build -m roapi-http/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
-          pip install roapi-http --no-index --find-links dist --force-reinstall
+          maturin build -m roapi/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
+          pip install roapi --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
         env:
           DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
@@ -62,8 +62,8 @@ jobs:
         run: |
           # set SDKROOT for C dependencies
           export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-          maturin build -m roapi-http/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd"
-          pip install roapi-http --no-index --find-links dist --force-reinstall
+          maturin build -m roapi/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd"
+          pip install roapi --no-index --find-links dist --force-reinstall
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -71,15 +71,15 @@ jobs:
           path: dist
       - name: Archive binary
         if: "startsWith(github.ref, 'refs/tags/')"
-        run: tar czvf target/release/roapi-http.tar.gz -C target/release roapi-http
+        run: tar czvf target/release/roapi.tar.gz -C target/release roapi
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
         if: "startsWith(github.ref, 'refs/tags/')"
         with:
           overwrite: true
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          asset_name: roapi-http-apple-darwin.tar.gz
-          file: target/release/roapi-http.tar.gz
+          asset_name: roapi-apple-darwin.tar.gz
+          file: target/release/roapi.tar.gz
           tag: ${{ github.ref }}
 
   windows:
@@ -108,9 +108,9 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels
         run: |
-          maturin build -m roapi-http/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
-          pip install roapi-http --no-index --find-links dist --force-reinstall
-          roapi-http --help
+          maturin build -m roapi/Cargo.toml -b bin --release --out dist --no-sdist --target ${{ matrix.platform.target }} --cargo-extra-args="--features=${{ matrix.platform.features }}"
+          pip install roapi --no-index --find-links dist --force-reinstall
+          roapi --help
       - name: Upload wheels
         uses: actions/upload-artifact@v2
         with:
@@ -119,15 +119,15 @@ jobs:
       - name: Archive binary
         if: "startsWith(github.ref, 'refs/tags/')"
         run: |
-            tar czvf target/release/roapi-http.tar.gz -C target/${{ matrix.platform.target }}/release roapi-http.exe
+            tar czvf target/release/roapi.tar.gz -C target/${{ matrix.platform.target }}/release roapi.exe
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
         if: "startsWith(github.ref, 'refs/tags/')"
         with:
           overwrite: true
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          asset_name: roapi-http-windows.tar.gz
-          file: target/release/roapi-http.tar.gz
+          asset_name: roapi-windows.tar.gz
+          file: target/release/roapi.tar.gz
           tag: ${{ github.ref }}
 
   linux:
@@ -196,7 +196,7 @@ jobs:
         run: |
           sudo python3 -m pip install 'maturin<0.12'
           export RUSTFLAGS='-C target-cpu=skylake'
-          maturin build -m roapi-http/Cargo.toml -b bin --no-sdist --release -o dist \
+          maturin build -m roapi/Cargo.toml -b bin --no-sdist --release -o dist \
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
             --cargo-extra-args="--no-default-features --features=${{ matrix.platform.features }}"
       - name: Upload wheels
@@ -207,15 +207,15 @@ jobs:
           path: dist
       - name: Archive binary
         if: "startsWith(github.ref, 'refs/tags/')"
-        run: tar czvf target/release/roapi-http.tar.gz -C target/${{ matrix.platform.target }}/release roapi-http
+        run: tar czvf target/release/roapi.tar.gz -C target/${{ matrix.platform.target }}/release roapi
       - name: Upload binary to GitHub Release
         uses: svenstaro/upload-release-action@v2
         if: "startsWith(github.ref, 'refs/tags/')"
         with:
           overwrite: true
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          asset_name: roapi-http-${{ matrix.platform.target }}${{ matrix.platform.name_suffix }}.tar.gz
-          file: target/release/roapi-http.tar.gz
+          asset_name: roapi-${{ matrix.platform.target }}${{ matrix.platform.name_suffix }}.tar.gz
+          file: target/release/roapi.tar.gz
           tag: ${{ github.ref }}
 
   pypi_release:
@@ -233,7 +233,7 @@ jobs:
       - name: Publish to PyPi
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.ROAPI_PYPI_TOKEN }}
         run: |
           pip install --upgrade twine
           twine upload --skip-existing *
@@ -263,8 +263,8 @@ jobs:
           flavor: |
             latest=true
           tags: |
-            type=match,pattern=roapi-http-(v.+),group=1
-          images: ghcr.io/${{ github.repository_owner }}/roapi-http
+            type=match,pattern=roapi-(v.+),group=1
+          images: ghcr.io/${{ github.repository_owner }}/roapi
 
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc

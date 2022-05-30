@@ -1,7 +1,7 @@
 #![deny(warnings)]
 
-use roapi_http::config::get_configuration;
-use roapi_http::startup::Application;
+use roapi::config::get_configuration;
+use roapi::startup::Application;
 
 #[cfg(snmalloc)]
 #[global_allocator]

@@ -3,9 +3,10 @@ use axum::{
     Router,
 };
 
-use crate::api::{self, HandlerCtx};
+use crate::api;
+use crate::context::RoapiContext;
 
-pub fn register_app_routes<H: HandlerCtx>() -> Router {
+pub fn register_app_routes<H: RoapiContext>() -> Router {
     let mut router = Router::new()
         .route("/api/tables/:table_name", get(api::rest::get_table::<H>))
         .route("/api/sql", post(api::sql::post::<H>))

@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["columnq", "columnq-cli", "roapi-http"]
+members = ["columnq", "columnq-cli", "roapi"]
 
 [profile.dev]
 split-debuginfo = "unpacked"

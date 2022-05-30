@@ -5,11 +5,10 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 
 use crate::api::{encode_record_batches, encode_type_from_hdr};
+use crate::context::RoapiContext;
 use crate::error::ApiErrResp;
 
-use super::HandlerCtx;
-
-pub async fn post<H: HandlerCtx>(
+pub async fn post<H: RoapiContext>(
     state: extract::Extension<Arc<H>>,
     headers: HeaderMap,
     body: Bytes,
