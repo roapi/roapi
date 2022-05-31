@@ -22,7 +22,7 @@ core of its design can be boiled down to the following:
 
 See below for a high level diagram:
 
-<img alt="roapi-design-diagram" src="https://roapi.github.io/docs/images/roapi.svg">
+<img alt="roapi-design-diagram" src="https://roapi.github.io/docs/images/roapi.png">
 
 ## Installation
 
@@ -255,6 +255,25 @@ Key value lookup can be done through simple HTTP GET requests:
 ```bash
 curl -v localhost:8080/api/kv/launch_name/600f9a8d8f798e2a4d5f979e
 Starlink-21 (v1.0)%
+```
+
+### Query through Postgres wire protocol
+
+ROAPI can present itself as a Postgre server so users can use Postgres clients
+to issue SQL queries.
+
+```
+$ psql -h 127.0.0.1
+psql (12.10 (Ubuntu 12.10-0ubuntu0.20.04.1), server 13)
+WARNING: psql major version 12, server major version 13.
+         Some psql features might not work.
+Type "help" for help.
+
+houqp=> select count(*) from uk_cities;
+ COUNT(UInt8(1)) 
+-----------------
+              37
+(1 row)
 ```
 
 
