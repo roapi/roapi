@@ -8,3 +8,7 @@ split-debuginfo = "unpacked"
 [profile.release]
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+convergence = { git = "https://github.com/roapi/convergence.git", rev = "0c5293a8c09834b6b869389f054e18fa444f5a5b" }
+convergence-arrow = { git = "https://github.com/roapi/convergence.git", rev = "0c5293a8c09834b6b869389f054e18fa444f5a5b" }

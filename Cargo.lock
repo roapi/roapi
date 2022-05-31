@@ -649,8 +649,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 [[package]]
 name = "convergence"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "571600bd90433d851c7d8aa097756d2b1e1cea4c8c6f0b49fea12b21affc0df9"
+source = "git+https://github.com/roapi/convergence.git?rev=0c5293a8c09834b6b869389f054e18fa444f5a5b#0c5293a8c09834b6b869389f054e18fa444f5a5b"
 dependencies = [
  "async-trait",
  "bytes",
@@ -665,8 +664,7 @@ dependencies = [
 [[package]]
 name = "convergence-arrow"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5193c9b02ce64ea20624a6d44bdbb6a8cd04982c70b9060dc45e430b3aa88c4"
+source = "git+https://github.com/roapi/convergence.git?rev=0c5293a8c09834b6b869389f054e18fa444f5a5b#0c5293a8c09834b6b869389f054e18fa444f5a5b"
 dependencies = [
  "async-trait",
  "chrono",
