@@ -1,4 +1,4 @@
-FROM instrumentisto/rust:nightly-bullseye-2022-01-03 AS builder
+FROM instrumentisto/rust:nightly-bullseye-2022-01-05 AS builder
 WORKDIR /roapi_src
 COPY ./ /roapi_src
 RUN apt-get update \
