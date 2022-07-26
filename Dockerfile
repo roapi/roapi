@@ -5,7 +5,7 @@ RUN apt-get update \
     && apt-get install --no-install-recommends -y cmake
 
 RUN RUSTFLAGS='-C target-cpu=skylake' \
-    cargo install --locked --features simd --path ./roapi --bin roapi
+    cargo +nightly install --locked --features simd database --path ./roapi --bin roapi
 
 FROM debian:bullseye-slim
 LABEL org.opencontainers.image.source https://github.com/roapi/roapi
