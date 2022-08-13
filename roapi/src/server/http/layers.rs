@@ -5,7 +5,7 @@ use axum::http::Response;
 use hyper::service::Service;
 use log::error;
 use log::info;
-use pin_project::pin_project;
+use pin_project_lite::pin_project;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::Context;
@@ -73,13 +73,14 @@ where
     }
 }
 
-#[pin_project]
-pub struct LoggerResponseFuture<F> {
-    #[pin]
-    response_future: F,
-    method: Method,
-    uri: Uri,
-    start: Option<Instant>,
+pin_project! {
+    pub struct LoggerResponseFuture<F> {
+        #[pin]
+        response_future: F,
+        method: Method,
+        uri: Uri,
+        start: Option<Instant>,
+    }
 }
 
 impl<F, Body, E> Future for LoggerResponseFuture<F>

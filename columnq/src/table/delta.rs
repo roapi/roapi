@@ -46,10 +46,10 @@ pub async fn to_delta_table(
                 delta_table.table_uri,
             ))),
         _ => {
-            return Err(ColumnQError::InvalidUri(format!(
+            Err(ColumnQError::InvalidUri(format!(
                 "Scheme in table uri not supported for delta table: {}",
                 delta_table.table_uri,
-            )));
+            )))
         }
     }
 }
