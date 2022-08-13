@@ -60,10 +60,10 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: simd-2-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        key: simd-3-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
         restore-keys: |
-          simd-2-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          simd-2-${{ runner.os }}-cargo-
+          simd-3-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          simd-3-${{ runner.os }}-cargo-
     - name: Install nightly rust
       uses: actions-rs/toolchain@v1
       with:
@@ -92,10 +92,10 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: database-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          key: database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           restore-keys: |
-            database-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-            database-${{ runner.os }}-cargo-
+            database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+            database-1-${{ runner.os }}-cargo-
       - name: Install nightly rust
         uses: actions-rs/toolchain@v1
         with:
@@ -145,10 +145,10 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: mac-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        key: mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
         restore-keys: |
-          mac-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          mac-${{ runner.os }}-cargo-
+          mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          mac-1-${{ runner.os }}-cargo-
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
