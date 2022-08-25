@@ -29,7 +29,20 @@ pub fn parse_uri<'a>(path: &'a str) -> Result<(&'a str, &'a str), ColumnQError> 
 }
 
 fn new_s3_client() -> Result<rusoto_s3::S3Client, ColumnQError> {
-    let region = rusoto_core::Region::default();
+    let region = if let Ok(endpoint_url) = std::env::var("AWS_ENDPOINT_URL") {
+        let region_name = std::env::var("AWS_REGION").unwrap_or_else(|_| "custom".to_string());
+        debug!(
+            "using custom S3 endpoint {} with region {}",
+            &endpoint_url, &region_name
+        );
+        rusoto_core::Region::Custom {
+            name: region_name,
+            endpoint: endpoint_url,
+        }
+    } else {
+        rusoto_core::Region::default()
+    };
+
     let dispatcher = rusoto_core::HttpClient::new()
         .map_err(|_| ColumnQError::S3Store("Failed to create request dispatcher".to_string()))?;
 
@@ -201,16 +214,7 @@ pub async fn partitions_from_uri<'a, F, T>(
 where
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
-    let region = if let Ok(endpoint_url) = std::env::var("AWS_ENDPOINT_URL") {
-        debug!("using custom S3 endpoint: {}", &endpoint_url);
-        rusoto_core::Region::Custom {
-            name: "custom".to_string(),
-            endpoint: endpoint_url,
-        }
-    } else {
-        rusoto_core::Region::default()
-    };
-    let client = rusoto_s3::S3Client::new(region);
+    let client = new_s3_client()?;
     // TODO: use host and path from URIReference instead
     let (bucket, key) = parse_uri(t.get_uri_str())?;
 
