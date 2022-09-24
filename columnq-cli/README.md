@@ -30,7 +30,7 @@ pip install columnq-cli
 ### Build from source
 
 ```bash
-cargo install --locked --git https://github.com/roapi/roapi --branch main --bin columnq-cli
+cargo install --locked --git https://github.com/roapi/roapi --branch main --bins columnq-cli
 ```
 
 
