@@ -676,7 +676,11 @@ batch_size: 512
     async fn test_load_sqlite_table() -> anyhow::Result<()> {
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite.db");
         let table = load(&t).await?;
-        let stats = table.scan(&None, &[], None).await?.statistics();
+        let ctx = datafusion::prelude::SessionContext::new();
+        let stats = table
+            .scan(&ctx.state(), &None, &[], None)
+            .await?
+            .statistics();
         assert_eq!(stats.num_rows, Some(37));
 
         Ok(())

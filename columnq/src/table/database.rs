@@ -94,6 +94,7 @@ pub use imp::*;
 #[cfg(test)]
 mod tests {
     use datafusion::datasource::TableProvider;
+    use datafusion::prelude::SessionContext;
     use dotenv::dotenv;
     use std::env;
 
@@ -107,7 +108,8 @@ mod tests {
         if let Ok(name) = env::var("TABLE_NAME") {
             let t = DatabaseLoader::MySQL
                 .to_mem_table(&TableSource::new(name, env::var("MYSQL_URL")?))?;
-            let stats = t.scan(&None, &[], None).await?.statistics();
+            let ctx = SessionContext::new();
+            let stats = t.scan(&ctx.state(), &None, &[], None).await?.statistics();
             assert!(stats.num_rows.is_some());
         }
 

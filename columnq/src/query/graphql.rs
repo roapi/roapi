@@ -346,6 +346,7 @@ pub fn query_to_df(
                         usize::try_from(limit).map_err(|_| {
                             invalid_query(format!("limit value too large: {}", value))
                         })?,
+                        None,
                     )
                     .map_err(QueryError::invalid_limit)?;
             }
@@ -440,7 +441,7 @@ mod tests {
             .filter(col("bed").gt(lit(3i64)))?
             .select(vec![col("address"), col("bed")])?
             .sort(vec![column_sort_expr_asc("bed")])?
-            .limit(10)?;
+            .limit(10, None)?;
 
         assert_eq_df(df, expected_df);
 

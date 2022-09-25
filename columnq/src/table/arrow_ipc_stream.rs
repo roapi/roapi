@@ -50,6 +50,7 @@ mod tests {
     use super::*;
 
     use datafusion::datasource::TableProvider;
+    use datafusion::prelude::SessionContext;
     use std::fs;
 
     use crate::table::TableLoadOption;
@@ -74,7 +75,8 @@ mod tests {
         )
         .await?;
 
-        let stats = t.scan(&None, &[], None).await?.statistics();
+        let ctx = SessionContext::new();
+        let stats = t.scan(&ctx.state(), &None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37 * 3));
 
         Ok(())
@@ -86,7 +88,8 @@ mod tests {
 
         let t = to_mem_table(&TableSource::new("uk_cities".to_string(), test_path)).await?;
 
-        let stats = t.scan(&None, &[], None).await?.statistics();
+        let ctx = SessionContext::new();
+        let stats = t.scan(&ctx.state(), &None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37));
 
         Ok(())

@@ -160,7 +160,7 @@ pub fn table_query_to_df(
     // limit needs to be applied after sort to make sure the result is deterministics
     if let Some(val) = params.get("limit") {
         let limit = val.parse::<usize>().map_err(num_parse_err)?;
-        df = df.limit(limit).map_err(QueryError::invalid_limit)?;
+        df = df.limit(limit, None).map_err(QueryError::invalid_limit)?;
     }
 
     Ok(df)
@@ -207,7 +207,7 @@ mod tests {
                 )?
                 .select(vec![col("ami_id"), col("version")])?
                 .sort(vec![column_sort_expr_asc("ami_id")])?
-                .limit(10)?,
+                .limit(10, None)?,
         );
 
         Ok(())
