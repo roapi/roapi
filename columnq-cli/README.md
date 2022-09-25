@@ -39,8 +39,8 @@ Usage
 
 ### One off query
 
-The `sql` sbucommand execute a provided SQL query against specificed static
-dataset and return the result in stdout on exit. This is usually useful for
+The `sql` subcommand executes a provided SQL query against specificed static
+dataset and returns the result in stdout on exit. This is usually useful for
 script automation tasks.
 
 ```
