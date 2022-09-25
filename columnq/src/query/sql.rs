@@ -55,7 +55,7 @@ mod tests {
 
         assert_eq!(
             batch.column(1).as_ref(),
-            Arc::new(UInt64Array::from(vec![3, 3, 4, 3, 2])).as_ref(),
+            Arc::new(Int64Array::from(vec![3, 3, 4, 3, 2])).as_ref(),
         );
 
         Ok(())

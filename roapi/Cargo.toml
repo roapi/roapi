@@ -1,6 +1,6 @@
 [package]
 name = "roapi"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -39,9 +39,9 @@ clap = { version = "3", features = ["color"] }
 thiserror = "1"
 anyhow = "1"
 
-sqlparser = "0.17"
-convergence = "0.4"
-convergence-arrow = "0.4"
+sqlparser = "0.23"
+convergence = "0.6"
+convergence-arrow = "0.6"
 
 [features]
 default = ["rustls", "snmalloc"]

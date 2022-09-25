@@ -58,7 +58,9 @@ impl ColumnQ {
         let projections = Some(vec![key_schema_idx, val_schema_idx]);
 
         let filters = &[];
-        let exec_plan = table.scan(&projections, filters, None).await?;
+        let exec_plan = table
+            .scan(&self.dfctx.state(), &projections, filters, None)
+            .await?;
         let batches = collect(exec_plan, self.dfctx.task_ctx()).await?;
         let mut kv = HashMap::new();
         for batch in batches {

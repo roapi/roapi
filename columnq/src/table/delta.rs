@@ -5,9 +5,8 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
-use datafusion::parquet::arrow::{ArrowReader, ParquetFileArrowReader};
-use datafusion::parquet::file::reader::SerializedFileReader;
-use datafusion::parquet::file::serialized_reader::SliceableCursor;
+use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
+use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
 use crate::error::ColumnQError;
 use crate::io;
@@ -43,12 +42,12 @@ pub async fn to_delta_table(
         io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
         io::BlobStoreType::S3 => Err(ColumnQError::LoadDelta(format!(
                 "S3 for delta table currently only supported in conjunction with `to_memory_table` config: {}",
-                delta_table.table_uri,
+                delta_table.table_uri(),
             ))),
         _ => {
             Err(ColumnQError::InvalidUri(format!(
                 "Scheme in table uri not supported for delta table: {}",
-                delta_table.table_uri,
+                delta_table.table_uri(),
             )))
         }
     }
@@ -60,13 +59,12 @@ fn read_partition<R: Read>(mut r: R, batch_size: usize) -> Result<Vec<RecordBatc
         ColumnQError::LoadDelta("failed to copy parquet data into memory".to_string())
     })?;
 
-    let file_reader = SerializedFileReader::new(SliceableCursor::new(buffer))
-        .map_err(ColumnQError::parquet_file_reader)?;
-    let mut arrow_reader = ParquetFileArrowReader::new(Arc::new(file_reader));
-
-    let record_batch_reader = arrow_reader
-        .get_record_reader(batch_size)
-        .map_err(ColumnQError::parquet_record_reader)?;
+    let record_batch_reader = ParquetRecordBatchReaderBuilder::try_new_with_options(
+        bytes::Bytes::from(buffer),
+        ArrowReaderOptions::new().with_skip_arrow_metadata(true),
+    )?
+    .with_batch_size(batch_size)
+    .build()?;
 
     Ok(record_batch_reader
         .into_iter()
@@ -106,7 +104,7 @@ pub async fn to_mem_table(
         _ => {
             return Err(ColumnQError::InvalidUri(format!(
                 "Scheme in table uri not supported for delta table: {}",
-                delta_table.table_uri,
+                delta_table.table_uri(),
             )));
         }
     };
@@ -123,6 +121,7 @@ mod tests {
     use super::*;
     use datafusion::datasource::MemTable;
     use datafusion::physical_plan::Statistics;
+    use datafusion::prelude::SessionContext;
 
     use deltalake::DeltaTable;
 
@@ -140,7 +139,8 @@ mod tests {
         )
         .await?;
 
-        validate_statistics(t.scan(&None, &[], None).await?.statistics());
+        let ctx = SessionContext::new();
+        validate_statistics(t.scan(&ctx.state(), &None, &[], None).await?.statistics());
 
         match t.as_any().downcast_ref::<MemTable>() {
             Some(_) => Ok(()),
@@ -161,7 +161,7 @@ mod tests {
 
         match t.as_any().downcast_ref::<DeltaTable>() {
             Some(delta_table) => {
-                assert_eq!(delta_table.version, 0);
+                assert_eq!(delta_table.version(), 0);
                 Ok(())
             }
             None => panic!("must be of type deltalake::DeltaTable"),

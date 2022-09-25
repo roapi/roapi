@@ -57,6 +57,12 @@ pub enum ColumnQError {
         source: datafusion::error::DataFusionError,
     },
 
+    #[error("Parquet error: {source}")]
+    Parquet {
+        #[from]
+        source: datafusion::parquet::errors::ParquetError,
+    },
+
     #[error("Serde error: {source}")]
     Serde {
         #[from]

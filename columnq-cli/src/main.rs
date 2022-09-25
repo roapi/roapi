@@ -186,7 +186,7 @@ async fn main() -> anyhow::Result<()> {
                         .number_of_values(1)
                         .default_value("table")
                         // TODO: add yaml
-                        .possible_values(&["table", "json", "csv", "parquet", "arrow", "arrows"]),
+                        .possible_values(["table", "json", "csv", "parquet", "arrow", "arrows"]),
                     table_arg(),
                 ]),
         )

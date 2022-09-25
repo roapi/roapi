@@ -5,19 +5,16 @@ use datafusion::parquet::errors::ParquetError;
 pub fn record_batches_to_bytes(
     batches: &[arrow::record_batch::RecordBatch],
 ) -> Result<Vec<u8>, ParquetError> {
-    let cursor = parquet::file::writer::InMemoryWriteableCursor::default();
-    {
-        if !batches.is_empty() {
-            let schema = batches[0].schema();
-
-            let mut writer = parquet::arrow::ArrowWriter::try_new(cursor.clone(), schema, None)?;
-            for batch in batches {
-                writer.write(batch)?;
-            }
-            writer.close()?;
-        }
+    if batches.is_empty() {
+        return Ok(vec![]);
     }
 
-    let result = cursor.into_inner().expect("Should not fail");
-    Ok(result)
+    let schema = batches[0].schema();
+
+    let mut writer = parquet::arrow::ArrowWriter::try_new(vec![], schema, None)?;
+    for batch in batches {
+        writer.write(batch)?;
+    }
+
+    Ok(writer.into_inner().expect("Should not fail"))
 }
