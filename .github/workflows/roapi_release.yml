@@ -11,7 +11,7 @@ on:
     tags: [ 'roapi-v*' ]
 
 env:
-  # NOTE: this env is also defined in build.yml
+  # NOTE: the version is also defined in build.yml and Dockerfile
   RUST_TC_NIGHTLY_VER: "2022-09-24"
 
 jobs:
