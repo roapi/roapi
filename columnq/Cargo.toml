@@ -50,9 +50,9 @@ features = ["datafusion-ext"]
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
-rev = "c9da0aae301beccc2e4f5db226f2a856cab82db5"
+rev = "47e40619740345209cbdb5e5b9ce4ad52e5768af"
 version = "0.3.1-alpha.8"
-features = ["default", "dst_arrow", "src_mysql", "src_sqlite"]
+features = ["default", "dst_arrow"]
 optional = true
 
 [dev-dependencies]
@@ -90,4 +90,9 @@ native-tls = [
     "yup-oauth2/hyper-tls",
 ]
 simd = ["datafusion/simd"]
-database = ["connectorx"]
+database-sqlite = ["connectorx/src_sqlite"]
+database-mysql = ["connectorx/src_mysql"]
+database = [
+    "database-sqlite",
+    "database-mysql",
+]

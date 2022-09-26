@@ -53,7 +53,7 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels - x86_64
         run: |
-          maturin build -m roapi/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd,database"
+          maturin build -m roapi/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd,database-sqlite"
           pip install roapi --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
         env:
@@ -62,7 +62,7 @@ jobs:
         run: |
           # set SDKROOT for C dependencies
           export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-          maturin build -m roapi/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd,database"
+          maturin build -m roapi/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd,database-sqlite"
           pip install roapi --no-index --find-links dist --force-reinstall
       - name: Upload wheels
         uses: actions/upload-artifact@v2
@@ -88,7 +88,7 @@ jobs:
     strategy:
       matrix:
         platform: [
-          { python-architecture: "x64", target: "x86_64-pc-windows-msvc", features: "simd,database" },
+          { python-architecture: "x64", target: "x86_64-pc-windows-msvc", features: "simd,database-sqlite" },
           # { python-architecture: "x86", target: "i686-pc-windows-msvc", features: "" },
         ]
     steps:
@@ -140,7 +140,7 @@ jobs:
           - manylinux: "2010"
             target: "x86_64-unknown-linux-musl"
             image_tag: "x86_64-musl"
-            features: "simd,rustls,database"
+            features: "simd,rustls,database-sqlite"
             name_suffix: ""
             upload: "true"
           # - manylinux: "2010"
@@ -152,7 +152,7 @@ jobs:
           - manylinux: '2014'
             target: "aarch64-unknown-linux-musl"
             image_tag: "aarch64-musl"
-            features: "rustls,database"
+            features: "rustls,database-sqlite"
             name_suffix: ""
             upload: "true"
           # - manylinux: '2014'
@@ -164,7 +164,7 @@ jobs:
           - manylinux: '2014'
             target: "armv7-unknown-linux-musleabihf"
             image_tag: "armv7-musleabihf"
-            features: "rustls,database"
+            features: "rustls,database-sqlite"
             name_suffix: ""
             upload: "true"
           # - manylinux: '2014'

@@ -647,7 +647,7 @@ dependencies = [
 [[package]]
 name = "connectorx"
 version = "0.3.1-alpha.8"
-source = "git+https://github.com/roapi/connector-x.git?rev=cc6393c20a55e1e0ac664f18fabd18934a874e69#cc6393c20a55e1e0ac664f18fabd18934a874e69"
+source = "git+https://github.com/roapi/connector-x.git?rev=47e40619740345209cbdb5e5b9ce4ad52e5768af#47e40619740345209cbdb5e5b9ce4ad52e5768af"
 dependencies = [
  "anyhow",
  "arrow",
