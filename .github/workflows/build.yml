@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  # NOTE: this env is also defined in roapi_http_release.yml and columnq_cli_release.yml
+  # NOTE: the version is also defined in roapi_http_release.yml, columnq_cli_release.yml and Dockerfile
   RUST_TC_NIGHTLY_VER: "2022-09-24"
 
 jobs:
