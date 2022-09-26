@@ -51,7 +51,7 @@ jobs:
         run: pip3 install 'maturin<0.12'
       - name: Build wheels - x86_64
         run: |
-          maturin build -m columnq-cli/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd"
+          maturin build -m columnq-cli/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=simd,database-sqlite"
           pip install columnq-cli --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
         env:
@@ -60,7 +60,7 @@ jobs:
         run: |
           # set SDKROOT for C dependencies
           export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-          maturin build -m columnq-cli/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd"
+          maturin build -m columnq-cli/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=simd,database-sqlite"
           pip install columnq-cli --no-index --find-links dist --force-reinstall
           columnq --help
       - name: Upload wheels
@@ -89,7 +89,7 @@ jobs:
         platform:
           - python-architecture: "x64"
             target: "x86_64-pc-windows-msvc"
-            features: "simd"
+            features: "simd,database-sqlite"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -138,37 +138,37 @@ jobs:
           - manylinux: "2010"
             target: "x86_64-unknown-linux-musl"
             image_tag: "x86_64-musl"
-            features: "simd,rustls"
+            features: "simd,rustls,database-sqlite"
             name_suffix: ""
             upload: "true"
           # - manylinux: "2010"
           #   target: "x86_64-unknown-linux-musl"
           #   image_tag: "x86_64-musl"
-          #   features: "simd,native-tls"
+          #   features: "simd,native-tls,database-sqlite"
           #   name_suffix: "-openssl"
           #   upload: "false"
           - manylinux: '2014'
             target: "aarch64-unknown-linux-musl"
             image_tag: "aarch64-musl"
-            features: "rustls"
+            features: "rustls,database-sqlite"
             name_suffix: ""
             upload: "true"
           # - manylinux: '2014'
           #   target: "aarch64-unknown-linux-musl"
           #   image_tag: "aarch64-musl"
-          #   features: "native-tls"
+          #   features: "native-tls,database-sqlite"
           #   name_suffix: "-openssl"
           #   upload: "false"
           - manylinux: '2014'
             target: "armv7-unknown-linux-musleabihf"
             image_tag: "armv7-musleabihf"
-            features: "rustls"
+            features: "rustls,database-sqlite"
             name_suffix: ""
             upload: "true"
           # - manylinux: '2014'
           #   target: "armv7-unknown-linux-musleabihf"
           #   image_tag: "armv7-musleabihf"
-          #   features: "native-tls"
+          #   features: "native-tls,database-sqlite"
           #   name_suffix: "-openssl"
           #   upload: "false"
     container:
