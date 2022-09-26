@@ -671,7 +671,7 @@ batch_size: 512
         );
     }
 
-    #[cfg(feature = "database")]
+    #[cfg(feature = "database-sqlite")]
     #[tokio::test]
     async fn test_load_sqlite_table() -> anyhow::Result<()> {
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite.db");

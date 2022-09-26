@@ -51,6 +51,8 @@ native-tls = ["columnq/native-tls"]
 simd = ["columnq/simd"]
 snmalloc = ["snmalloc-rs"]
 database = ["columnq/database"]
+database-sqlite = ["columnq/database-sqlite"]
+database-mysql = ["columnq/database-mysql"]
 
 [dev-dependencies]
 reqwest = { version = "0.11", default-features = false, features = [
