@@ -32,6 +32,9 @@ native-tls-vendored = ["columnq/native-tls-vendored"]
 native-tls = ["columnq/native-tls"]
 simd = ["columnq/simd"]
 snmalloc = ["snmalloc-rs"]
+database-sqlite = ["columnq/database-sqlite"]
+database-mysql = ["columnq/database-mysql"]
+database = ["columnq/database"]
 
 [dev-dependencies]
 pretty_assertions = "*"
