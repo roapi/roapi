@@ -4,6 +4,7 @@ use std::sync::Arc;
 use columnq::table::TableSource;
 use log::info;
 use tokio::sync::{Mutex, RwLock};
+use tokio::{task, time};
 
 use crate::config::Config;
 use crate::context::ConcurrentRoapiContext;
@@ -30,6 +31,17 @@ impl Application {
             .map(|t| (t.name.clone(), t.clone()))
             .collect::<HashMap<String, TableSource>>();
         let tables = Arc::new(Mutex::new(tables));
+
+        if !config.max_age.is_none() {
+            let duration = config.max_age.unwrap();
+            let _ = task::spawn(async move  {
+                let mut interval = time::interval(duration);
+                loop {
+                    interval.tick().await;
+                    println!("tick!");
+                }
+            });
+        }
 
         if config.disable_read_only {
             let ctx_ext = Arc::new(RwLock::new(handler_ctx));

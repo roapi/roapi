@@ -6,6 +6,7 @@ use columnq::table::parse_table_uri_arg;
 use columnq::table::KeyValueSource;
 use columnq::table::TableSource;
 use std::fs;
+use std::time::Duration;
 
 #[derive(Deserialize, Default, Clone)]
 pub struct AddrConfig {
@@ -17,6 +18,7 @@ pub struct AddrConfig {
 pub struct Config {
     pub addr: AddrConfig,
     pub tables: Vec<TableSource>,
+    pub max_age: Option<Duration>,
     #[serde(default)]
     pub disable_read_only: bool,
     #[serde(default)]
@@ -64,6 +66,15 @@ fn read_only_arg() -> clap::Arg<'static> {
         .short('d')
 }
 
+fn max_age_arg() -> clap::Arg<'static> {
+    clap::Arg::new("max-age")
+        .help("maximum age in seconds before triggering rescan and reload of the files")
+        .required(false)
+        .takes_value(true)
+        .long("max-age")
+        .short('m')
+}
+
 fn config_arg() -> clap::Arg<'static> {
     clap::Arg::new("config")
         .help("config file path")
@@ -86,6 +97,7 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
             address_postgres_arg(),
             config_arg(),
             read_only_arg(),
+            max_age_arg(),
             table_arg(),
         ])
         .get_matches();
@@ -116,6 +128,10 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
 
     if matches.is_present("disable-read-only") {
         config.disable_read_only = true;
+    }
+
+    if let Some(max_age) = matches.value_of("max-age") {
+        config.max_age = Some(Duration::from_secs(max_age.to_string().parse().unwrap()));
     }
 
     Ok(config)
