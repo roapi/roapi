@@ -17,6 +17,7 @@ pub struct Application {
     http_server: server::http::HttpApiServer,
     postgres_server: Box<dyn server::RunnableServer>,
     max_age: Option<Duration>,
+    tables: Arc<Mutex<HashMap<String, TableSource>>>,
 }
 
 impl Application {
@@ -46,7 +47,7 @@ impl Application {
             );
             let (http_server, http_addr) = server::http::build_http_server::<ConcurrentRoapiContext>(
                 ctx_ext,
-                tables,
+                tables.clone(),
                 &config,
                 default_host,
             )?;
@@ -56,6 +57,7 @@ impl Application {
                 http_server,
                 postgres_server,
                 max_age: config.max_age,
+                tables: tables.clone(),
             })
         } else {
             let ctx_ext = Arc::new(handler_ctx);
@@ -69,7 +71,7 @@ impl Application {
             );
             let (http_server, http_addr) = server::http::build_http_server::<RawRoapiContext>(
                 ctx_ext,
-                tables,
+                tables.clone(),
                 &config,
                 default_host,
             )?;
@@ -79,6 +81,7 @@ impl Application {
                 http_server,
                 postgres_server,
                 max_age: config.max_age,
+                tables: tables.clone(), 
             })
         }
     }
@@ -105,11 +108,22 @@ impl Application {
         });
         if self.max_age.is_some() {
             let duration = self.max_age.unwrap();
+            let tables = self.tables.clone();
             let _ = task::spawn(async move  {
                 let mut interval = time::interval(duration);
+                let tabs = tables.lock().await;
                 loop {
                     interval.tick().await;
-                    println!("tick!");
+                    for t in tabs.iter() {
+                        println!("table! {:?}", t);
+                    }
+                    
+                    // let mut tables = self.tables.lock().await;
+                    
+                    // ctx.load_table(t)
+                    //     .await
+                    //     .map_err(ColumnQError::from)
+                    //     .map_err(ApiErrResp::load_table)?;
                 }
             });
         }
