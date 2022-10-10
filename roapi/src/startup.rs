@@ -2,14 +2,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use columnq::table::TableSource;
+use columnq::{error::ColumnQError, table::TableSource};
 use log::info;
 use tokio::sync::{Mutex, RwLock};
 use tokio::{task, time};
 
 use crate::config::Config;
-use crate::context::ConcurrentRoapiContext;
+use crate::context::{ConcurrentRoapiContext, RoapiContext};
 use crate::context::RawRoapiContext;
+use crate::error::ApiErrResp;
 use crate::server;
 
 pub struct Application {
@@ -18,6 +19,7 @@ pub struct Application {
     postgres_server: Box<dyn server::RunnableServer>,
     max_age: Option<Duration>,
     tables: Arc<Mutex<HashMap<String, TableSource>>>,
+    handler_ctx: RawRoapiContext,
 }
 
 impl Application {
@@ -36,7 +38,7 @@ impl Application {
         let tables = Arc::new(Mutex::new(tables));
 
         if config.disable_read_only {
-            let ctx_ext = Arc::new(RwLock::new(handler_ctx));
+            let ctx_ext = Arc::new(RwLock::new(handler_ctx.clone()));
             let postgres_server = Box::new(
                 server::postgres::PostgresServer::new(
                     ctx_ext.clone(),
@@ -58,9 +60,10 @@ impl Application {
                 postgres_server,
                 max_age: config.max_age,
                 tables: tables.clone(),
+                handler_ctx: handler_ctx.clone(),
             })
         } else {
-            let ctx_ext = Arc::new(handler_ctx);
+            let ctx_ext = Arc::new(handler_ctx.clone());
             let postgres_server = Box::new(
                 server::postgres::PostgresServer::new(
                     ctx_ext.clone(),
@@ -70,7 +73,7 @@ impl Application {
                 .await,
             );
             let (http_server, http_addr) = server::http::build_http_server::<RawRoapiContext>(
-                ctx_ext,
+                ctx_ext.clone(),
                 tables.clone(),
                 &config,
                 default_host,
@@ -82,6 +85,7 @@ impl Application {
                 postgres_server,
                 max_age: config.max_age,
                 tables: tables.clone(), 
+                handler_ctx: handler_ctx.clone(),
             })
         }
     }
@@ -109,6 +113,7 @@ impl Application {
         if self.max_age.is_some() {
             let duration = self.max_age.unwrap();
             let tables = self.tables.clone();
+            let ctx = self.handler_ctx.clone();
             let _ = task::spawn(async move  {
                 let mut interval = time::interval(duration);
                 let tabs = tables.lock().await;
@@ -116,14 +121,14 @@ impl Application {
                     interval.tick().await;
                     for t in tabs.iter() {
                         println!("table! {:?}", t);
+                        if let Some(table) = tabs.get(&t.1.name) {
+                            let res = ctx.load_table(table)
+                                .await
+                                .map_err(ColumnQError::from)
+                                .map_err(ApiErrResp::load_table);
+                            println!("{:?}", res);
+                        }
                     }
-                    
-                    // let mut tables = self.tables.lock().await;
-                    
-                    // ctx.load_table(t)
-                    //     .await
-                    //     .map_err(ColumnQError::from)
-                    //     .map_err(ApiErrResp::load_table)?;
                 }
             });
         }

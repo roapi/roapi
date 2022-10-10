@@ -15,6 +15,7 @@ use tokio::sync::RwLock;
 use crate::config::Config;
 use crate::error::ApiErrResp;
 
+#[derive(Clone)]
 pub struct RawRoapiContext {
     pub cq: ColumnQ,
     // TODO: store pre serialized schema in handler context
