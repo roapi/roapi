@@ -32,7 +32,7 @@ impl Application {
             .collect::<HashMap<String, TableSource>>();
         let tables = Arc::new(Mutex::new(tables));
 
-        if !config.max_age.is_none() {
+        if config.max_age.is_some() {
             let duration = config.max_age.unwrap();
             let _ = task::spawn(async move  {
                 let mut interval = time::interval(duration);
