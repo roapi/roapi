@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use columnq::table::TableSource;
 use log::info;
@@ -15,6 +16,7 @@ pub struct Application {
     http_addr: std::net::SocketAddr,
     http_server: server::http::HttpApiServer,
     postgres_server: Box<dyn server::RunnableServer>,
+    max_age: Option<Duration>,
 }
 
 impl Application {
@@ -31,17 +33,6 @@ impl Application {
             .map(|t| (t.name.clone(), t.clone()))
             .collect::<HashMap<String, TableSource>>();
         let tables = Arc::new(Mutex::new(tables));
-
-        if config.max_age.is_some() {
-            let duration = config.max_age.unwrap();
-            let _ = task::spawn(async move  {
-                let mut interval = time::interval(duration);
-                loop {
-                    interval.tick().await;
-                    println!("tick!");
-                }
-            });
-        }
 
         if config.disable_read_only {
             let ctx_ext = Arc::new(RwLock::new(handler_ctx));
@@ -64,6 +55,7 @@ impl Application {
                 http_addr,
                 http_server,
                 postgres_server,
+                max_age: config.max_age,
             })
         } else {
             let ctx_ext = Arc::new(handler_ctx);
@@ -86,6 +78,7 @@ impl Application {
                 http_addr,
                 http_server,
                 postgres_server,
+                max_age: config.max_age,
             })
         }
     }
@@ -110,7 +103,16 @@ impl Application {
                 .await
                 .expect("Failed to run postgres server");
         });
-
+        if self.max_age.is_some() {
+            let duration = self.max_age.unwrap();
+            let _ = task::spawn(async move  {
+                let mut interval = time::interval(duration);
+                loop {
+                    interval.tick().await;
+                    println!("tick!");
+                }
+            });
+        }
         info!("🚀 Listening on {} for HTTP traffic...", self.http_addr);
         Ok(self.http_server.await?)
     }
