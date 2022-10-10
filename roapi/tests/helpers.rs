@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use columnq::datafusion::arrow;
 use columnq::table::{KeyValueSource, TableColumn, TableLoadOption, TableSchema, TableSource};
@@ -16,6 +17,7 @@ pub async fn test_api_app_with_tables(tables: Vec<TableSource>) -> (Application,
     test_api_app(tables, vec![]).await
 }
 
+#[allow(dead_code)]
 pub async fn test_api_app_with_kvstores(kvstores: Vec<KeyValueSource>) -> (Application, String) {
     test_api_app(vec![], kvstores).await
 }
@@ -30,6 +32,7 @@ pub async fn test_api_app(
             postgres: "localhost:0".to_string().into(),
         },
         tables,
+        max_age: Some(Duration::from_secs(1000)),
         disable_read_only: false,
         kvstores,
     };
@@ -42,6 +45,7 @@ pub async fn test_api_app(
     (app, http_base)
 }
 
+#[allow(dead_code)]
 pub async fn http_get(url: &str, accept: Option<&str>) -> reqwest::Response {
     let request = reqwest::Client::new().get(url);
     let request = if let Some(accept) = accept {
@@ -52,6 +56,7 @@ pub async fn http_get(url: &str, accept: Option<&str>) -> reqwest::Response {
     request.send().await.expect("Unable to execute GET request")
 }
 
+#[allow(dead_code)]
 pub async fn http_post(url: &str, payload: impl Into<reqwest::Body>) -> reqwest::Response {
     reqwest::Client::new()
         .post(url)
@@ -66,6 +71,7 @@ pub fn get_spacex_table() -> TableSource {
     TableSource::new("spacex_launches".to_string(), json_source_path)
 }
 
+#[allow(dead_code)]
 pub fn get_uk_cities_table() -> TableSource {
     TableSource::new(
         "uk_cities".to_string(),
@@ -73,6 +79,7 @@ pub fn get_uk_cities_table() -> TableSource {
     )
 }
 
+#[allow(dead_code)]
 pub fn get_ubuntu_ami_table() -> TableSource {
     TableSource::new("ubuntu_ami", test_data_path("ubuntu-ami.json"))
         .with_option(TableLoadOption::json {
@@ -125,6 +132,7 @@ pub fn get_ubuntu_ami_table() -> TableSource {
         })
 }
 
+#[allow(dead_code)]
 pub fn get_spacex_launch_name_kvstore() -> KeyValueSource {
     KeyValueSource::new(
         "spacex_launch_name",
