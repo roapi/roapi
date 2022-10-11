@@ -113,7 +113,7 @@ impl Application {
         if self.max_age.is_some() && self.handler_ctx.is_some() {
             let duration = self.max_age.unwrap();
             let tables = self.tables.clone();
-            let ctx = self.handler_ctx.unwrap().clone();
+            let ctx = self.handler_ctx.unwrap();
             let _ = task::spawn(async move  {
                 let mut interval = time::interval(duration);
                 let tabs = tables.lock().await;
