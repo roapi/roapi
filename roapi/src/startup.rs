@@ -19,7 +19,7 @@ pub struct Application {
     postgres_server: Box<dyn server::RunnableServer>,
     max_age: Option<Duration>,
     tables: Arc<Mutex<HashMap<String, TableSource>>>,
-    handler_ctx: RawRoapiContext,
+    handler_ctx: Option<Arc<RwLock<RawRoapiContext>>>,
 }
 
 impl Application {
@@ -48,7 +48,7 @@ impl Application {
                 .await,
             );
             let (http_server, http_addr) = server::http::build_http_server::<ConcurrentRoapiContext>(
-                ctx_ext,
+                ctx_ext.clone(),
                 tables.clone(),
                 &config,
                 default_host,
@@ -60,7 +60,7 @@ impl Application {
                 postgres_server,
                 max_age: config.max_age,
                 tables: tables.clone(),
-                handler_ctx: handler_ctx.clone(),
+                handler_ctx: Some(ctx_ext.clone()),
             })
         } else {
             let ctx_ext = Arc::new(handler_ctx.clone());
@@ -85,7 +85,7 @@ impl Application {
                 postgres_server,
                 max_age: config.max_age,
                 tables: tables.clone(), 
-                handler_ctx: handler_ctx.clone(),
+                handler_ctx: None,
             })
         }
     }
@@ -113,20 +113,19 @@ impl Application {
         if self.max_age.is_some() {
             let duration = self.max_age.unwrap();
             let tables = self.tables.clone();
-            let ctx = self.handler_ctx.clone();
+            let ctx = self.handler_ctx.unwrap().clone();
             let _ = task::spawn(async move  {
                 let mut interval = time::interval(duration);
                 let tabs = tables.lock().await;
                 loop {
                     interval.tick().await;
                     for t in tabs.iter() {
-                        println!("table! {:?}", t);
                         if let Some(table) = tabs.get(&t.1.name) {
                             let res = ctx.load_table(table)
                                 .await
                                 .map_err(ColumnQError::from)
                                 .map_err(ApiErrResp::load_table);
-                            println!("{:?}", res);
+                            println!("reloaded table {} with status {:?}", &t.1.name, res);
                         }
                     }
                 }
