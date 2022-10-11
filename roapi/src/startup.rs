@@ -110,7 +110,7 @@ impl Application {
                 .await
                 .expect("Failed to run postgres server");
         });
-        if self.max_age.is_some() {
+        if self.max_age.is_some() && self.handler_ctx.is_some() {
             let duration = self.max_age.unwrap();
             let tables = self.tables.clone();
             let ctx = self.handler_ctx.unwrap().clone();
