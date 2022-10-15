@@ -2,24 +2,46 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use columnq::{error::ColumnQError, table::TableSource};
-use log::info;
+use columnq::table::TableSource;
+use log::{error, info};
 use tokio::sync::{Mutex, RwLock};
-use tokio::{task, time};
+use tokio::time;
 
 use crate::config::Config;
-use crate::context::{ConcurrentRoapiContext, RoapiContext};
 use crate::context::RawRoapiContext;
-use crate::error::ApiErrResp;
+use crate::context::{ConcurrentRoapiContext, RoapiContext};
 use crate::server;
+
+pub struct TableReloader {
+    reload_interval: Duration,
+    handler_ctx: Arc<RwLock<RawRoapiContext>>,
+    tables: Arc<Mutex<HashMap<String, TableSource>>>,
+}
+
+impl TableReloader {
+    pub async fn run(self) {
+        let mut interval = time::interval(self.reload_interval);
+        loop {
+            interval.tick().await;
+            for (table_name, table) in self.tables.lock().await.iter() {
+                match self.handler_ctx.load_table(table).await {
+                    Ok(_) => {
+                        info!("table {} reloaded", table_name);
+                    }
+                    Err(err) => {
+                        error!("failed to reload table {}: {:?}", table_name, err);
+                    }
+                }
+            }
+        }
+    }
+}
 
 pub struct Application {
     http_addr: std::net::SocketAddr,
     http_server: server::http::HttpApiServer,
+    table_reloader: Option<TableReloader>,
     postgres_server: Box<dyn server::RunnableServer>,
-    max_age: Option<Duration>,
-    tables: Arc<Mutex<HashMap<String, TableSource>>>,
-    handler_ctx: Option<Arc<RwLock<RawRoapiContext>>>,
 }
 
 impl Application {
@@ -47,9 +69,16 @@ impl Application {
                 )
                 .await,
             );
+
+            let table_reloader = config.reload_interval.map(|reload_interval| TableReloader {
+                reload_interval,
+                tables: tables.clone(),
+                handler_ctx: ctx_ext.clone(),
+            });
+
             let (http_server, http_addr) = server::http::build_http_server::<ConcurrentRoapiContext>(
-                ctx_ext.clone(),
-                tables.clone(),
+                ctx_ext,
+                tables,
                 &config,
                 default_host,
             )?;
@@ -58,9 +87,7 @@ impl Application {
                 http_addr,
                 http_server,
                 postgres_server,
-                max_age: config.max_age,
-                tables: tables.clone(),
-                handler_ctx: Some(ctx_ext.clone()),
+                table_reloader,
             })
         } else {
             let ctx_ext = Arc::new(handler_ctx.clone());
@@ -73,8 +100,8 @@ impl Application {
                 .await,
             );
             let (http_server, http_addr) = server::http::build_http_server::<RawRoapiContext>(
-                ctx_ext.clone(),
-                tables.clone(),
+                ctx_ext,
+                tables,
                 &config,
                 default_host,
             )?;
@@ -83,9 +110,7 @@ impl Application {
                 http_addr,
                 http_server,
                 postgres_server,
-                max_age: config.max_age,
-                tables: tables.clone(), 
-                handler_ctx: None,
+                table_reloader: None,
             })
         }
     }
@@ -110,25 +135,9 @@ impl Application {
                 .await
                 .expect("Failed to run postgres server");
         });
-        if self.max_age.is_some() && self.handler_ctx.is_some() {
-            let duration = self.max_age.unwrap();
-            let tables = self.tables.clone();
-            let ctx = self.handler_ctx.unwrap();
-            let _ = task::spawn(async move  {
-                let mut interval = time::interval(duration);
-                let tabs = tables.lock().await;
-                loop {
-                    interval.tick().await;
-                    for t in tabs.iter() {
-                        if let Some(table) = tabs.get(&t.1.name) {
-                            let res = ctx.load_table(table)
-                                .await
-                                .map_err(ColumnQError::from)
-                                .map_err(ApiErrResp::load_table);
-                            println!("reloaded table {} with status {:?}", &t.1.name, res);
-                        }
-                    }
-                }
+        if let Some(table_reloader) = self.table_reloader {
+            tokio::spawn(async move {
+                table_reloader.run().await;
             });
         }
         info!("🚀 Listening on {} for HTTP traffic...", self.http_addr);

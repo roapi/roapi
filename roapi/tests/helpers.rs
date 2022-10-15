@@ -32,7 +32,7 @@ pub async fn test_api_app(
             postgres: "localhost:0".to_string().into(),
         },
         tables,
-        max_age: Some(Duration::from_secs(1000)),
+        reload_interval: Some(Duration::from_secs(1000)),
         disable_read_only: false,
         kvstores,
     };
