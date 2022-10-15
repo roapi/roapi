@@ -206,6 +206,7 @@ pub enum TableLoadOption {
     },
     csv(TableOptionCsv),
     ndjson {},
+    jsonl {},
     parquet(TableOptionParquet),
     google_spreadsheet(TableOptionGoogleSpreasheet),
     delta(TableOptionDelta),
@@ -251,6 +252,7 @@ impl TableLoadOption {
         match self {
             Self::json { .. } => "json",
             Self::ndjson { .. } => "ndjson",
+            Self::jsonl { .. } => "jsonl",
             Self::csv { .. } => "csv",
             Self::parquet { .. } => "parquet",
             Self::google_spreadsheet(_) | Self::delta { .. } => "",
@@ -414,7 +416,7 @@ impl TableSource {
             (None, TableIoSource::Uri(uri)) => {
                 match Path::new(uri).extension().and_then(OsStr::to_str) {
                     Some(ext) => match ext {
-                        "csv" | "json" | "parquet" | "ndjson" | "arrow" | "arrows" => ext,
+                        "csv" | "json" | "ndjson" | "jsonl" | "parquet" | "arrow" | "arrows" => ext,
                         _ => {
                             return Err(ColumnQError::InvalidUri(format!(
                                 "unsupported extension in uri: {}",
@@ -451,7 +453,9 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
     if let Some(opt) = &t.option {
         Ok(match opt {
             TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t).await?),
-            TableLoadOption::ndjson { .. } => Arc::new(ndjson::to_mem_table(t).await?),
+            TableLoadOption::ndjson { .. } | TableLoadOption::jsonl { .. } => {
+                Arc::new(ndjson::to_mem_table(t).await?)
+            }
             TableLoadOption::csv { .. } => Arc::new(csv::to_mem_table(t).await?),
             TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t).await?,
             TableLoadOption::google_spreadsheet(_) => {
@@ -474,7 +478,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
         let t: Arc<dyn TableProvider> = match t.extension()? {
             "csv" => Arc::new(csv::to_mem_table(t).await?),
             "json" => Arc::new(json::to_mem_table(t).await?),
-            "ndjson" => Arc::new(ndjson::to_mem_table(t).await?),
+            "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t).await?),
             "parquet" => parquet::to_datafusion_table(t).await?,
             "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),

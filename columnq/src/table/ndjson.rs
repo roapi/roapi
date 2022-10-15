@@ -60,3 +60,107 @@ pub async fn to_mem_table(
         schema_ref, partitions,
     )?)
 }
+
+#[cfg(test)]
+mod tests {
+    use datafusion::datasource::TableProvider;
+
+    use super::*;
+    use crate::{table::TableSource, test_util::test_data_path};
+
+    #[tokio::test]
+    async fn load_simple_ndjson_file() {
+        let t = to_mem_table(&TableSource::new(
+            "spacex_launches".to_string(),
+            test_data_path("spacex_launches.ndjson"),
+        ))
+        .await
+        .unwrap();
+
+        let schema = t.schema();
+        let fields = schema.fields();
+
+        let mut obj_keys = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
+        obj_keys.sort();
+        let mut expected_obj_keys = vec![
+            "fairings",
+            "links",
+            "static_fire_date_utc",
+            "static_fire_date_unix",
+            "tbd",
+            "net",
+            "window",
+            "rocket",
+            "success",
+            "details",
+            "crew",
+            "ships",
+            "capsules",
+            "payloads",
+            "launchpad",
+            "auto_update",
+            "failures",
+            "flight_number",
+            "name",
+            "date_unix",
+            "date_utc",
+            "date_local",
+            "date_precision",
+            "upcoming",
+            "cores",
+            "id",
+            "launch_library_id",
+        ];
+        expected_obj_keys.sort();
+
+        assert_eq!(obj_keys, expected_obj_keys);
+    }
+
+    #[tokio::test]
+    async fn load_simple_jsonl_file() {
+        let t = to_mem_table(&TableSource::new(
+            "spacex_launches".to_string(),
+            test_data_path("spacex_launches.jsonl"),
+        ))
+        .await
+        .unwrap();
+
+        let schema = t.schema();
+        let fields = schema.fields();
+
+        let mut obj_keys = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
+        obj_keys.sort();
+        let mut expected_obj_keys = vec![
+            "fairings",
+            "links",
+            "static_fire_date_utc",
+            "static_fire_date_unix",
+            "tbd",
+            "net",
+            "window",
+            "rocket",
+            "success",
+            "details",
+            "crew",
+            "ships",
+            "capsules",
+            "payloads",
+            "launchpad",
+            "auto_update",
+            "failures",
+            "flight_number",
+            "name",
+            "date_unix",
+            "date_utc",
+            "date_local",
+            "date_precision",
+            "upcoming",
+            "cores",
+            "id",
+            "launch_library_id",
+        ];
+        expected_obj_keys.sort();
+
+        assert_eq!(obj_keys, expected_obj_keys);
+    }
+}
