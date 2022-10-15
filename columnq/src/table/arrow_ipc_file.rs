@@ -52,13 +52,16 @@ mod tests {
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
     use std::fs;
+    use tempfile::Builder;
 
     use crate::table::TableLoadOption;
     use crate::test_util::*;
 
     #[tokio::test]
     async fn load_partitions() -> anyhow::Result<()> {
-        let tmp_dir = tempdir::TempDir::new("columnq.test.arrows_partitions")?;
+        let tmp_dir = Builder::new()
+            .prefix("columnq.test.arrows_partitions")
+            .tempdir()?;
         let tmp_dir_path = tmp_dir.path();
 
         let source_path = test_data_path("uk_cities_with_headers.arrow");

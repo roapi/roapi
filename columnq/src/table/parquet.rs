@@ -99,6 +99,7 @@ pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, Col
 mod tests {
     use super::*;
     use std::fs;
+    use tempfile::Builder;
 
     use crate::table::TableLoadOption;
     use crate::test_util::*;
@@ -153,7 +154,9 @@ mod tests {
 
     #[tokio::test]
     async fn load_partitions() -> anyhow::Result<()> {
-        let tmp_dir = tempdir::TempDir::new("columnq.test.parquet_partitions")?;
+        let tmp_dir = Builder::new()
+            .prefix("columnq.test.parquet_partitions")
+            .tempdir()?;
         let tmp_dir_path = tmp_dir.path();
 
         let source_path = test_data_path("blogs.parquet");

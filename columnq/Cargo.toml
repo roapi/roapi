@@ -58,7 +58,7 @@ optional = true
 [dev-dependencies]
 anyhow = "1"
 serde_yaml = "0.8"
-tempdir = "0"
+tempfile = "3.3.0"
 pretty_assertions = "*"
 dotenv = "*"
 
