@@ -13,7 +13,6 @@ use crate::error::{ColumnQError, QueryError};
 use crate::query;
 use crate::table::{self, KeyValueSource, TableSource};
 
-#[derive(Clone)]
 pub struct ColumnQ {
     pub dfctx: SessionContext,
     schema_map: HashMap<String, arrow::datatypes::SchemaRef>,
