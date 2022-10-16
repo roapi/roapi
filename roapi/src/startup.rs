@@ -14,7 +14,7 @@ use crate::server;
 
 pub struct TableReloader {
     reload_interval: Duration,
-    handler_ctx: Arc<RwLock<RawRoapiContext>>,
+    ctx_ext: Arc<RwLock<RawRoapiContext>>,
     tables: Arc<Mutex<HashMap<String, TableSource>>>,
 }
 
@@ -24,7 +24,7 @@ impl TableReloader {
         loop {
             interval.tick().await;
             for (table_name, table) in self.tables.lock().await.iter() {
-                match self.handler_ctx.load_table(table).await {
+                match self.ctx_ext.load_table(table).await {
                     Ok(_) => {
                         info!("table {} reloaded", table_name);
                     }
@@ -60,7 +60,7 @@ impl Application {
         let tables = Arc::new(Mutex::new(tables));
 
         if config.disable_read_only {
-            let ctx_ext = Arc::new(RwLock::new(handler_ctx.clone()));
+            let ctx_ext = Arc::new(RwLock::new(handler_ctx));
             let postgres_server = Box::new(
                 server::postgres::PostgresServer::new(
                     ctx_ext.clone(),
@@ -90,7 +90,7 @@ impl Application {
                 table_reloader,
             })
         } else {
-            let ctx_ext = Arc::new(handler_ctx.clone());
+            let ctx_ext = Arc::new(handler_ctx);
             let postgres_server = Box::new(
                 server::postgres::PostgresServer::new(
                     ctx_ext.clone(),
