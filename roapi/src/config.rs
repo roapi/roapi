@@ -1,11 +1,12 @@
 use serde_derive::Deserialize;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 
 use columnq::table::parse_table_uri_arg;
 use columnq::table::KeyValueSource;
 use columnq::table::TableSource;
 use std::fs;
+use std::time::Duration;
 
 #[derive(Deserialize, Default, Clone)]
 pub struct AddrConfig {
@@ -17,6 +18,7 @@ pub struct AddrConfig {
 pub struct Config {
     pub addr: AddrConfig,
     pub tables: Vec<TableSource>,
+    pub reload_interval: Option<Duration>,
     #[serde(default)]
     pub disable_read_only: bool,
     #[serde(default)]
@@ -64,6 +66,15 @@ fn read_only_arg() -> clap::Arg<'static> {
         .short('d')
 }
 
+fn reload_interval_arg() -> clap::Arg<'static> {
+    clap::Arg::new("reload-interval")
+        .help("maximum age in seconds before triggering rescan and reload of the tables")
+        .required(false)
+        .takes_value(true)
+        .long("reload-interval")
+        .short('m')
+}
+
 fn config_arg() -> clap::Arg<'static> {
     clap::Arg::new("config")
         .help("config file path")
@@ -86,6 +97,7 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
             address_postgres_arg(),
             config_arg(),
             read_only_arg(),
+            reload_interval_arg(),
             table_arg(),
         ])
         .get_matches();
@@ -116,6 +128,15 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
 
     if matches.is_present("disable-read-only") {
         config.disable_read_only = true;
+    }
+
+    if let Some(reload_interval) = matches.value_of("reload-interval") {
+        if !config.disable_read_only {
+            bail!("Table reload not supported in read-only mode. Try specify the --disable-read-only option.");
+        }
+        config.reload_interval = Some(Duration::from_secs(
+            reload_interval.to_string().parse().unwrap(),
+        ));
     }
 
     Ok(config)
