@@ -72,7 +72,7 @@ fn reload_interval_arg() -> clap::Arg<'static> {
         .required(false)
         .takes_value(true)
         .long("reload-interval")
-        .short('m')
+        .short('r')
 }
 
 fn config_arg() -> clap::Arg<'static> {
