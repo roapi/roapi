@@ -73,7 +73,7 @@ impl Application {
             let table_reloader = config.reload_interval.map(|reload_interval| TableReloader {
                 reload_interval,
                 tables: tables.clone(),
-                handler_ctx: ctx_ext.clone(),
+                ctx_ext: ctx_ext.clone(),
             });
 
             let (http_server, http_addr) = server::http::build_http_server::<ConcurrentRoapiContext>(
