@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use columnq::datafusion::arrow;
 use columnq::datafusion::dataframe::DataFrame;
 use columnq::datafusion::error::DataFusionError;
+use columnq::encoding;
 use columnq::error::ColumnQError;
 use columnq::error::QueryError;
 use columnq::table::TableSource;
@@ -17,6 +18,7 @@ use crate::error::ApiErrResp;
 
 pub struct RawRoapiContext {
     pub cq: ColumnQ,
+    pub response_format: encoding::ContentType,
     // TODO: store pre serialized schema in handler context
 }
 
@@ -40,7 +42,10 @@ impl RawRoapiContext {
             info!("registered `{}` as kv store `{}`", k.io_source, k.name);
         }
 
-        Ok(Self { cq })
+        Ok(Self {
+            cq,
+            response_format: config.response_format,
+        })
     }
 }
 
@@ -75,6 +80,8 @@ pub trait RoapiContext: Send + Sync + 'static {
     async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError>;
 
     async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError>;
+
+    async fn get_response_format(&self) -> encoding::ContentType;
 }
 
 #[async_trait]
@@ -144,6 +151,11 @@ impl RoapiContext for RawRoapiContext {
     #[inline]
     async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
         self.cq.dfctx.sql(query).await
+    }
+
+    #[inline]
+    async fn get_response_format(&self) -> encoding::ContentType {
+        self.response_format
     }
 }
 
@@ -220,5 +232,11 @@ impl RoapiContext for ConcurrentRoapiContext {
     async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
         let ctx = self.read().await;
         ctx.cq.dfctx.sql(query).await
+    }
+
+    #[inline]
+    async fn get_response_format(&self) -> encoding::ContentType {
+        let ctx = self.read().await;
+        ctx.response_format
     }
 }

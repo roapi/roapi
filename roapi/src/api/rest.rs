@@ -14,7 +14,8 @@ pub async fn get_table<H: RoapiContext>(
     extract::Path(table_name): extract::Path<String>,
     extract::Query(params): extract::Query<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ApiErrResp> {
-    let encode_type = encode_type_from_hdr(headers);
+    let response_format = H::get_response_format(&ctx).await;
+    let encode_type = encode_type_from_hdr(headers, response_format);
     let batches = ctx.query_rest_table(&table_name, &params).await?;
     encode_record_batches(encode_type, &batches)
 }
