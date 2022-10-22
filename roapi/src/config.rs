@@ -24,6 +24,7 @@ pub struct Config {
     pub disable_read_only: bool,
     #[serde(default)]
     pub kvstores: Vec<KeyValueSource>,
+    #[serde(default)]
     pub response_format: encoding::ContentType,
 }
 
@@ -150,6 +151,10 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         config.reload_interval = Some(Duration::from_secs(
             reload_interval.to_string().parse().unwrap(),
         ));
+    }
+
+    if let Some(response_format) = matches.value_of("response-format") {
+        config.response_format = serde_yaml::from_str(response_format)?;
     }
 
     Ok(config)
