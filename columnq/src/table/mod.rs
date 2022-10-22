@@ -75,7 +75,7 @@ impl From<TableSchema> for arrow::datatypes::Schema {
 }
 
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
-pub struct TableOptionGoogleSpreasheet {
+pub struct TableOptionGoogleSpreadsheet {
     application_secret_path: String,
     sheet_title: Option<String>,
 }
@@ -208,7 +208,7 @@ pub enum TableLoadOption {
     ndjson {},
     jsonl {},
     parquet(TableOptionParquet),
-    google_spreadsheet(TableOptionGoogleSpreasheet),
+    google_spreadsheet(TableOptionGoogleSpreadsheet),
     delta(TableOptionDelta),
     arrow {},
     arrows {},
@@ -218,7 +218,7 @@ pub enum TableLoadOption {
 }
 
 impl TableLoadOption {
-    fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreasheet, ColumnQError> {
+    fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreadsheet, ColumnQError> {
         match self {
             Self::google_spreadsheet(opt) => Ok(opt),
             _ => Err(ColumnQError::ExpectFormatOption(

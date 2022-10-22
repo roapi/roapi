@@ -12,7 +12,7 @@ use serde_derive::Deserialize;
 use uriparse::URIReference;
 
 use crate::error::ColumnQError;
-use crate::table::{TableOptionGoogleSpreasheet, TableSource};
+use crate::table::{TableOptionGoogleSpreadsheet, TableSource};
 
 // steps
 // * Activate the Google Sheets API in the Google API Console.
@@ -210,7 +210,7 @@ fn sheet_values_to_record_batch(values: &[Vec<String>]) -> Result<RecordBatch, C
 }
 
 async fn fetch_auth_token(
-    opt: &TableOptionGoogleSpreasheet,
+    opt: &TableOptionGoogleSpreadsheet,
 ) -> Result<yup_oauth2::AccessToken, ColumnQError> {
     // Read application creds from a file.The clientsecret file contains JSON like
     // `{"installed":{"client_id": ... }}`
