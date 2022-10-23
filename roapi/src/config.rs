@@ -2,6 +2,7 @@ use serde_derive::Deserialize;
 
 use anyhow::{bail, Context, Result};
 
+use columnq::encoding;
 use columnq::table::parse_table_uri_arg;
 use columnq::table::KeyValueSource;
 use columnq::table::TableSource;
@@ -23,6 +24,8 @@ pub struct Config {
     pub disable_read_only: bool,
     #[serde(default)]
     pub kvstores: Vec<KeyValueSource>,
+    #[serde(default)]
+    pub response_format: encoding::ContentType,
 }
 
 fn table_arg() -> clap::Arg<'static> {
@@ -75,6 +78,16 @@ fn reload_interval_arg() -> clap::Arg<'static> {
         .short('r')
 }
 
+fn response_format_arg() -> clap::Arg<'static> {
+    clap::Arg::new("response-format")
+        .help("change response serialization: Json (default), Csv, ArrowFile, ArrowStream, Parquet")
+        .required(false)
+        .takes_value(true)
+        .value_name("ResponseFormat")
+        .long("response-format")
+        .short('f')
+}
+
 fn config_arg() -> clap::Arg<'static> {
     clap::Arg::new("config")
         .help("config file path")
@@ -98,6 +111,7 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
             config_arg(),
             read_only_arg(),
             reload_interval_arg(),
+            response_format_arg(),
             table_arg(),
         ])
         .get_matches();
@@ -137,6 +151,10 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         config.reload_interval = Some(Duration::from_secs(
             reload_interval.to_string().parse().unwrap(),
         ));
+    }
+
+    if let Some(response_format) = matches.value_of("response-format") {
+        config.response_format = serde_yaml::from_str(response_format)?;
     }
 
     Ok(config)

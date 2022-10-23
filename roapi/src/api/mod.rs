@@ -6,7 +6,6 @@ use axum::http::Response;
 use axum::response::IntoResponse;
 use columnq::datafusion::arrow;
 use columnq::encoding;
-use columnq::encoding::ContentType;
 
 use crate::error::ApiErrResp;
 
@@ -25,11 +24,14 @@ pub fn bytes_to_json_resp(bytes: Vec<u8>) -> impl IntoResponse {
     bytes_to_resp(bytes, "application/json")
 }
 
-pub fn encode_type_from_hdr(headers: header::HeaderMap) -> encoding::ContentType {
+pub fn encode_type_from_hdr(
+    headers: header::HeaderMap,
+    response_format: encoding::ContentType,
+) -> encoding::ContentType {
     match headers.get(header::ACCEPT) {
-        None => encoding::ContentType::Json,
+        None => response_format,
         Some(hdr_value) => {
-            encoding::ContentType::try_from(hdr_value.as_bytes()).unwrap_or(ContentType::Json)
+            encoding::ContentType::try_from(hdr_value.as_bytes()).unwrap_or(response_format)
         }
     }
 }
