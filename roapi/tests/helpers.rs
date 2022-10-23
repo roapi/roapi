@@ -33,8 +33,8 @@ pub async fn test_api_app(
         },
         tables,
         reload_interval: Some(Duration::from_secs(1000)),
-        disable_read_only: false,
         kvstores,
+        ..Default::default()
     };
 
     let app = Application::build(config)
