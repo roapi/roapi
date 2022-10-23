@@ -115,7 +115,7 @@ pub use imp::*;
 mod tests {
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
-    use dotenv::dotenv;
+    use dotenvy::dotenv;
     use std::env;
 
     use crate::table::TableSource;
