@@ -22,6 +22,7 @@ pub mod google_spreadsheets;
 pub mod json;
 pub mod ndjson;
 pub mod parquet;
+pub mod xlsx;
 
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -168,6 +169,11 @@ impl Default for TableOptionParquet {
 }
 
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
+pub struct TableOptionXlsx {
+    sheet_name: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TableOptionDelta {
     #[serde(default = "TableOptionDelta::default_use_memory_table")]
     use_memory_table: bool,
@@ -209,6 +215,7 @@ pub enum TableLoadOption {
     jsonl {},
     parquet(TableOptionParquet),
     google_spreadsheet(TableOptionGoogleSpreadsheet),
+    xlsx(TableOptionXlsx),
     delta(TableOptionDelta),
     arrow {},
     arrows {},
@@ -224,6 +231,13 @@ impl TableLoadOption {
             _ => Err(ColumnQError::ExpectFormatOption(
                 "google_spreadsheets".to_string(),
             )),
+        }
+    }
+
+    fn as_xlsx(&self) -> Result<&TableOptionXlsx, ColumnQError> {
+        match self {
+            Self::xlsx(opt) => Ok(opt),
+            _ => Err(ColumnQError::ExpectFormatOption("xlsx".to_string())),
         }
     }
 
@@ -256,6 +270,7 @@ impl TableLoadOption {
             Self::csv { .. } => "csv",
             Self::parquet { .. } => "parquet",
             Self::google_spreadsheet(_) | Self::delta { .. } => "",
+            Self::xlsx { .. } => "xlsx",
             Self::arrow { .. } => "arrow",
             Self::arrows { .. } => "arrows",
             Self::mysql { .. } => "mysql",
@@ -416,7 +431,8 @@ impl TableSource {
             (None, TableIoSource::Uri(uri)) => {
                 match Path::new(uri).extension().and_then(OsStr::to_str) {
                     Some(ext) => match ext {
-                        "csv" | "json" | "ndjson" | "jsonl" | "parquet" | "arrow" | "arrows" => ext,
+                        "csv" | "json" | "ndjson" | "jsonl" | "parquet" | "arrow" | "arrows"
+                        | "xlsx" => ext,
                         _ => {
                             return Err(ColumnQError::InvalidUri(format!(
                                 "unsupported extension in uri: {}",
@@ -461,6 +477,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
+            TableLoadOption::xlsx { .. } => todo!(),
             TableLoadOption::delta { .. } => delta::to_datafusion_table(t).await?,
             TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
@@ -482,6 +499,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             "parquet" => parquet::to_datafusion_table(t).await?,
             "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
+            "xlsx" => todo!(),
             "mysql" => Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?),
             "sqlite" => Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?),
             "postgresql" => Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?),
