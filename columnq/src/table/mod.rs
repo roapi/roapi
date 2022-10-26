@@ -499,7 +499,6 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             "parquet" => parquet::to_datafusion_table(t).await?,
             "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
-            "xlsx" => todo!(),
             "mysql" => Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?),
             "sqlite" => Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?),
             "postgresql" => Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?),

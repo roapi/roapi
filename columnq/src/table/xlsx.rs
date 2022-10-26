@@ -7,36 +7,51 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::vec;
 
-fn infer_value_type(v: &calamine::DataType) -> Result<DataType, ()> {
+fn infer_value_type(v: &calamine::DataType) -> Result<DataType, ColumnQError> {
     match v {
         calamine::DataType::Int(_) if v.get_int().is_some() => Ok(DataType::Int64),
         calamine::DataType::Float(_) if v.get_float().is_some() => Ok(DataType::Float64),
         calamine::DataType::Bool(_) if v.get_bool().is_some() => Ok(DataType::Boolean),
-        calamine::DataType::Empty => Ok(DataType::Null),
         calamine::DataType::String(_) if v.get_string().is_some() => Ok(DataType::Utf8),
-        calamine::DataType::DateTime(..) => todo!(),
-        calamine::DataType::Error(..) => todo!(),
-        _ => todo!(),
+        calamine::DataType::Error(e) => Err(ColumnQError::LoadXlsx(e.to_string())),
+        // TODO(upstream): support `Date64`
+        calamine::DataType::DateTime(_) => Err(ColumnQError::LoadXlsx(
+            "Unsupported data type: DateTime".to_owned(),
+        )),
+        calamine::DataType::Empty => unreachable!(),
+        _ => Err(ColumnQError::LoadXlsx(
+            "Failed to parse the cell value".to_owned(),
+        )),
     }
 }
 
-fn infer_schema(r: Range<calamine::DataType>) -> Schema {
+fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
     let mut col_types: HashMap<&str, HashSet<DataType>> = HashMap::new();
     let mut rows = r.rows();
-    let col_names: Vec<&str> = rows
+    let col_names: Result<Vec<&str>, _> = rows
         .nth(0)
         .unwrap()
         .iter()
-        .map(|c| c.get_string().unwrap())
+        .enumerate()
+        .map(|(i, c)| {
+            c.get_string()
+                .ok_or_else(|| ColumnQError::LoadXlsx(format!("The {i}th column name is empty")))
+        })
         .collect();
-    rows.skip(1).for_each(|row| {
-        row.iter().enumerate().for_each(|(i, col_val)| {
-            let col_name = col_names[i];
+
+    let col_names = match col_names {
+        Ok(values) => values,
+        Err(e) => return Err(e),
+    };
+
+    for row in rows.skip(1) {
+        for (i, col_val) in row.iter().enumerate() {
+            let col_name = col_names.get(i).unwrap();
             let col_type = infer_value_type(col_val).unwrap();
             let entry = col_types.entry(col_name).or_insert_with(HashSet::new);
             entry.insert(col_type);
-        });
-    });
+        }
+    }
 
     let fields: Vec<Field> = col_names
         .iter()
@@ -52,11 +67,13 @@ fn infer_schema(r: Range<calamine::DataType>) -> Schema {
             Field::new(&col_name.replace(' ', "_"), dt, true)
         })
         .collect();
-    Schema::new(fields)
+    Ok(Schema::new(fields))
 }
 
-fn xlsx_sheet_value_to_record_batch(r: Range<calamine::DataType>) -> RecordBatch {
-    let schema = infer_schema(r.clone());
+fn xlsx_sheet_value_to_record_batch(
+    r: Range<calamine::DataType>,
+) -> Result<RecordBatch, ColumnQError> {
+    let schema = infer_schema(&r)?;
     let arrays = schema
         .fields()
         .iter()
@@ -76,15 +93,14 @@ fn xlsx_sheet_value_to_record_batch(r: Range<calamine::DataType>) -> RecordBatch
                     rows.map(|r| r.get(i).map(|v| v.get_float().unwrap()))
                         .collect::<PrimitiveArray<Float64Type>>(),
                 ) as ArrayRef,
-                DataType::Utf8 => Arc::new(
+                DataType::Utf8 | _ => Arc::new(
                     rows.map(|r| r.get(i).map(|v| v.get_string().unwrap()))
                         .collect::<StringArray>(),
                 ) as ArrayRef,
-                _ => todo!(),
             }
         })
         .collect::<Vec<ArrayRef>>();
-    RecordBatch::try_new(Arc::new(schema), arrays).unwrap()
+    Ok(RecordBatch::try_new(Arc::new(schema), arrays)?)
 }
 
 pub async fn to_mem_table(
@@ -96,21 +112,29 @@ pub async fn to_mem_table(
         .ok_or(ColumnQError::MissingOption)?
         .as_xlsx()?;
     let uri = t.get_uri_str();
-    let mut workbook: Xlsx<_> = open_workbook(uri).unwrap();
+    let mut workbook: Xlsx<_> = open_workbook(uri)
+        .map_err(|_| ColumnQError::LoadXlsx("Failed to load .xlsx file".to_owned()))?;
     match &opt.sheet_name {
         Some(sheet) => {
             if let Some(Ok(r)) = workbook.worksheet_range(sheet) {
-                let batch = xlsx_sheet_value_to_record_batch(r);
+                let batch = xlsx_sheet_value_to_record_batch(r)?;
                 let schema_ref = batch.schema();
                 let partitions = vec![vec![batch]];
-                return Ok(
-                    datafusion::datasource::MemTable::try_new(schema_ref, partitions).unwrap(),
-                );
+                Ok(datafusion::datasource::MemTable::try_new(
+                    schema_ref, partitions,
+                )?)
+            } else {
+                Err(ColumnQError::LoadXlsx(
+                    "Failed to open .xlsx file.".to_owned(),
+                ))
             }
         }
-        None => todo!(),
+        None => {
+            return Err(ColumnQError::LoadXlsx(
+                "`sheet_name` is not specified".to_owned(),
+            ))
+        }
     }
-    todo!();
 }
 
 #[cfg(test)]
@@ -135,6 +159,7 @@ option:
         .unwrap();
         // patch uri path with the correct test data path
         table_source.io_source = TableIoSource::Uri(test_data_path("uk_cities_with_headers.xlsx"));
+
         let t = to_mem_table(&table_source).await.unwrap();
         let ctx = SessionContext::new();
         let stats = t
