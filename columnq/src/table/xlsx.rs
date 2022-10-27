@@ -145,6 +145,26 @@ mod tests {
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
 
+    use calamine::{Cell, DataType as XlsxDataType, Range};
+
+    fn property_sheet() -> Range<XlsxDataType> {
+        let cells: Vec<Cell<XlsxDataType>> = vec![
+            Cell::new((0, 0), XlsxDataType::String("float_column".to_string())),
+            Cell::new((1, 0), XlsxDataType::Float(1.333)),
+            Cell::new((2, 0), XlsxDataType::Float(3.333)),
+            Cell::new((0, 1), XlsxDataType::String("integer_column".to_string())),
+            Cell::new((1, 1), XlsxDataType::Int(1)),
+            Cell::new((2, 1), XlsxDataType::Int(3)),
+            Cell::new((0, 2), XlsxDataType::String("boolean_column".to_string())),
+            Cell::new((1, 2), XlsxDataType::Bool(true)),
+            Cell::new((2, 2), XlsxDataType::Bool(false)),
+            Cell::new((0, 3), XlsxDataType::String("string_column".to_string())),
+            Cell::new((1, 3), XlsxDataType::String("foo".to_string())),
+            Cell::new((2, 3), XlsxDataType::String("bar".to_string())),
+        ];
+        calamine::Range::<calamine::DataType>::from_sparse(cells)
+    }
+
     #[tokio::test]
     async fn load_xlsx_with_config() {
         let mut table_source: TableSource = serde_yaml::from_str(
@@ -168,5 +188,20 @@ option:
             .unwrap()
             .statistics();
         assert_eq!(stats.num_rows, Some(37));
+    }
+
+    #[test]
+    fn schema_interface() {
+        let sheet = property_sheet();
+        let schema = infer_schema(&sheet).unwrap();
+        assert_eq!(
+            schema,
+            Schema::new(vec![
+                Field::new("float_column", DataType::Float64, true),
+                Field::new("integer_column", DataType::Int64, true),
+                Field::new("boolean_column", DataType::Boolean, true),
+                Field::new("string_column", DataType::Utf8, true),
+            ])
+        );
     }
 }
