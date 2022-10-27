@@ -140,6 +140,7 @@ pub async fn to_mem_table(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arrow::array::{BooleanArray, Float64Array, Int64Array, StringArray};
     use crate::table::TableIoSource;
     use crate::test_util::*;
     use datafusion::datasource::TableProvider;
@@ -202,6 +203,30 @@ option:
                 Field::new("boolean_column", DataType::Boolean, true),
                 Field::new("string_column", DataType::Utf8, true),
             ])
+        );
+    }
+
+    #[test]
+    fn xlsx_value_to_record_batch() {
+        let sheet = property_sheet();
+        let rb = xlsx_sheet_value_to_record_batch(sheet).unwrap();
+
+        assert_eq!(rb.num_columns(), 4);
+        assert_eq!(
+            rb.column(0).as_ref(),
+            Arc::new(Float64Array::from(vec![1.333, 3.333])).as_ref(),
+        );
+        assert_eq!(
+            rb.column(1).as_ref(),
+            Arc::new(Int64Array::from(vec![1, 3])).as_ref(),
+        );
+        assert_eq!(
+            rb.column(2).as_ref(),
+            Arc::new(BooleanArray::from(vec![true, false])).as_ref(),
+        );
+        assert_eq!(
+            rb.column(3).as_ref(),
+            Arc::new(StringArray::from(vec!["foo", "bar"])).as_ref(),
         );
     }
 }
