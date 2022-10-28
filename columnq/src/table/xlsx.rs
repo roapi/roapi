@@ -18,7 +18,7 @@ fn infer_value_type(v: &calamine::DataType) -> Result<DataType, ColumnQError> {
         calamine::DataType::DateTime(_) => Err(ColumnQError::LoadXlsx(
             "Unsupported data type: DateTime".to_owned(),
         )),
-        calamine::DataType::Empty => unreachable!(),
+        calamine::DataType::Empty => Ok(DataType::Null),
         _ => Err(ColumnQError::LoadXlsx(
             "Failed to parse the cell value".to_owned(),
         )),
@@ -44,7 +44,7 @@ fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
         Err(e) => return Err(e),
     };
 
-    for row in rows.skip(1) {
+    for row in rows {
         for (i, col_val) in row.iter().enumerate() {
             let col_name = col_names.get(i).unwrap();
             let col_type = infer_value_type(col_val).unwrap();
@@ -94,7 +94,7 @@ fn xlsx_sheet_value_to_record_batch(
                         .collect::<PrimitiveArray<Float64Type>>(),
                 ) as ArrayRef,
                 _ => Arc::new(
-                    rows.map(|r| r.get(i).map(|v| v.get_string().unwrap()))
+                    rows.map(|r| r.get(i).map(|v| v.get_string().unwrap_or("null")))
                         .collect::<StringArray>(),
                 ) as ArrayRef,
             }

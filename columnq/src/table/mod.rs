@@ -477,7 +477,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
-            TableLoadOption::xlsx { .. } => todo!(),
+            TableLoadOption::xlsx { .. } => Arc::new(xlsx::to_mem_table(t).await?),
             TableLoadOption::delta { .. } => delta::to_datafusion_table(t).await?,
             TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
