@@ -29,7 +29,7 @@ fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
     let mut col_types: HashMap<&str, HashSet<DataType>> = HashMap::new();
     let mut rows = r.rows();
     let col_names: Result<Vec<&str>, _> = rows
-        .nth(0)
+        .next()
         .unwrap()
         .iter()
         .enumerate()
@@ -93,7 +93,7 @@ fn xlsx_sheet_value_to_record_batch(
                     rows.map(|r| r.get(i).map(|v| v.get_float().unwrap()))
                         .collect::<PrimitiveArray<Float64Type>>(),
                 ) as ArrayRef,
-                DataType::Utf8 | _ => Arc::new(
+                _ => Arc::new(
                     rows.map(|r| r.get(i).map(|v| v.get_string().unwrap()))
                         .collect::<StringArray>(),
                 ) as ArrayRef,
@@ -129,11 +129,9 @@ pub async fn to_mem_table(
                 ))
             }
         }
-        None => {
-            return Err(ColumnQError::LoadXlsx(
-                "`sheet_name` is not specified".to_owned(),
-            ))
-        }
+        None => Err(ColumnQError::LoadXlsx(
+            "`sheet_name` is not specified".to_owned(),
+        )),
     }
 }
 
