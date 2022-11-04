@@ -343,10 +343,10 @@ pub fn query_to_df(
                 })?;
                 df = df
                     .limit(
-                        usize::try_from(limit).map_err(|_| {
+                        0,
+                        Some(usize::try_from(limit).map_err(|_| {
                             invalid_query(format!("limit value too large: {}", value))
-                        })?,
-                        None,
+                        })?),
                     )
                     .map_err(QueryError::invalid_limit)?;
             }
