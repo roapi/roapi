@@ -441,7 +441,7 @@ mod tests {
             .filter(col("bed").gt(lit(3i64)))?
             .select(vec![col("address"), col("bed")])?
             .sort(vec![column_sort_expr_asc("bed")])?
-            .limit(10, None)?;
+            .limit(0, Some(10))?;
 
         assert_eq_df(df, expected_df);
 

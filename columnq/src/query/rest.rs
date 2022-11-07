@@ -207,7 +207,7 @@ mod tests {
                 )?
                 .select(vec![col("ami_id"), col("version")])?
                 .sort(vec![column_sort_expr_asc("ami_id")])?
-                .limit(10, None)?,
+                .limit(0, Some(10))?,
         );
 
         Ok(())
