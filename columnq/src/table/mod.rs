@@ -433,6 +433,7 @@ impl TableSource {
                     Some(ext) => match ext {
                         "csv" | "json" | "ndjson" | "jsonl" | "parquet" | "arrow" | "arrows"
                         | "xlsx" => ext,
+                        "sqlite" | "sqlite3" | "db" => "sqlite",
                         _ => {
                             return Err(ColumnQError::InvalidUri(format!(
                                 "unsupported extension in uri: {}",

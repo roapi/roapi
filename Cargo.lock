@@ -3071,7 +3071,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "async-process",
@@ -3081,7 +3081,7 @@ dependencies = [
  "columnq",
  "convergence",
  "convergence-arrow",
- "env_logger 0.9.1",
+ "env_logger 0.8.4",
  "hyper",
  "log",
  "pin-project-lite",
