@@ -696,7 +696,7 @@ batch_size: 512
     #[cfg(feature = "database-sqlite")]
     #[tokio::test]
     async fn test_load_sqlite_table() -> anyhow::Result<()> {
-        let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite.db");
+        let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite/sample.db");
         let table = load(&t).await?;
         let ctx = datafusion::prelude::SessionContext::new();
         let stats = table
@@ -705,6 +705,28 @@ batch_size: 512
             .statistics();
         assert_eq!(stats.num_rows, Some(37));
 
+        Ok(())
+    }
+
+    #[cfg(feature = "database-sqlite")]
+    #[tokio::test]
+    async fn test_load_sqlite_table_with_config() -> anyhow::Result<()> {
+        for ext in vec!["db", "sqlite", "sqlite3"] {
+            let t: TableSource = serde_yaml::from_str(&format!(
+                r#"
+name: "uk_cities"
+uri: "sqlite://../test_data/sqlite/sample.{}"
+"#,
+                ext
+            ))?;
+            let table = load(&t).await?;
+            let ctx = datafusion::prelude::SessionContext::new();
+            let stats = table
+                .scan(&ctx.state(), &None, &[], None)
+                .await?
+                .statistics();
+            assert_eq!(stats.num_rows, Some(37));
+        }
         Ok(())
     }
 }
