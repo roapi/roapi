@@ -3,14 +3,45 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::file_format::csv::CsvFormat;
+use datafusion::datasource::listing::{
+    ListingOptions, ListingTable, ListingTableConfig, ListingTableUrl,
+};
+use datafusion::datasource::TableProvider;
+use datafusion::prelude::SessionContext;
 use log::debug;
 
 use crate::error::ColumnQError;
 use crate::table::{TableLoadOption, TableOptionCsv, TableSource};
 
+pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+    let opt = t
+        .option
+        .clone()
+        .unwrap_or_else(|| TableLoadOption::csv(TableOptionCsv::default()));
+    if opt.as_csv().unwrap().use_memory_table {
+        println!("loading into memory");
+        return to_mem_table(t).await;
+    }
+    println!("not loading into memory");
+    let table_url = ListingTableUrl::parse(t.get_uri_str())?;
+    let options = ListingOptions::new(Arc::new(CsvFormat::default()));
+    let schemaref = match &t.schema {
+        Some(s) => Arc::new(s.into()),
+        None => {
+            let ctx = SessionContext::new();
+            options.infer_schema(&ctx.state(), &table_url).await?
+        }
+    };
+
+    let table_config = ListingTableConfig::new(table_url)
+        .with_listing_options(options)
+        .with_schema(schemaref);
+    Ok(Arc::new(ListingTable::try_new(table_config)?))
+}
 pub async fn to_mem_table(
     t: &TableSource,
-) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
@@ -65,16 +96,16 @@ pub async fn to_mem_table(
                 .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
         })?;
 
-    Ok(datafusion::datasource::MemTable::try_new(
+    let table = Arc::new(datafusion::datasource::MemTable::try_new(
         schema_ref, partitions,
-    )?)
+    )?);
+
+    Ok(table)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
     use std::fs;
     use tempfile::Builder;
