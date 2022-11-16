@@ -20,10 +20,8 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
         .clone()
         .unwrap_or_else(|| TableLoadOption::csv(TableOptionCsv::default()));
     if opt.as_csv().unwrap().use_memory_table {
-        println!("loading into memory");
         return to_mem_table(t).await;
     }
-    println!("not loading into memory");
     let table_url = ListingTableUrl::parse(t.get_uri_str())?;
     let options = ListingOptions::new(Arc::new(CsvFormat::default()));
     let schemaref = match &t.schema {
