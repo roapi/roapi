@@ -91,6 +91,8 @@ pub struct TableOptionCsv {
     delimiter: u8,
     #[serde(default = "TableOptionCsv::default_projection")]
     projection: Option<Vec<usize>>,
+    #[serde(default = "TableOptionCsv::default_use_memory_table")]
+    use_memory_table: bool
 }
 
 impl TableOptionCsv {
@@ -135,6 +137,10 @@ impl TableOptionCsv {
             )),
         }
     }
+    #[inline]
+    pub fn default_use_memory_table() -> bool {
+        true
+    }
 }
 
 impl Default for TableOptionCsv {
@@ -143,6 +149,7 @@ impl Default for TableOptionCsv {
             has_header: Self::default_has_header(),
             delimiter: Self::default_delimiter(),
             projection: Self::default_projection(),
+            use_memory_table: Self::default_use_memory_table()
         }
     }
 }
@@ -473,7 +480,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             TableLoadOption::ndjson { .. } | TableLoadOption::jsonl { .. } => {
                 Arc::new(ndjson::to_mem_table(t).await?)
             }
-            TableLoadOption::csv { .. } => Arc::new(csv::to_mem_table(t).await?),
+            TableLoadOption::csv { .. } => csv::to_datafusion_table(t).await?,
             TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t).await?,
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
@@ -494,7 +501,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
         })
     } else {
         let t: Arc<dyn TableProvider> = match t.extension()? {
-            "csv" => Arc::new(csv::to_mem_table(t).await?),
+            "csv" => csv::to_datafusion_table(t).await?,
             "json" => Arc::new(json::to_mem_table(t).await?),
             "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t).await?),
             "parquet" => parquet::to_datafusion_table(t).await?,
