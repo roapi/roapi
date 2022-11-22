@@ -61,7 +61,7 @@ anyhow = "1"
 serde_yaml = "0.8"
 tempfile = "3.3.0"
 pretty_assertions = "*"
-dotenv = "*"
+dotenvy = "*"
 
 [features]
 default = ["rustls"]
