@@ -273,9 +273,7 @@ pub fn query_to_df(
             "limit" => {
                 limit = Some(value);
             }
-            "page" => {
-                page = Some(value)
-            }
+            "page" => page = Some(value),
             other => {
                 return Err(invalid_query(format!("invalid query argument: {}", other)));
             }
@@ -336,8 +334,8 @@ pub fn query_to_df(
     }
 
     // apply limit
-     // apply limit
-     if let Some(value) = limit {
+    // apply limit
+    if let Some(value) = limit {
         match value {
             Value::Int(n) => {
                 let skip = match page {
@@ -349,7 +347,7 @@ pub fn query_to_df(
                                     "invalid 64bits integer number in limit argument: {}",
                                     value,
                                 ))
-                            })?
+                            })? - 1
                         } else {
                             0
                         }
@@ -363,7 +361,7 @@ pub fn query_to_df(
                 })?;
                 df = df
                     .limit(
-                        skip as usize * limit as usize,
+                        (skip as usize) * limit as usize,
                         Some(usize::try_from(limit).map_err(|_| {
                             invalid_query(format!("limit value too large: {}", value))
                         })?),

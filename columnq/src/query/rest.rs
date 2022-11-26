@@ -161,7 +161,7 @@ pub fn table_query_to_df(
     if let Some(val) = params.get("limit") {
         let limit = val.parse::<usize>().map_err(num_parse_err)?;
         if let Some(val) = params.get("page") {
-            let skip = val.parse::<usize>().map_err(num_parse_err)? * limit;
+            let skip = (val.parse::<usize>().map_err(num_parse_err)? - 1) * limit;
             df = df
                 .limit(skip, Some(limit))
                 .map_err(QueryError::invalid_limit)?;
