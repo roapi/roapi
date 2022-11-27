@@ -160,7 +160,16 @@ pub fn table_query_to_df(
     // limit needs to be applied after sort to make sure the result is deterministics
     if let Some(val) = params.get("limit") {
         let limit = val.parse::<usize>().map_err(num_parse_err)?;
-        df = df.limit(0, Some(limit)).map_err(QueryError::invalid_limit)?;
+        if let Some(val) = params.get("page") {
+            let skip = (val.parse::<usize>().map_err(num_parse_err)? - 1) * limit;
+            df = df
+                .limit(skip, Some(limit))
+                .map_err(QueryError::invalid_limit)?;
+        } else {
+            df = df
+                .limit(0, Some(limit))
+                .map_err(QueryError::invalid_limit)?;
+        }
     }
 
     Ok(df)

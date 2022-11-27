@@ -261,6 +261,7 @@ pub fn query_to_df(
     let mut filter = None;
     let mut sort = None;
     let mut limit = None;
+    let mut page = None;
     for (key, value) in &field.arguments {
         match *key {
             "filter" => {
@@ -272,6 +273,7 @@ pub fn query_to_df(
             "limit" => {
                 limit = Some(value);
             }
+            "page" => page = Some(value),
             other => {
                 return Err(invalid_query(format!("invalid query argument: {}", other)));
             }
@@ -332,9 +334,25 @@ pub fn query_to_df(
     }
 
     // apply limit
+    // apply limit
     if let Some(value) = limit {
         match value {
             Value::Int(n) => {
+                let skip = match page {
+                    None => 0,
+                    Some(value) => {
+                        if let Value::Int(n) = value {
+                            n.as_i64().ok_or_else(|| {
+                                invalid_query(format!(
+                                    "invalid 64bits integer number in limit argument: {}",
+                                    value,
+                                ))
+                            })? - 1
+                        } else {
+                            0
+                        }
+                    }
+                };
                 let limit = n.as_i64().ok_or_else(|| {
                     invalid_query(format!(
                         "invalid 64bits integer number in limit argument: {}",
@@ -343,7 +361,7 @@ pub fn query_to_df(
                 })?;
                 df = df
                     .limit(
-                        0,
+                        (skip as usize) * limit as usize,
                         Some(usize::try_from(limit).map_err(|_| {
                             invalid_query(format!("limit value too large: {}", value))
                         })?),
