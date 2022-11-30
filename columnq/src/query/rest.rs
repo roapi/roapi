@@ -5,7 +5,6 @@ use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::logical_plan::{Column, Expr, Operator};
 use datafusion::scalar::ScalarValue;
 use regex::Regex;
-
 use crate::error::QueryError;
 use crate::query::{column_sort_expr_asc, column_sort_expr_desc};
 
@@ -182,6 +181,17 @@ pub async fn query_table(
 ) -> Result<Vec<RecordBatch>, QueryError> {
     let df = table_query_to_df(dfctx, table_name, params)?;
     df.collect().await.map_err(QueryError::query_exec)
+}
+
+pub async fn query_table_without_memory(
+    dfctx: &datafusion::execution::context::SessionContext,
+    table_name: &str,
+    params: &HashMap<String, String>
+) -> Result<Vec<Vec<RecordBatch>>, QueryError> {
+    let df = table_query_to_df(dfctx, table_name, params)?;
+    df.collect_partitioned()
+        .await
+        .map_err(QueryError::query_exec)
 }
 
 #[cfg(test)]

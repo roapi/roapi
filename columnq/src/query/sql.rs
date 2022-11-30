@@ -19,6 +19,22 @@ pub async fn exec_query(
     df.collect().await.map_err(QueryError::query_exec)
 }
 
+pub async fn exec_query_without_memory(
+    dfctx: &datafusion::execution::context::SessionContext,
+    sql: &str,
+) -> Result<Vec<Vec<arrow::record_batch::RecordBatch>>, QueryError> {
+    let plan = dfctx
+        .create_logical_plan(sql)
+        .map_err(QueryError::plan_sql)?;
+    let df: Arc<datafusion::dataframe::DataFrame> = Arc::new(
+        datafusion::dataframe::DataFrame::new(dfctx.state.clone(), &plan),
+    );
+
+    df.collect_partitioned()
+        .await
+        .map_err(QueryError::query_exec)
+}
+
 #[cfg(test)]
 mod tests {
     use arrow::array::*;

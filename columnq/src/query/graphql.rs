@@ -285,7 +285,7 @@ pub fn query_to_df(
         match value {
             Value::Object(filters) => {
                 for (col, filter) in filters {
-                    for p in to_datafusion_predicates(col, filter)? {
+                    for p in to_datafusion_predicates(col, &filter)? {
                         df = df.filter(p).map_err(QueryError::invalid_filter)?;
                     }
                 }
@@ -321,7 +321,7 @@ pub fn query_to_df(
         match value {
             Value::List(sort_options) => {
                 df = df
-                    .sort(to_datafusion_sort_columns(sort_options)?)
+                    .sort(to_datafusion_sort_columns(&sort_options)?)
                     .map_err(QueryError::invalid_sort)?;
             }
             other => {
@@ -386,6 +386,16 @@ pub async fn exec_query(
 ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
     query_to_df(dfctx, q)?
         .collect()
+        .await
+        .map_err(QueryError::query_exec)
+}
+
+pub async fn exec_query_without_memory(
+    dfctx: &datafusion::execution::context::SessionContext,
+    q: &str
+) -> Result<Vec<Vec<arrow::record_batch::RecordBatch>>, QueryError>{
+    query_to_df(dfctx, q)?
+        .collect_partitioned()
         .await
         .map_err(QueryError::query_exec)
 }
