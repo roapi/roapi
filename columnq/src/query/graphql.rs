@@ -285,7 +285,7 @@ pub fn query_to_df(
         match value {
             Value::Object(filters) => {
                 for (col, filter) in filters {
-                    for p in to_datafusion_predicates(col, &filter)? {
+                    for p in to_datafusion_predicates(col, filter)? {
                         df = df.filter(p).map_err(QueryError::invalid_filter)?;
                     }
                 }
