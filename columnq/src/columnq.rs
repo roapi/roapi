@@ -112,7 +112,7 @@ impl ColumnQ {
         query::graphql::exec_query(&self.dfctx, query).await
     }
 
-    pub async fn query_exec_without_memory(
+    pub async fn query_graphql_without_memory(
         &self,
         query: &str
     ) -> Result<Vec<Vec<arrow::record_batch::RecordBatch>>, QueryError> {
