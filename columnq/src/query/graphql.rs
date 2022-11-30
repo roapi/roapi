@@ -321,7 +321,7 @@ pub fn query_to_df(
         match value {
             Value::List(sort_options) => {
                 df = df
-                    .sort(to_datafusion_sort_columns(&sort_options)?)
+                    .sort(to_datafusion_sort_columns(sort_options)?)
                     .map_err(QueryError::invalid_sort)?;
             }
             other => {
