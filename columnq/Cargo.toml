@@ -85,6 +85,7 @@ native-tls-vendored = [
 ]
 native-tls = [
     "reqwest/native-tls",
+    "hyper-tls",
     "rusoto_core/native-tls",
     "rusoto_s3/native-tls",
     "rusoto_sts/native-tls",
