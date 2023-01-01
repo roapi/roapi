@@ -28,6 +28,29 @@ pub fn parse_uri<'a>(path: &'a str) -> Result<(&'a str, &'a str), ColumnQError> 
     Ok((bucket, key))
 }
 
+fn new_http_client() -> Result<rusoto_core::HttpClient, rusoto_core::request::TlsError> {
+    // rusoto_core::HttpClient::new()
+    #[cfg(feature = "native-tls")]
+    let connector = hyper_tls::HttpsConnector::new();
+
+    #[cfg(feature = "rustls")]
+    let connector = {
+        let builder = hyper_rustls::HttpsConnectorBuilder::new();
+
+        #[cfg(not(feature = "rustls-webpki"))]
+        let builder = builder.with_native_roots();
+        #[cfg(feature = "rustls-webpki")]
+        let builder = builder.with_webpki_roots();
+
+        // S3: http2 is not used
+        // GCS: http2 does not work with rustls
+        // https://github.com/rusoto/rusoto/pull/1985
+        builder.https_only().enable_http1().build()
+    };
+
+    Ok(rusoto_core::HttpClient::from_connector(connector))
+}
+
 fn new_s3_client() -> Result<rusoto_s3::S3Client, ColumnQError> {
     let region = if let Ok(endpoint_url) = std::env::var("AWS_ENDPOINT_URL") {
         let region_name = std::env::var("AWS_REGION").unwrap_or_else(|_| "custom".to_string());
@@ -43,7 +66,7 @@ fn new_s3_client() -> Result<rusoto_s3::S3Client, ColumnQError> {
         rusoto_core::Region::default()
     };
 
-    let dispatcher = rusoto_core::HttpClient::new()
+    let dispatcher = new_http_client()
         .map_err(|_| ColumnQError::S3Store("Failed to create request dispatcher".to_string()))?;
 
     let client = match std::env::var("AWS_WEB_IDENTITY_TOKEN_FILE") {

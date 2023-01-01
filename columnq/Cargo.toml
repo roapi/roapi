@@ -36,10 +36,10 @@ calamine = "0.19.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 # S3
-rusoto_core = { version = "0.47", default-features = false }
-rusoto_s3 = { version = "0.47", default-features = false }
-rusoto_credential = { version = "0.47" }
-rusoto_sts = { version = "0.47", default-features = false }
+rusoto_core = { version = "0.48", default-features = false }
+rusoto_s3 = { version = "0.48", default-features = false }
+rusoto_credential = { version = "0.48" }
+rusoto_sts = { version = "0.48", default-features = false }
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
 hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
 
@@ -66,6 +66,7 @@ dotenvy = "*"
 [features]
 default = ["rustls"]
 rustls = [
+    "hyper-rustls",
     "reqwest/rustls-tls",
     "rusoto_core/rustls",
     "rusoto_core/rustls",
