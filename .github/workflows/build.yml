@@ -158,7 +158,7 @@ jobs:
         AWS_ENDPOINT_URL: http://127.0.0.1:9000
       run: cargo run --bin roapi -- -c test_s3.yml
     - name: Query roapi, Expect 200 response code
-      run: if [ $(curl -o /dev/null -s -w "%{http_code}" -X POST -d 'SELECT count(1) from blogs' 127.0.0.1:8084/api/sql) != "200" ]; then exit 1; fi
+      run: if [ $(curl -o /dev/null -s -w "%{http_code}" -X POST -d 'SELECT count(1) from blogs' 127.0.0.1:8000/api/sql) != "200" ]; then exit 1; fi
 
   # make sure native-tls always builds
   openssl_build:
