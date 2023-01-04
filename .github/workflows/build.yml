@@ -156,7 +156,7 @@ jobs:
         AWS_ACCESS_KEY_ID: minioadmin
         AWS_SECRET_ACCESS_KEY: minioadmin
         AWS_ENDPOINT_URL: http://127.0.0.1:9000
-      run: cargo run --bin roapi -- -c test_s3.yml
+      run: cargo run --bin roapi -- -c test_s3.yml &
     - name: Query roapi, Expect 200 response code
       run: if [ $(curl -o /dev/null -s -w "%{http_code}" -X POST -d 'SELECT count(1) from blogs' 127.0.0.1:8000/api/sql) != "200" ]; then exit 1; fi
 
