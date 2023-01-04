@@ -145,12 +145,11 @@ jobs:
       run: |
         curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
         chmod +x $HOME/minio-binaries/mc
-        export PATH=$PATH:$HOME/minio-binaries/
     - name: Setup buckets and test data
       run: |
-        mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
-        mc mb local/test-data
-        mc cp test_data/blogs.parquet local/test-data
+        $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
+        $HOME/minio-binaries/mc mb local/test-data
+        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
     - name: Start roapi
       env:
         AWS_DEFAULT_REGION: "us-east-1"
