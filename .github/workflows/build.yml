@@ -145,7 +145,7 @@ jobs:
       run: |
         curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
         chmod +x $HOME/minio-binaries/mc
-    - name: Setup buckets and test data
+    - name: Create bucket and copy test data
       run: |
         $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
         $HOME/minio-binaries/mc mb local/test-data
@@ -156,7 +156,15 @@ jobs:
         AWS_ACCESS_KEY_ID: minioadmin
         AWS_SECRET_ACCESS_KEY: minioadmin
         AWS_ENDPOINT_URL: http://127.0.0.1:9000
+      # run in background, else it blocks next step
       run: cargo run --bin roapi -- -c test_s3.yml &
+    - name: Wait for roapi available
+      uses: ifaxity/wait-on-action@v1
+      with:
+        resource: tcp://127.0.0.1:8000
+        # Maximum time in ms to wait before exiting with failure (1) code, default Infinity
+        # 10 minutes = 600,000 ms
+        timeout: 600000
     - name: Query roapi, Expect 200 response code
       run: if [ $(curl -o /dev/null -s -w "%{http_code}" -X POST -d 'SELECT count(1) from blogs' 127.0.0.1:8000/api/sql) != "200" ]; then exit 1; fi
 
