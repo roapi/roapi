@@ -45,7 +45,7 @@ fn new_http_client() -> Result<rusoto_core::HttpClient, rusoto_core::request::Tl
         // S3: http2 is not used
         // GCS: http2 does not work with rustls
         // https://github.com/rusoto/rusoto/pull/1985
-        builder.https_only().enable_http1().build()
+        builder.https_or_http().enable_http1().build()
     };
 
     Ok(rusoto_core::HttpClient::from_connector(connector))

@@ -113,6 +113,54 @@ jobs:
           which cargo-cache || cargo install cargo-cache
           cargo cache trim -l 1G
 
+  s3_test:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C target-cpu=skylake"
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          s3-1-${{ runner.os }}-cargo-
+    - name: Install nightly rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: default
+        # toolchain: nightly
+        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        override: true
+    - name: Install minio server
+      run: |
+        docker run -d -p 9000:9000 quay.io/minio/minio server /data
+    - name: Install minio client
+      run: |
+        curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
+        chmod +x $HOME/minio-binaries/mc
+        export PATH=$PATH:$HOME/minio-binaries/
+    - name: Setup buckets and test data
+      run: |
+        mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
+        mc mb local/test-data
+        mc cp test_data/blogs.parquet local/test-data
+    - name: Start roapi
+      env:
+        AWS_DEFAULT_REGION: "us-east-1"
+        AWS_ACCESS_KEY_ID: minioadmin
+        AWS_SECRET_ACCESS_KEY: minioadmin
+        AWS_ENDPOINT_URL: http://127.0.0.1:9000
+      run: cargo run --bin roapi -- -c test_s3.yml
+    - name: Query roapi, Expect 200 response code
+      run: if [ $(curl -o /dev/null -s -w "%{http_code}" -X POST -d 'SELECT count(1) from blogs' 127.0.0.1:8084/api/sql) != "200" ]; then exit 1; fi
+
   # make sure native-tls always builds
   openssl_build:
     runs-on: ubuntu-latest
