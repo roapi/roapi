@@ -159,6 +159,7 @@ jobs:
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
         command: if [ $(curl -o /dev/null -s -w "%{http_code}" -X POST -d 'SELECT count(1) from blogs' 127.0.0.1:8000/api/sql) != "200" ]; then exit 1; fi
+        build: cargo build
         start: cargo run --bin roapi -- -c test_s3.yml
         wait-on: "tcp://127.0.0.1:8000"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
