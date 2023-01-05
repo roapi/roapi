@@ -158,9 +158,9 @@ jobs:
         AWS_ENDPOINT_URL: http://127.0.0.1:9000
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
-        command: bash -c 'if [[ $(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(1) from blogs" 127.0.0.1:8000/api/sql) != "200" ]]; then exit 1; fi'
+        command: ./test_end_to_end/query_blogs.sh
         build: cargo build
-        start: cargo run --bin roapi -- -c test_s3.yml
+        start: cargo run --bin roapi -- -c test_end_to_end/test_s3.yml
         wait-on: "http://127.0.0.1:8000/api/schema"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
         # 10 minutes = 600 seconds
