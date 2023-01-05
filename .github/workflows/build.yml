@@ -158,7 +158,7 @@ jobs:
         AWS_ENDPOINT_URL: http://127.0.0.1:9000
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
-        command: ./test_end_to_end/query_blogs.sh
+        command: test_end_to_end/query_blogs.sh
         build: cargo build
         start: cargo run --bin roapi -- -c test_end_to_end/test_s3.yml
         wait-on: "http://127.0.0.1:8000/api/schema"
