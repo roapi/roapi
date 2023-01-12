@@ -113,7 +113,7 @@ jobs:
           which cargo-cache || cargo install cargo-cache
           cargo cache trim -l 1G
 
-  s3_test:
+  s3_memory_test:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
@@ -160,7 +160,60 @@ jobs:
       with:
         command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
         build: cargo build
-        start: cargo run --bin roapi -- -c test_end_to_end/test_s3.yml
+        start: cargo run --bin roapi -- -c test_end_to_end/test_s3_memory.yml
+        wait-on: "http://127.0.0.1:8000/api/schema"
+        # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
+        # 10 minutes = 600 seconds
+        wait-on-timeout: 600
+
+  s3_direct_test:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C target-cpu=skylake"
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          s3-1-${{ runner.os }}-cargo-
+    - name: Install nightly rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: default
+        # toolchain: nightly
+        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        override: true
+    - name: Install minio server
+      run: |
+        docker run -d -p 9000:9000 quay.io/minio/minio server /data
+    - name: Install minio client
+      run: |
+        curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
+        chmod +x $HOME/minio-binaries/mc
+    - name: Create bucket and copy test data
+      run: |
+        $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
+        $HOME/minio-binaries/mc mb local/test-data
+        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
+    - name: Start roapi and Query
+      env:
+        AWS_DEFAULT_REGION: "us-east-1"
+        AWS_ACCESS_KEY_ID: minioadmin
+        AWS_SECRET_ACCESS_KEY: minioadmin
+        AWS_ENDPOINT_URL: http://127.0.0.1:9000
+      uses: BerniWittmann/background-server-action@v1.0.4
+      with:
+        command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
+        build: cargo build
+        start: cargo run --bin roapi -- -c test_end_to_end/test_s3_direct.yml
         wait-on: "http://127.0.0.1:8000/api/schema"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
         # 10 minutes = 600 seconds
