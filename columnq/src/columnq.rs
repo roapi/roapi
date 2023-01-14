@@ -5,13 +5,47 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::array::as_string_array;
 use datafusion::arrow::array::StringArray;
+use datafusion::datasource::object_store::{ObjectStoreRegistry, ObjectStoreProvider};
+// use datafusion::error::DataFusionError;
 pub use datafusion::execution::context::SessionConfig;
 use datafusion::execution::context::SessionContext;
+use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
 use datafusion::physical_plan::collect;
 
+use object_store::aws::AmazonS3Builder;
 use crate::error::{ColumnQError, QueryError};
 use crate::query;
 use crate::table::{self, KeyValueSource, TableSource};
+use url::Url;
+
+pub struct ColumnQObjectStoreProvider {}
+impl ObjectStoreProvider for ColumnQObjectStoreProvider {
+    fn get_by_url(&self, url: &Url) -> Option<Arc<dyn object_store::ObjectStore>> {
+        let url_schema = url.scheme();
+        match url_schema {
+            "s3" => {
+                let host = url.host_str().unwrap();
+                // TODO: can remove "with_endpoint" after object_store upgrade to 0.5.3
+                // But as of 2023-01, Datafusion 16 is still reference to object_store 0.5.0
+                let s3_result = AmazonS3Builder::from_env()
+                                    .with_allow_http(true) // for minio in CI
+                                    .with_bucket_name(host)
+                                    .with_endpoint(std::env::var("AWS_ENDPOINT_URL").unwrap())
+                                    .build();
+                match s3_result {
+                    Ok(s3) => Some(Arc::new(s3)),
+                    // TODO: add error handling after upgrade from Datafusion 12 to Datafusion 13
+                    Err(_) => None, // Err(DataFusionError::Execution(err.to_string())),
+                }
+            },
+            _ => None,
+            // Err(DataFusionError::Execution(format!(
+            //     "Unsupported object store scheme {}",
+            //     url_schema
+            // ))),
+        }
+    }
+}
 
 pub struct ColumnQ {
     pub dfctx: SessionContext,
@@ -25,7 +59,12 @@ impl ColumnQ {
     }
 
     pub fn new_with_config(config: SessionConfig) -> Self {
-        let dfctx = SessionContext::with_config(config);
+        let object_store_provider = ColumnQObjectStoreProvider {};
+        let object_store_registry = ObjectStoreRegistry::new_with_provider(Some(Arc::new(object_store_provider)));
+        let rn_config = RuntimeConfig::new().with_object_store_registry(Arc::new(object_store_registry));
+        let runtime_env = RuntimeEnv::new(rn_config).unwrap();
+        let dfctx = SessionContext::with_config_rt(config, Arc::new(runtime_env));
+
         let schema_map = HashMap::<String, arrow::datatypes::SchemaRef>::new();
         Self {
             dfctx,
@@ -35,7 +74,7 @@ impl ColumnQ {
     }
 
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
-        let table = table::load(t).await?;
+        let table = table::load(t, &self.dfctx).await?;
         self.schema_map.insert(t.name.clone(), table.schema());
         self.dfctx.deregister_table(t.name.as_str())?;
         self.dfctx.register_table(t.name.as_str(), table)?;
@@ -48,7 +87,7 @@ impl ColumnQ {
 
         let kv_entry = self.kv_catalog.entry(kv.name.clone());
         let (key, value) = (kv.key.clone(), kv.value.clone());
-        let table = table::load(&kv.into()).await?;
+        let table = table::load(&kv.into(), &self.dfctx).await?;
         let schema = table.schema();
         let key_schema_idx = schema.index_of(&key)?;
         if schema.field(key_schema_idx).data_type() != &DataType::Utf8 {
