@@ -704,8 +704,8 @@ batch_size: 512
     #[tokio::test]
     async fn test_load_sqlite_table() -> anyhow::Result<()> {
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite/sample.db");
-        let table = load(&t).await?;
         let ctx = datafusion::prelude::SessionContext::new();
+        let table = load(&t, &ctx).await?;
         let stats = table
             .scan(&ctx.state(), &None, &[], None)
             .await?
@@ -726,8 +726,8 @@ uri: "sqlite://../test_data/sqlite/sample.{}"
 "#,
                 ext
             ))?;
-            let table = load(&t).await?;
             let ctx = datafusion::prelude::SessionContext::new();
+            let table = load(&t, &ctx).await?;
             let stats = table
                 .scan(&ctx.state(), &None, &[], None)
                 .await?
