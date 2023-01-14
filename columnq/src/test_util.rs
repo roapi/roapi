@@ -121,8 +121,8 @@ schema:
 
     // patch uri path with the correct test data path
     table_source.io_source = table::TableIoSource::Uri(test_data_path("ubuntu-ami.json"));
-
-    Ok(table::load(&table_source).await?)
+    let ctx = SessionContext::new();
+    Ok(table::load(&table_source, &ctx).await?)
 }
 
 pub fn register_table_properties(dfctx: &mut SessionContext) -> anyhow::Result<()> {

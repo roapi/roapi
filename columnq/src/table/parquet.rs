@@ -106,6 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_flattened_parquet() {
+        let ctx = SessionContext::new();
         let t = to_datafusion_table(
             &TableSource::new(
                 "blogs".to_string(),
@@ -114,11 +115,11 @@ mod tests {
             .with_option(TableLoadOption::parquet(TableOptionParquet {
                 use_memory_table: false,
             })),
+            &ctx
         )
         .await
         .unwrap();
 
-        let ctx = SessionContext::new();
         let stats = t
             .scan(&ctx.state(), &None, &[], None)
             .await
