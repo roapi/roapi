@@ -25,14 +25,17 @@ impl ObjectStoreProvider for ColumnQObjectStoreProvider {
         match url_schema {
             "s3" => {
                 let host = url.host_str().unwrap();
+                let mut s3_builder = AmazonS3Builder::from_env().with_bucket_name(host);
+                // for minio in CI
+                s3_builder = s3_builder.with_allow_http(true);
+
                 // TODO: can remove "with_endpoint" after object_store upgrade to 0.5.3
                 // But as of 2023-01, Datafusion 16 is still reference to object_store 0.5.0
-                let s3_result = AmazonS3Builder::from_env()
-                                    .with_allow_http(true) // for minio in CI
-                                    .with_bucket_name(host)
-                                    .with_endpoint(std::env::var("AWS_ENDPOINT_URL").unwrap())
-                                    .build();
-                match s3_result {
+                if let Ok(endpoint) = std::env::var("AWS_ENDPOINT_URL") {
+                    s3_builder = s3_builder.with_endpoint(endpoint);
+                }
+
+                match s3_builder.build() {
                     Ok(s3) => Some(Arc::new(s3)),
                     // TODO: add error handling after upgrade from Datafusion 12 to Datafusion 13
                     Err(_) => None, // Err(DataFusionError::Execution(err.to_string())),
