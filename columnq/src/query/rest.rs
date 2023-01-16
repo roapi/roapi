@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use datafusion::arrow::record_batch::RecordBatch;
-use datafusion::logical_plan::{Column, Expr, Operator};
+use datafusion::logical_expr::Operator;
+use datafusion::prelude::{binary_expr, Column, Expr};
 use datafusion::scalar::ScalarValue;
 use regex::Regex;
 
@@ -72,7 +73,7 @@ pub fn table_query_to_df(
     for (key, val) in params.iter().filter(|(k, _)| k.starts_with("filter[")) {
         match RE_REST_FILTER.captures(key) {
             Some(caps) => {
-                let col_expr: Box<Expr> = Box::new(match caps.name("column") {
+                let col_expr = match caps.name("column") {
                     Some(column) => Expr::Column(Column::from_name(column.as_str().to_string())),
                     None => {
                         return Err(QueryError {
@@ -80,40 +81,22 @@ pub fn table_query_to_df(
                             message: format!("missing column from filter `{}`", key),
                         });
                     }
-                });
+                };
 
                 let predicate = match caps.name("op") {
-                    None => Expr::BinaryExpr {
-                        left: col_expr,
-                        op: Operator::Eq,
-                        right: Box::new(rest_query_value_to_expr(val)?),
-                    },
+                    None => binary_expr(col_expr, Operator::Eq, rest_query_value_to_expr(val)?),
                     Some(m) => match m.as_str() {
-                        "eq" | "" => Expr::BinaryExpr {
-                            left: col_expr,
-                            op: Operator::Eq,
-                            right: Box::new(rest_query_value_to_expr(val)?),
-                        },
-                        "lt" => Expr::BinaryExpr {
-                            left: col_expr,
-                            op: Operator::Lt,
-                            right: Box::new(rest_query_value_to_expr(val)?),
-                        },
-                        "lte" | "lteq" => Expr::BinaryExpr {
-                            left: col_expr,
-                            op: Operator::LtEq,
-                            right: Box::new(rest_query_value_to_expr(val)?),
-                        },
-                        "gt" => Expr::BinaryExpr {
-                            left: col_expr,
-                            op: Operator::Gt,
-                            right: Box::new(rest_query_value_to_expr(val)?),
-                        },
-                        "gte" | "gteq" => Expr::BinaryExpr {
-                            left: col_expr,
-                            op: Operator::GtEq,
-                            right: Box::new(rest_query_value_to_expr(val)?),
-                        },
+                        "eq" | "" => {
+                            binary_expr(col_expr, Operator::Eq, rest_query_value_to_expr(val)?)
+                        }
+                        "lt" => binary_expr(col_expr, Operator::Lt, rest_query_value_to_expr(val)?),
+                        "lte" | "lteq" => {
+                            binary_expr(col_expr, Operator::LtEq, rest_query_value_to_expr(val)?)
+                        }
+                        "gt" => binary_expr(col_expr, Operator::Gt, rest_query_value_to_expr(val)?),
+                        "gte" | "gteq" => {
+                            binary_expr(col_expr, Operator::GtEq, rest_query_value_to_expr(val)?)
+                        }
                         _ => {
                             return Err(QueryError {
                                 error: "rest_query".to_string(),

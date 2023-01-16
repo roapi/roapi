@@ -92,7 +92,7 @@ pub struct TableOptionCsv {
     #[serde(default = "TableOptionCsv::default_projection")]
     projection: Option<Vec<usize>>,
     #[serde(default = "TableOptionCsv::default_use_memory_table")]
-    use_memory_table: bool
+    use_memory_table: bool,
 }
 
 impl TableOptionCsv {
@@ -149,7 +149,7 @@ impl Default for TableOptionCsv {
             has_header: Self::default_has_header(),
             delimiter: Self::default_delimiter(),
             projection: Self::default_projection(),
-            use_memory_table: Self::default_use_memory_table()
+            use_memory_table: Self::default_use_memory_table(),
         }
     }
 }
