@@ -1,4 +1,4 @@
-use datafusion::logical_plan::{Column, Expr};
+use datafusion::prelude::{Column, Expr};
 
 pub fn column_sort_expr_desc(column: String) -> Expr {
     Expr::Sort {

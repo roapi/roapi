@@ -11,14 +11,18 @@ name = "columnq"
 path = "src/lib.rs"
 
 [dependencies]
-datafusion = "12"
+# pulling arrow-schema manually to enable the serde feature.
+# TODO: add serde feature in datafusion to avoid this workaround
+arrow-schema = { version ="26", features = ["serde"] }
+
+datafusion = "14"
 
 log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.23"
-yup-oauth2 = { version = "6.2", default-features = false, features= [
+sqlparser = "0.27"  # version need to be in sync with convergence
+yup-oauth2 = { version = "6.2", default-features = false, features = [
     "service_account",
 ] }
 thiserror = "1"
@@ -45,14 +49,14 @@ hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
 
 [dependencies.deltalake]
 git = "https://github.com/delta-io/delta-rs.git"
-rev = "0fdaeed734b036d2bd7734eb3c4b3e56680dffff"
+rev = "d1e68cac9fc33b08dfb93260038f50c117c8534d"
 default-features = false
 features = ["datafusion-ext"]
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
-rev = "47e40619740345209cbdb5e5b9ce4ad52e5768af"
-version = "0.3.1-alpha.8"
+rev = "66942bb65a7671cccb228ffe08fd99495430c103"
+version = "0.3.2-alpha.1"
 features = ["default", "dst_arrow"]
 optional = true
 

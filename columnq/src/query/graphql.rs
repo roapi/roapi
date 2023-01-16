@@ -2,7 +2,8 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 
 use datafusion::arrow;
-use datafusion::logical_plan::{Column, Expr, Operator};
+use datafusion::logical_expr::Operator;
+use datafusion::prelude::{binary_expr, Column, Expr};
 use datafusion::scalar::ScalarValue;
 use graphql_parser::query::{parse_query, Definition, OperationDefinition, Selection, Value};
 
@@ -130,34 +131,14 @@ fn to_datafusion_predicates<'a, 'b>(
         Value::Object(obj) => obj
             .iter()
             .map(|(op, operand)| {
-                let col_expr = Box::new(Expr::Column(Column::from_name(col.to_string())));
-                let right_expr = Box::new(operand_to_datafusion_expr(operand)?);
+                let col_expr = Expr::Column(Column::from_name(col.to_string()));
+                let right_expr = operand_to_datafusion_expr(operand)?;
                 match *op {
-                    "eq" => Ok(Expr::BinaryExpr {
-                        left: col_expr,
-                        op: Operator::Eq,
-                        right: right_expr,
-                    }),
-                    "lt" => Ok(Expr::BinaryExpr {
-                        left: col_expr,
-                        op: Operator::Lt,
-                        right: right_expr,
-                    }),
-                    "lte" | "lteq" => Ok(Expr::BinaryExpr {
-                        left: col_expr,
-                        op: Operator::LtEq,
-                        right: right_expr,
-                    }),
-                    "gt" => Ok(Expr::BinaryExpr {
-                        left: col_expr,
-                        op: Operator::Gt,
-                        right: right_expr,
-                    }),
-                    "gte" | "gteq" => Ok(Expr::BinaryExpr {
-                        left: col_expr,
-                        op: Operator::GtEq,
-                        right: right_expr,
-                    }),
+                    "eq" => Ok(binary_expr(col_expr, Operator::Eq, right_expr)),
+                    "lt" => Ok(binary_expr(col_expr, Operator::Lt, right_expr)),
+                    "lte" | "lteq" => Ok(binary_expr(col_expr, Operator::LtEq, right_expr)),
+                    "gt" => Ok(binary_expr(col_expr, Operator::Gt, right_expr)),
+                    "gte" | "gteq" => Ok(binary_expr(col_expr, Operator::GtEq, right_expr)),
                     other => Err(invalid_query(format!(
                         "invalid filter predicate operator, got: {}",
                         other,
@@ -167,11 +148,11 @@ fn to_datafusion_predicates<'a, 'b>(
             .collect::<Result<Vec<Expr>, _>>(),
         // when filter is literal, default to equality comparison
         Value::Boolean(_) | Value::Int(_) | Value::Float(_) | Value::String(_) => {
-            Ok(vec![Expr::BinaryExpr {
-                left: Box::new(Expr::Column(Column::from_name(col.to_string()))),
-                op: Operator::Eq,
-                right: Box::new(operand_to_datafusion_expr(filter)?),
-            }])
+            Ok(vec![binary_expr(
+                Expr::Column(Column::from_name(col.to_string())),
+                Operator::Eq,
+                operand_to_datafusion_expr(filter)?,
+            )])
         }
         other => Err(invalid_query(format!(
             "filter predicate should be defined as object, got: {}",
@@ -394,7 +375,7 @@ pub async fn exec_query(
 mod tests {
     use datafusion::arrow::array::*;
     use datafusion::execution::context::SessionContext;
-    use datafusion::logical_plan::{col, lit};
+    use datafusion::logical_expr::{col, lit};
 
     use super::*;
     use crate::test_util::*;
