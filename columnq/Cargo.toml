@@ -16,6 +16,8 @@ path = "src/lib.rs"
 arrow-schema = { version ="26", features = ["serde"] }
 
 datafusion = "14"
+object_store = "0.5.0"
+url = "2.2"
 
 log = "0"
 regex = "1"

@@ -15,9 +15,9 @@ use datafusion::datasource::listing::{
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
-use datafusion::prelude::SessionContext;
 
-pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+
+pub async fn to_datafusion_table(t: &TableSource, dfctx: &datafusion::execution::context::SessionContext) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
@@ -32,8 +32,7 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
         let schemaref = match &t.schema {
             Some(s) => Arc::new(s.into()),
             None => {
-                let ctx = SessionContext::new();
-                options.infer_schema(&ctx.state(), &table_url).await?
+                options.infer_schema(&dfctx.state(), &table_url).await?
             }
         };
 
@@ -107,6 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_flattened_parquet() {
+        let ctx = SessionContext::new();
         let t = to_datafusion_table(
             &TableSource::new(
                 "blogs".to_string(),
@@ -115,11 +115,11 @@ mod tests {
             .with_option(TableLoadOption::parquet(TableOptionParquet {
                 use_memory_table: false,
             })),
+            &ctx
         )
         .await
         .unwrap();
 
-        let ctx = SessionContext::new();
         let stats = t
             .scan(&ctx.state(), &None, &[], None)
             .await

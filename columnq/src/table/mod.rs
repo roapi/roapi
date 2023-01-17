@@ -473,7 +473,7 @@ impl TableSource {
     }
 }
 
-pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn load(t: &TableSource, dfctx: &datafusion::execution::context::SessionContext) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     if let Some(opt) = &t.option {
         Ok(match opt {
             TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t).await?),
@@ -481,7 +481,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
                 Arc::new(ndjson::to_mem_table(t).await?)
             }
             TableLoadOption::csv { .. } => csv::to_datafusion_table(t).await?,
-            TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t).await?,
+            TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
@@ -504,7 +504,7 @@ pub async fn load(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQErro
             "csv" => csv::to_datafusion_table(t).await?,
             "json" => Arc::new(json::to_mem_table(t).await?),
             "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t).await?),
-            "parquet" => parquet::to_datafusion_table(t).await?,
+            "parquet" => parquet::to_datafusion_table(t, dfctx).await?,
             "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
             "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
             "mysql" => Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?),
@@ -704,8 +704,8 @@ batch_size: 512
     #[tokio::test]
     async fn test_load_sqlite_table() -> anyhow::Result<()> {
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite/sample.db");
-        let table = load(&t).await?;
         let ctx = datafusion::prelude::SessionContext::new();
+        let table = load(&t, &ctx).await?;
         let stats = table
             .scan(&ctx.state(), &None, &[], None)
             .await?
@@ -726,8 +726,8 @@ uri: "sqlite://../test_data/sqlite/sample.{}"
 "#,
                 ext
             ))?;
-            let table = load(&t).await?;
             let ctx = datafusion::prelude::SessionContext::new();
+            let table = load(&t, &ctx).await?;
             let stats = table
                 .scan(&ctx.state(), &None, &[], None)
                 .await?
