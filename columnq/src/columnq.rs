@@ -6,7 +6,7 @@ use datafusion::arrow;
 use datafusion::arrow::array::as_string_array;
 use datafusion::arrow::array::StringArray;
 use datafusion::datasource::object_store::{ObjectStoreRegistry, ObjectStoreProvider};
-// use datafusion::error::DataFusionError;
+use datafusion::error::{DataFusionError, Result as DatafusionResult};
 pub use datafusion::execution::context::SessionConfig;
 use datafusion::execution::context::SessionContext;
 use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
@@ -20,7 +20,7 @@ use url::Url;
 
 pub struct ColumnQObjectStoreProvider {}
 impl ObjectStoreProvider for ColumnQObjectStoreProvider {
-    fn get_by_url(&self, url: &Url) -> Option<Arc<dyn object_store::ObjectStore>> {
+    fn get_by_url(&self, url: &Url) -> DatafusionResult<Arc<dyn object_store::ObjectStore>> {
         let url_schema = url.scheme();
         match url_schema {
             "s3" => {
@@ -30,22 +30,20 @@ impl ObjectStoreProvider for ColumnQObjectStoreProvider {
                 s3_builder = s3_builder.with_allow_http(true);
 
                 // TODO: can remove "with_endpoint" after object_store upgrade to 0.5.3
-                // But as of 2023-01, Datafusion 16 is still reference to object_store 0.5.0
+                // https://github.com/apache/arrow-datafusion/pull/4929
                 if let Ok(endpoint) = std::env::var("AWS_ENDPOINT_URL") {
                     s3_builder = s3_builder.with_endpoint(endpoint);
                 }
 
                 match s3_builder.build() {
-                    Ok(s3) => Some(Arc::new(s3)),
-                    // TODO: add error handling after upgrade from Datafusion 12 to Datafusion 13
-                    Err(_) => None, // Err(DataFusionError::Execution(err.to_string())),
+                    Ok(s3) => Ok(Arc::new(s3)),
+                    Err(err) => Err(DataFusionError::External(Box::new(err))),
                 }
             },
-            _ => None,
-            // Err(DataFusionError::Execution(format!(
-            //     "Unsupported object store scheme {}",
-            //     url_schema
-            // ))),
+            _ => Err(DataFusionError::Execution(format!(
+                "Unsupported object store scheme {}",
+                url_schema
+            ))),
         }
     }
 }
