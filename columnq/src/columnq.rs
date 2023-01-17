@@ -181,3 +181,50 @@ impl Default for ColumnQ {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{str::FromStr};
+
+    use datafusion::datasource::object_store::ObjectStoreProvider;
+    use url::Url;
+
+    use super::ColumnQObjectStoreProvider;
+
+    #[test]
+    fn s3_object_store_type() {
+        let host_url = "s3://bucket_name/path";
+        let provider = ColumnQObjectStoreProvider {};
+        let res = provider
+            .get_by_url(&Url::from_str(host_url).unwrap());
+        let msg = match res {
+            Err(e) => format!("{}", e),
+            Ok(_) => "".to_string(),
+        };
+        assert_eq!("".to_string(), msg);
+    }
+
+    #[test]
+    fn gcs_object_store_type() {
+        let host_url = "gs://bucket_name/path";
+        let provider = ColumnQObjectStoreProvider {};
+        let err = provider
+            .get_by_url(&Url::from_str(host_url).unwrap())
+            .unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("Unsupported object store scheme gs"))
+    }
+
+    #[test]
+    fn azure_object_store_type() {
+        let unknown = "az://bucket_name/path";
+        let provider = ColumnQObjectStoreProvider {};
+        let err = provider
+            .get_by_url(&Url::from_str(unknown).unwrap())
+            .unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("Unsupported object store scheme az"))
+    }
+}
