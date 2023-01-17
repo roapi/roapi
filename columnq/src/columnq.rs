@@ -184,7 +184,7 @@ impl Default for ColumnQ {
 
 #[cfg(test)]
 mod tests {
-    use std::{str::FromStr};
+    use std::{env, str::FromStr};
 
     use datafusion::datasource::object_store::ObjectStoreProvider;
     use url::Url;
@@ -195,6 +195,13 @@ mod tests {
     fn s3_object_store_type() {
         let host_url = "s3://bucket_name/path";
         let provider = ColumnQObjectStoreProvider {};
+
+        let err = provider
+            .get_by_url(&Url::from_str(host_url).unwrap())
+            .unwrap_err();
+        assert!(err.to_string().contains("Generic S3 error: Missing region"));
+
+        env::set_var("AWS_REGION", "us-east-1");
         let res = provider
             .get_by_url(&Url::from_str(host_url).unwrap());
         let msg = match res {
@@ -202,6 +209,7 @@ mod tests {
             Ok(_) => "".to_string(),
         };
         assert_eq!("".to_string(), msg);
+        env::remove_var("AWS_REGION");
     }
 
     #[test]
