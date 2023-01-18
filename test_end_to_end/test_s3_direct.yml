@@ -10,3 +10,9 @@ tables:
       format: "parquet"
       # following line is different from test_end_to_end/test_s3_memory.yml
       use_memory_table: false
+  - name: "blogs_dir"
+    uri: "s3://test-data/blogs/"
+    option:
+      format: "parquet"
+      # following line is different from test_end_to_end/test_s3_memory.yml
+      use_memory_table: false

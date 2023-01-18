@@ -9,3 +9,8 @@ tables:
     option:
       format: "parquet"
       use_memory_table: true
+  - name: "blogs_dir"
+    uri: "s3://test-data/blogs/"
+    option:
+      format: "parquet"
+      use_memory_table: true

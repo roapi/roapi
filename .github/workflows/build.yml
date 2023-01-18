@@ -150,6 +150,7 @@ jobs:
         $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
         $HOME/minio-binaries/mc mb local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
+        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
     - name: Start roapi and Query
       env:
         AWS_DEFAULT_REGION: "us-east-1"
@@ -203,6 +204,7 @@ jobs:
         $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
         $HOME/minio-binaries/mc mb local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
+        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
     - name: Start roapi and Query
       env:
         AWS_DEFAULT_REGION: "us-east-1"
