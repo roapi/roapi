@@ -42,6 +42,12 @@ pub enum ColumnQError {
     #[error("Error loading data from S3 store: {0}")]
     S3Store(String),
 
+    #[error("DataFusion error: {source}")]
+    ObjectStore {
+        #[from]
+        source: object_store::Error,
+    },
+
     #[error("DeltaTable error: {source}")]
     DeltaTable {
         #[from]
