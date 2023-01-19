@@ -40,8 +40,8 @@ pub async fn to_delta_table(
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     match blob_type {
         io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
-        io::BlobStoreType::S3 => Err(ColumnQError::LoadDelta(format!(
-                "S3 for delta table currently only supported in conjunction with `to_memory_table` config: {}",
+        io::BlobStoreType::S3 | io::BlobStoreType::GCS => Err(ColumnQError::LoadDelta(format!(
+                "object_store for delta table currently only supported in conjunction with `to_memory_table` config: {}",
                 delta_table.table_uri(),
             ))),
         _ => {
@@ -92,7 +92,7 @@ pub async fn to_mem_table(
                 read_partition::<std::fs::File>(r, batch_size)
             },
         )?,
-        io::BlobStoreType::S3 => {
+        io::BlobStoreType::S3 | io::BlobStoreType::GCS => {
             io::object_store::partitions_from_path_iterator(
                 path_iter,
                 |r| -> Result<Vec<RecordBatch>, ColumnQError> {

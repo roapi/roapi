@@ -4,15 +4,18 @@ addr:
   # binding address for TCP port that speaks Postgres wire protocol
   postgres: 0.0.0.0:5432
 tables:
-  - name: "blogs"
+  - name: "s3_blogs"
     uri: "s3://test-data/blogs.parquet"
     option:
       format: "parquet"
-      # following line is different from test_end_to_end/test_s3_memory.yml
-      use_memory_table: false
-  - name: "blogs_dir"
+      use_memory_table: true
+  - name: "s3_blogs_dir"
     uri: "s3://test-data/blogs/"
     option:
       format: "parquet"
-      # following line is different from test_end_to_end/test_s3_memory.yml
-      use_memory_table: false
+      use_memory_table: true
+  - name: "gcs_blogs"
+    uri: "gs://test-data/blogs.parquet"
+    option:
+      format: "parquet"
+      use_memory_table: true

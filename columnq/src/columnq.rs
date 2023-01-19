@@ -13,6 +13,7 @@ use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
 use datafusion::physical_plan::collect;
 
 use object_store::aws::AmazonS3Builder;
+use object_store::gcp::GoogleCloudStorageBuilder;
 use crate::error::{ColumnQError, QueryError};
 use crate::query;
 use crate::table::{self, KeyValueSource, TableSource};
@@ -39,6 +40,19 @@ impl ObjectStoreProvider for ColumnQObjectStoreProvider {
                     Ok(s3) => Ok(Arc::new(s3)),
                     Err(err) => Err(DataFusionError::External(Box::new(err))),
                 }
+            },
+            "gs" => {
+                let host = url.host_str().unwrap();
+                let mut gcs_builder = GoogleCloudStorageBuilder::new().with_bucket_name(host);
+                // https://cloud.google.com/docs/authentication/application-default-credentials
+                if let Ok(service_account) = std::env::var("GOOGLE_APPLICATION_CREDENTIALS") {
+                    gcs_builder = gcs_builder.with_service_account_path(service_account)
+                }
+                match gcs_builder.build() {
+                    Ok(gcs) => Ok(Arc::new(gcs)),
+                    Err(err) => Err(DataFusionError::External(Box::new(err))),
+                }
+
             },
             _ => Err(DataFusionError::Execution(format!(
                 "Unsupported object store scheme {}",
@@ -216,12 +230,15 @@ mod tests {
     fn gcs_object_store_type() {
         let host_url = "gs://bucket_name/path";
         let provider = ColumnQObjectStoreProvider {};
-        let err = provider
-            .get_by_url(&Url::from_str(host_url).unwrap())
-            .unwrap_err();
-        assert!(err
-            .to_string()
-            .contains("Unsupported object store scheme gs"))
+
+        env::set_var("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/gcs.json");
+        let res = provider
+            .get_by_url(&Url::from_str(host_url).unwrap());
+        let msg = match res {
+            Err(e) => format!("{}", e),
+            Ok(_) => "".to_string(),
+        };
+        assert_eq!("".to_string(), msg);
     }
 
     #[test]
