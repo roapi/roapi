@@ -3,7 +3,6 @@ use std::convert::TryFrom;
 pub mod fs;
 pub mod http;
 pub mod memory;
-pub mod s3;
 pub mod object_store;
 
 use crate::error::ColumnQError;
