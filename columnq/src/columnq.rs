@@ -43,11 +43,7 @@ impl ObjectStoreProvider for ColumnQObjectStoreProvider {
             },
             "gs" => {
                 let host = url.host_str().unwrap();
-                let mut gcs_builder = GoogleCloudStorageBuilder::new().with_bucket_name(host);
-                // https://cloud.google.com/docs/authentication/application-default-credentials
-                if let Ok(service_account) = std::env::var("GOOGLE_APPLICATION_CREDENTIALS") {
-                    gcs_builder = gcs_builder.with_service_account_path(service_account)
-                }
+                let gcs_builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(host);
                 match gcs_builder.build() {
                     Ok(gcs) => Ok(Arc::new(gcs)),
                     Err(err) => Err(DataFusionError::External(Box::new(err))),
@@ -231,7 +227,7 @@ mod tests {
         let host_url = "gs://bucket_name/path";
         let provider = ColumnQObjectStoreProvider {};
 
-        env::set_var("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/gcs.json");
+        env::set_var("GOOGLE_SERVICE_ACCOUNT", "/tmp/gcs.json");
         let res = provider
             .get_by_url(&Url::from_str(host_url).unwrap());
         let msg = match res {
