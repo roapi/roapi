@@ -40,7 +40,9 @@ jobs:
     - name: Build
       run: cargo build
     - name: Run tests
-      run: cargo test
+      run: |
+        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
+        cargo test
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
@@ -72,7 +74,9 @@ jobs:
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
         override: true
     - name: Run tests
-      run: cargo test --features simd
+      run: |
+        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
+        cargo test --features simd
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
@@ -107,7 +111,9 @@ jobs:
       - name: Build
         run: cargo build --features database
       - name: Run tests
-        run: cargo test --features database
+        run: |
+          echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
+          cargo test --features database
       - name: Trim cache
         run: |
           which cargo-cache || cargo install cargo-cache
@@ -152,11 +158,9 @@ jobs:
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
     - name: Install fake gcs server (GCS)
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS: "/tmp/gcs.json"
       run: |
         docker run -d -p 4443:4443 fsouza/fake-gcs-server -scheme http
-        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "$GOOGLE_APPLICATION_CREDENTIALS"
+        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
     - name: Create bucket and copy test data (GCS)
       run: |
         curl -XPOST --data-binary '{"name":"test-data"}' -H "Content-Type: application/json" "http://localhost:4443/storage/v1/b"
@@ -217,11 +221,9 @@ jobs:
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
     - name: Install fake gcs server (GCS)
-      env:
-        GOOGLE_SERVICE_ACCOUNT: "/tmp/gcs.json"
       run: |
         docker run -d -p 4443:4443 fsouza/fake-gcs-server -scheme http
-        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "$GOOGLE_SERVICE_ACCOUNT"
+        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
     - name: Create bucket and copy test data (GCS)
       run: |
         curl -XPOST --data-binary '{"name":"test-data"}' -H "Content-Type: application/json" "http://localhost:4443/storage/v1/b"
