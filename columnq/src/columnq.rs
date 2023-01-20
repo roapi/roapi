@@ -194,7 +194,10 @@ impl Default for ColumnQ {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::Builder;
+    use std::io::Write;
     use std::{env, str::FromStr};
+    use std::fs::File;
 
     use datafusion::datasource::object_store::ObjectStoreProvider;
     use url::Url;
@@ -222,12 +225,19 @@ mod tests {
         env::remove_var("AWS_REGION");
     }
 
-    #[test]
-    fn gcs_object_store_type() {
+    #[tokio::test]
+    async fn gcs_object_store_type() -> anyhow::Result<()> {
         let host_url = "gs://bucket_name/path";
         let provider = ColumnQObjectStoreProvider {};
 
-        env::set_var("GOOGLE_SERVICE_ACCOUNT", "/tmp/gcs.json");
+        let tmp_dir = Builder::new()
+            .prefix("columnq.test.gcs")
+            .tempdir()?;
+        let tmp_gcs_path = tmp_dir.path().join("service_account.json");
+        let mut tmp_gcs = File::create(tmp_gcs_path.clone())?;
+        writeln!(tmp_gcs, r#"{{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}}"#)?;
+        env::set_var("GOOGLE_SERVICE_ACCOUNT", tmp_gcs_path.clone());
+
         let res = provider
             .get_by_url(&Url::from_str(host_url).unwrap());
         let msg = match res {
@@ -235,6 +245,11 @@ mod tests {
             Ok(_) => "".to_string(),
         };
         assert_eq!("".to_string(), msg);
+
+        drop(tmp_gcs);
+        tmp_dir.close()?;
+        env::remove_var("GOOGLE_SERVICE_ACCOUNT");
+        Ok(())
     }
 
     #[test]
