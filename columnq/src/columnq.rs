@@ -30,12 +30,6 @@ impl ObjectStoreProvider for ColumnQObjectStoreProvider {
                 // for minio in CI
                 s3_builder = s3_builder.with_allow_http(true);
 
-                // TODO: can remove "with_endpoint" after object_store upgrade to 0.5.3
-                // https://github.com/apache/arrow-datafusion/pull/4929
-                if let Ok(endpoint) = std::env::var("AWS_ENDPOINT_URL") {
-                    s3_builder = s3_builder.with_endpoint(endpoint);
-                }
-
                 match s3_builder.build() {
                     Ok(s3) => Ok(Arc::new(s3)),
                     Err(err) => Err(DataFusionError::External(Box::new(err))),
