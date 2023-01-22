@@ -287,7 +287,6 @@ mod tests {
         let err = provider
             .get_by_url(&Url::from_str(unknown).unwrap())
             .unwrap_err();
-        println!("{:?}", err.to_string());
         assert!(err
             .to_string()
             .contains("External error: Invalid table URI: Unsupported scheme: \"unknown\""))
