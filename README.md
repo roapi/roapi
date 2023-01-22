@@ -305,7 +305,7 @@ Data layer:
 - [x] filesystem
 - [x] HTTP/HTTPS
 - [x] S3
-- [ ] GCS
+- [x] GCS
 - [x] Google spreadsheet
 - [x] MySQL
 - [x] SQLite
