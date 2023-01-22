@@ -25,42 +25,45 @@ use url::Url;
 pub struct ColumnQObjectStoreProvider {}
 impl ObjectStoreProvider for ColumnQObjectStoreProvider {
     fn get_by_url(&self, url: &Url) -> DatafusionResult<Arc<dyn object_store::ObjectStore>> {
-        let url_schema = url.scheme();
-        match BlobStoreType::try_from(url_schema) {
-            Err(err) => Err(DataFusionError::External(Box::new(err))),
-            Ok(blob_type) => match blob_type {
-                BlobStoreType::S3 => {
-                    let host = url.host_str().unwrap();
-                    let mut s3_builder = AmazonS3Builder::from_env().with_bucket_name(host);
-                    // for minio in CI
-                    s3_builder = s3_builder.with_allow_http(true);
+        match url.host_str() {
+            None => Err(DataFusionError::Execution(format!("Missing bucket name: {}", url.as_str()))),
+            Some(host) => {
+                let url_schema = url.scheme();
+                match BlobStoreType::try_from(url_schema) {
+                    Err(err) => Err(DataFusionError::External(Box::new(err))),
+                    Ok(blob_type) => match blob_type {
+                        BlobStoreType::S3 => {
+                            let mut s3_builder = AmazonS3Builder::from_env().with_bucket_name(host);
+                            // for minio in CI
+                            s3_builder = s3_builder.with_allow_http(true);
 
-                    match s3_builder.build() {
-                        Ok(s3) => Ok(Arc::new(s3)),
-                        Err(err) => Err(DataFusionError::External(Box::new(err))),
-                    }
-                },
-                BlobStoreType::GCS => {
-                    let host = url.host_str().unwrap();
-                    let gcs_builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(host);
-                    match gcs_builder.build() {
-                        Ok(gcs) => Ok(Arc::new(gcs)),
-                        Err(err) => Err(DataFusionError::External(Box::new(err))),
-                    }
+                            match s3_builder.build() {
+                                Ok(s3) => Ok(Arc::new(s3)),
+                                Err(err) => Err(DataFusionError::External(Box::new(err))),
+                            }
+                        },
+                        BlobStoreType::GCS => {
+                            let gcs_builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(host);
+                            match gcs_builder.build() {
+                                Ok(gcs) => Ok(Arc::new(gcs)),
+                                Err(err) => Err(DataFusionError::External(Box::new(err))),
+                            }
 
-                },
-                BlobStoreType::Azure => {
-                    let host = url.host_str().unwrap();
-                    let azure_builder = MicrosoftAzureBuilder::from_env().with_container_name(host);
-                    match azure_builder.build() {
-                        Ok(azure) => Ok(Arc::new(azure)),
-                        Err(err) => Err(DataFusionError::External(Box::new(err))),
+                        },
+                        BlobStoreType::Azure => {
+                            let azure_builder = MicrosoftAzureBuilder::from_env().with_container_name(host);
+                            match azure_builder.build() {
+                                Ok(azure) => Ok(Arc::new(azure)),
+                                Err(err) => Err(DataFusionError::External(Box::new(err))),
+                            }
+                        },
+                        _ => Err(DataFusionError::Execution(format!(
+                            "Unsupported scheme: {}",
+                            url_schema
+                        ))),
                     }
-                },
-                _ => Err(DataFusionError::Execution(format!(
-                    "Unsupported scheme: {}",
-                    url_schema
-                ))),
+                }
+
             }
         }
     }
@@ -231,6 +234,17 @@ mod tests {
         };
         assert_eq!("".to_string(), msg);
         env::remove_var("AWS_REGION");
+    }
+
+    #[test]
+    fn s3_object_store_type_no_bucket() {
+        let host_url = "s3://";
+        let provider = ColumnQObjectStoreProvider {};
+
+        let err = provider
+            .get_by_url(&Url::from_str(host_url).unwrap())
+            .unwrap_err();
+        assert!(err.to_string().contains("Missing bucket name: s3://"));
     }
 
     #[tokio::test]
