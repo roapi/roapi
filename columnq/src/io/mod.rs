@@ -12,6 +12,7 @@ pub enum BlobStoreType {
     Http,
     S3,
     GCS,
+    Azure,
     FileSystem,
     Memory,
 }
@@ -26,16 +27,24 @@ impl TryFrom<Option<&uriparse::Scheme<'_>>> for BlobStoreType {
                 Ok(BlobStoreType::FileSystem)
             }
             Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => Ok(BlobStoreType::Http),
-            Some(uriparse::Scheme::Unregistered(s)) => match s.as_str() {
-                "s3" => Ok(BlobStoreType::S3),
-                "gs" => Ok(BlobStoreType::GCS),
-                "memory" => Ok(BlobStoreType::Memory),
-                _ => Err(ColumnQError::InvalidUri(format!(
-                    "Unsupported scheme: {:?}",
-                    scheme
-                ))),
-            },
+            Some(uriparse::Scheme::Unregistered(s)) => BlobStoreType::try_from(s.as_str()),
+            _ => Err(ColumnQError::InvalidUri(format!(
+                "Unsupported scheme: {:?}",
+                scheme
+            ))),
+        }
+    }
+}
 
+impl TryFrom<&str> for BlobStoreType {
+    type Error = ColumnQError;
+
+    fn try_from(scheme: &str) -> Result<Self, Self::Error> {
+        match scheme {
+            "s3" => Ok(BlobStoreType::S3),
+            "gs" => Ok(BlobStoreType::GCS),
+            "az" | "adl" | "adfs" | "adfss" | "azure" => Ok(BlobStoreType::Azure),
+            "memory" => Ok(BlobStoreType::Memory),
             _ => Err(ColumnQError::InvalidUri(format!(
                 "Unsupported scheme: {:?}",
                 scheme

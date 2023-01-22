@@ -16,7 +16,7 @@ path = "src/lib.rs"
 arrow-schema = { version ="26", features = ["serde"] }
 
 datafusion = "14"
-object_store = { version = "0.5.3", features = ["aws_profile", "gcp"] }
+object_store = { version = "0.5.3", features = ["aws_profile", "gcp", "azure"] }
 url = "2.2"
 
 log = "0"

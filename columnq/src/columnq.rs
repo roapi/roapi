@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+use crate::io::BlobStoreType;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -14,6 +16,7 @@ use datafusion::physical_plan::collect;
 
 use object_store::aws::AmazonS3Builder;
 use object_store::gcp::GoogleCloudStorageBuilder;
+use object_store::azure::MicrosoftAzureBuilder;
 use crate::error::{ColumnQError, QueryError};
 use crate::query;
 use crate::table::{self, KeyValueSource, TableSource};
@@ -23,31 +26,42 @@ pub struct ColumnQObjectStoreProvider {}
 impl ObjectStoreProvider for ColumnQObjectStoreProvider {
     fn get_by_url(&self, url: &Url) -> DatafusionResult<Arc<dyn object_store::ObjectStore>> {
         let url_schema = url.scheme();
-        match url_schema {
-            "s3" => {
-                let host = url.host_str().unwrap();
-                let mut s3_builder = AmazonS3Builder::from_env().with_bucket_name(host);
-                // for minio in CI
-                s3_builder = s3_builder.with_allow_http(true);
+        match BlobStoreType::try_from(url_schema) {
+            Err(err) => Err(DataFusionError::External(Box::new(err))),
+            Ok(blob_type) => match blob_type {
+                BlobStoreType::S3 => {
+                    let host = url.host_str().unwrap();
+                    let mut s3_builder = AmazonS3Builder::from_env().with_bucket_name(host);
+                    // for minio in CI
+                    s3_builder = s3_builder.with_allow_http(true);
 
-                match s3_builder.build() {
-                    Ok(s3) => Ok(Arc::new(s3)),
-                    Err(err) => Err(DataFusionError::External(Box::new(err))),
-                }
-            },
-            "gs" => {
-                let host = url.host_str().unwrap();
-                let gcs_builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(host);
-                match gcs_builder.build() {
-                    Ok(gcs) => Ok(Arc::new(gcs)),
-                    Err(err) => Err(DataFusionError::External(Box::new(err))),
-                }
+                    match s3_builder.build() {
+                        Ok(s3) => Ok(Arc::new(s3)),
+                        Err(err) => Err(DataFusionError::External(Box::new(err))),
+                    }
+                },
+                BlobStoreType::GCS => {
+                    let host = url.host_str().unwrap();
+                    let gcs_builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(host);
+                    match gcs_builder.build() {
+                        Ok(gcs) => Ok(Arc::new(gcs)),
+                        Err(err) => Err(DataFusionError::External(Box::new(err))),
+                    }
 
-            },
-            _ => Err(DataFusionError::Execution(format!(
-                "Unsupported object store scheme {}",
-                url_schema
-            ))),
+                },
+                BlobStoreType::Azure => {
+                    let host = url.host_str().unwrap();
+                    let azure_builder = MicrosoftAzureBuilder::from_env().with_container_name(host);
+                    match azure_builder.build() {
+                        Ok(azure) => Ok(Arc::new(azure)),
+                        Err(err) => Err(DataFusionError::External(Box::new(err))),
+                    }
+                },
+                _ => Err(DataFusionError::Execution(format!(
+                    "Unsupported scheme: {}",
+                    url_schema
+                ))),
+            }
         }
     }
 }
@@ -248,13 +262,34 @@ mod tests {
 
     #[test]
     fn azure_object_store_type() {
-        let unknown = "az://bucket_name/path";
+        let host_url = "az://bucket_name/path";
+        let provider = ColumnQObjectStoreProvider {};
+        // https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=visual-studio#http-connection-strings
+        env::set_var("AZURE_STORAGE_ACCOUNT_NAME", "devstoreaccount1");
+        env::set_var("AZURE_STORAGE_ACCOUNT_KEY", "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==");
+
+        let res = provider
+            .get_by_url(&Url::from_str(host_url).unwrap());
+        let msg = match res {
+            Err(e) => format!("{}", e),
+            Ok(_) => "".to_string(),
+        };
+        assert_eq!("".to_string(), msg);
+
+        env::remove_var("AZURE_STORAGE_ACCOUNT_NAME");
+        env::remove_var("AZURE_STORAGE_ACCOUNT_KEY");
+    }
+
+    #[test]
+    fn unknown_object_store_type() {
+        let unknown = "unknown://bucket_name/path";
         let provider = ColumnQObjectStoreProvider {};
         let err = provider
             .get_by_url(&Url::from_str(unknown).unwrap())
             .unwrap_err();
+        println!("{:?}", err.to_string());
         assert!(err
             .to_string()
-            .contains("Unsupported object store scheme az"))
+            .contains("External error: Invalid table URI: Unsupported scheme: \"unknown\""))
     }
 }
