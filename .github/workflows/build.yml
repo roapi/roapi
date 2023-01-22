@@ -40,7 +40,8 @@ jobs:
     - name: Build
       run: cargo build
     - name: Run tests
-      run: cargo test
+      run: |
+        cargo test
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
@@ -72,7 +73,8 @@ jobs:
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
         override: true
     - name: Run tests
-      run: cargo test --features simd
+      run: |
+        cargo test --features simd
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
@@ -107,13 +109,14 @@ jobs:
       - name: Build
         run: cargo build --features database
       - name: Run tests
-        run: cargo test --features database
+        run: |
+          cargo test --features database
       - name: Trim cache
         run: |
           which cargo-cache || cargo install cargo-cache
           cargo cache trim -l 1G
 
-  s3_memory_test:
+  object_store_memory_test:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
@@ -138,36 +141,45 @@ jobs:
         # toolchain: nightly
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
         override: true
-    - name: Install minio server
+    - name: Install minio server (S3)
       run: |
         docker run -d -p 9000:9000 quay.io/minio/minio server /data
-    - name: Install minio client
+    - name: Install minio client (S3)
       run: |
         curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
         chmod +x $HOME/minio-binaries/mc
-    - name: Create bucket and copy test data
+    - name: Create bucket and copy test data (S3)
       run: |
         $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
         $HOME/minio-binaries/mc mb local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
+    - name: Install fake gcs server (GCS)
+      run: |
+        docker run -d -p 4443:4443 fsouza/fake-gcs-server -scheme http
+        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
+    - name: Create bucket and copy test data (GCS)
+      run: |
+        curl -XPOST --data-binary '{"name":"test-data"}' -H "Content-Type: application/json" "http://localhost:4443/storage/v1/b"
+        curl -XPOST --data-binary '@test_data/blogs.parquet' "http://localhost:4443/storage/v1/b/test-data/o?uploadType=media&name=blogs.parquet"
     - name: Start roapi and Query
       env:
         AWS_DEFAULT_REGION: "us-east-1"
         AWS_ACCESS_KEY_ID: minioadmin
         AWS_SECRET_ACCESS_KEY: minioadmin
         AWS_ENDPOINT_URL: http://127.0.0.1:9000
+        GOOGLE_SERVICE_ACCOUNT: "/tmp/gcs.json"
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
         command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
         build: cargo build
-        start: cargo run --bin roapi -- -c test_end_to_end/test_s3_memory.yml
+        start: cargo run --bin roapi -- -c test_end_to_end/test_object_store_memory.yml
         wait-on: "http://127.0.0.1:8000/api/schema"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
         # 10 minutes = 600 seconds
         wait-on-timeout: 600
 
-  s3_direct_test:
+  object_store_direct_test:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
@@ -192,30 +204,39 @@ jobs:
         # toolchain: nightly
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
         override: true
-    - name: Install minio server
+    - name: Install minio server (S3)
       run: |
         docker run -d -p 9000:9000 quay.io/minio/minio server /data
-    - name: Install minio client
+    - name: Install minio client (S3)
       run: |
         curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
         chmod +x $HOME/minio-binaries/mc
-    - name: Create bucket and copy test data
+    - name: Create bucket and copy test data (S3)
       run: |
         $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
         $HOME/minio-binaries/mc mb local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
+    - name: Install fake gcs server (GCS)
+      run: |
+        docker run -d -p 4443:4443 fsouza/fake-gcs-server -scheme http
+        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
+    - name: Create bucket and copy test data (GCS)
+      run: |
+        curl -XPOST --data-binary '{"name":"test-data"}' -H "Content-Type: application/json" "http://localhost:4443/storage/v1/b"
+        curl -XPOST --data-binary '@test_data/blogs.parquet' "http://localhost:4443/storage/v1/b/test-data/o?uploadType=media&name=blogs.parquet"
     - name: Start roapi and Query
       env:
         AWS_DEFAULT_REGION: "us-east-1"
         AWS_ACCESS_KEY_ID: minioadmin
         AWS_SECRET_ACCESS_KEY: minioadmin
         AWS_ENDPOINT_URL: http://127.0.0.1:9000
+        GOOGLE_SERVICE_ACCOUNT: "/tmp/gcs.json"
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
         command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
         build: cargo build
-        start: cargo run --bin roapi -- -c test_end_to_end/test_s3_direct.yml
+        start: cargo run --bin roapi -- -c test_end_to_end/test_object_store_direct.yml
         wait-on: "http://127.0.0.1:8000/api/schema"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
         # 10 minutes = 600 seconds

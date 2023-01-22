@@ -11,6 +11,7 @@ use crate::error::ColumnQError;
 pub enum BlobStoreType {
     Http,
     S3,
+    GCS,
     FileSystem,
     Memory,
 }
@@ -27,6 +28,7 @@ impl TryFrom<Option<&uriparse::Scheme<'_>>> for BlobStoreType {
             Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => Ok(BlobStoreType::Http),
             Some(uriparse::Scheme::Unregistered(s)) => match s.as_str() {
                 "s3" => Ok(BlobStoreType::S3),
+                "gs" => Ok(BlobStoreType::GCS),
                 "memory" => Ok(BlobStoreType::Memory),
                 _ => Err(ColumnQError::InvalidUri(format!(
                     "Unsupported scheme: {:?}",

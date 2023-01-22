@@ -13,6 +13,7 @@ use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
 use datafusion::physical_plan::collect;
 
 use object_store::aws::AmazonS3Builder;
+use object_store::gcp::GoogleCloudStorageBuilder;
 use crate::error::{ColumnQError, QueryError};
 use crate::query;
 use crate::table::{self, KeyValueSource, TableSource};
@@ -33,6 +34,15 @@ impl ObjectStoreProvider for ColumnQObjectStoreProvider {
                     Ok(s3) => Ok(Arc::new(s3)),
                     Err(err) => Err(DataFusionError::External(Box::new(err))),
                 }
+            },
+            "gs" => {
+                let host = url.host_str().unwrap();
+                let gcs_builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(host);
+                match gcs_builder.build() {
+                    Ok(gcs) => Ok(Arc::new(gcs)),
+                    Err(err) => Err(DataFusionError::External(Box::new(err))),
+                }
+
             },
             _ => Err(DataFusionError::Execution(format!(
                 "Unsupported object store scheme {}",
@@ -178,7 +188,10 @@ impl Default for ColumnQ {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::Builder;
+    use std::io::Write;
     use std::{env, str::FromStr};
+    use std::fs::File;
 
     use datafusion::datasource::object_store::ObjectStoreProvider;
     use url::Url;
@@ -206,16 +219,31 @@ mod tests {
         env::remove_var("AWS_REGION");
     }
 
-    #[test]
-    fn gcs_object_store_type() {
+    #[tokio::test]
+    async fn gcs_object_store_type() -> anyhow::Result<()> {
         let host_url = "gs://bucket_name/path";
         let provider = ColumnQObjectStoreProvider {};
-        let err = provider
-            .get_by_url(&Url::from_str(host_url).unwrap())
-            .unwrap_err();
-        assert!(err
-            .to_string()
-            .contains("Unsupported object store scheme gs"))
+
+        let tmp_dir = Builder::new()
+            .prefix("columnq.test.gcs")
+            .tempdir()?;
+        let tmp_gcs_path = tmp_dir.path().join("service_account.json");
+        let mut tmp_gcs = File::create(tmp_gcs_path.clone())?;
+        writeln!(tmp_gcs, r#"{{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}}"#)?;
+        env::set_var("GOOGLE_SERVICE_ACCOUNT", tmp_gcs_path.clone());
+
+        let res = provider
+            .get_by_url(&Url::from_str(host_url).unwrap());
+        let msg = match res {
+            Err(e) => format!("{}", e),
+            Ok(_) => "".to_string(),
+        };
+        assert_eq!("".to_string(), msg);
+
+        drop(tmp_gcs);
+        tmp_dir.close()?;
+        env::remove_var("GOOGLE_SERVICE_ACCOUNT");
+        Ok(())
     }
 
     #[test]
