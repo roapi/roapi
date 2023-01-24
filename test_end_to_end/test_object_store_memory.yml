@@ -19,3 +19,8 @@ tables:
     option:
       format: "parquet"
       use_memory_table: true
+  - name: "azure_blogs"
+    uri: "az://test-data/blogs.parquet"
+    option:
+      format: "parquet"
+      use_memory_table: true

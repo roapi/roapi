@@ -92,7 +92,7 @@ pub async fn to_mem_table(
                 read_partition::<std::fs::File>(r, batch_size)
             },
         )?,
-        io::BlobStoreType::S3 | io::BlobStoreType::GCS => {
+        io::BlobStoreType::S3 | io::BlobStoreType::GCS | io::BlobStoreType::Azure => {
             io::object_store::partitions_from_path_iterator(
                 path_iter,
                 |r| -> Result<Vec<RecordBatch>, ColumnQError> {
