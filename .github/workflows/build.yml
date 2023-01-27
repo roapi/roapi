@@ -153,6 +153,7 @@ jobs:
         $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
         $HOME/minio-binaries/mc mb local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
+        $HOME/minio-binaries/mc cp test_data/blogs.parquet "local/test-data/blogs space.parquet"
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
     - name: Install fake gcs server (GCS)
       run: |
@@ -229,6 +230,7 @@ jobs:
         $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
         $HOME/minio-binaries/mc mb local/test-data
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
+        $HOME/minio-binaries/mc cp test_data/blogs.parquet "local/test-data/blogs space.parquet"
         $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
     - name: Install fake gcs server (GCS)
       run: |
