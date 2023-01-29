@@ -42,6 +42,12 @@ pub struct RoapiContextEngine<H: RoapiContext> {
     pub ctx: Arc<H>,
 }
 
+impl<H: RoapiContext> RoapiContextEngine<H> {
+    fn ignored_statement(statement: &Statement) -> bool {
+        !matches!(statement, Statement::Query { .. })
+    }
+}
+
 #[async_trait]
 impl<H: RoapiContext> Engine for RoapiContextEngine<H> {
     type PortalType = DataFusionPortal;
@@ -50,6 +56,9 @@ impl<H: RoapiContext> Engine for RoapiContextEngine<H> {
         &mut self,
         statement: &Statement,
     ) -> Result<Vec<FieldDescription>, ErrorResponse> {
+        if RoapiContextEngine::<H>::ignored_statement(statement) {
+            return Ok(vec![]);
+        }
         let query = statement.to_string();
         info!("preparing query: {}", &query);
         let df = self.ctx.sql_to_df(&query).await.map_err(df_err_to_sql)?;
@@ -60,9 +69,19 @@ impl<H: RoapiContext> Engine for RoapiContextEngine<H> {
         &mut self,
         statement: &Statement,
     ) -> Result<Self::PortalType, ErrorResponse> {
-        let query = statement.to_string();
-        let df = self.ctx.sql_to_df(&query).await.map_err(df_err_to_sql)?;
-        Ok(DataFusionPortal { df })
+        if RoapiContextEngine::<H>::ignored_statement(statement) {
+            Ok(DataFusionPortal {
+                df: self
+                    .ctx
+                    .sql_to_df("SELECT 1 WHERE 1 = 2")
+                    .await
+                    .map_err(df_err_to_sql)?,
+            })
+        } else {
+            let query = statement.to_string();
+            let df = self.ctx.sql_to_df(&query).await.map_err(df_err_to_sql)?;
+            Ok(DataFusionPortal { df })
+        }
     }
 }
 
