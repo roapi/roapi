@@ -65,7 +65,7 @@ fn json_vec_to_partition(
     );
     let mut batches = vec![];
     {
-        // enclose values_iter in its own scope so it won't brrow schema_ref til end of this
+        // enclose values_iter in its own scope so it won't borrow schema_ref til end of this
         // function
         let mut values_iter: Box<dyn Iterator<Item = arrow::error::Result<Value>>> =
             if array_encoded {
@@ -132,12 +132,12 @@ async fn to_partitions(
                 match &pointer {
                     Some(p) => {
                         return Err(ColumnQError::LoadJson(format!(
-                            "{p} points to an emtpy array"
+                            "{p} points to an empty array"
                         )));
                     }
                     None => {
                         return Err(ColumnQError::LoadJson(
-                            "JSON data is an emtpy array".to_string(),
+                            "JSON data is an empty array".to_string(),
                         ));
                     }
                 }
