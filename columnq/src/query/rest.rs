@@ -13,7 +13,7 @@ use crate::query::{column_sort_expr_asc, column_sort_expr_desc};
 fn err_rest_query_value(error: sqlparser::tokenizer::TokenizerError) -> QueryError {
     QueryError {
         error: "rest_query_value".to_string(),
-        message: format!("invalid REST query value {:?}", error),
+        message: format!("invalid REST query value {error:?}"),
     }
 }
 
@@ -36,13 +36,13 @@ fn rest_query_value_to_expr(v: &str) -> Result<Expr, QueryError> {
             } else {
                 Err(QueryError {
                     error: "rest_query_value".to_string(),
-                    message: format!("invalid REST query numeric value {}", s),
+                    message: format!("invalid REST query numeric value {s}"),
                 })
             }
         }
         _ => Err(QueryError {
             error: "rest_query_value".to_string(),
-            message: format!("invalid REST query value {}", v),
+            message: format!("invalid REST query value {v}"),
         }),
     }
 }
@@ -50,7 +50,7 @@ fn rest_query_value_to_expr(v: &str) -> Result<Expr, QueryError> {
 fn num_parse_err(e: std::num::ParseIntError) -> QueryError {
     QueryError {
         error: "invalid_numeric_param".to_string(),
-        message: format!("Failed to parse numeric parameter value: {}", e),
+        message: format!("Failed to parse numeric parameter value: {e}"),
     }
 }
 
@@ -78,7 +78,7 @@ pub fn table_query_to_df(
                     None => {
                         return Err(QueryError {
                             error: "rest_query".to_string(),
-                            message: format!("missing column from filter `{}`", key),
+                            message: format!("missing column from filter `{key}`"),
                         });
                     }
                 };
@@ -111,7 +111,7 @@ pub fn table_query_to_df(
             None => {
                 return Err(QueryError {
                     error: "rest_query".to_string(),
-                    message: format!("invalid filter condition {}", key),
+                    message: format!("invalid filter condition {key}"),
                 });
             }
         }

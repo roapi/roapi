@@ -1,7 +1,7 @@
 mod helpers;
 
 use anyhow::Result;
-use tokio;
+
 use tokio_postgres::NoTls;
 
 #[tokio::test]
@@ -18,7 +18,7 @@ async fn test_postgres_count() -> Result<()> {
     // so spawn it off to run on its own.
     tokio::spawn(async move {
         if let Err(e) = connection.await {
-            eprintln!("connection error: {}", e);
+            eprintln!("connection error: {e}");
         }
     });
 

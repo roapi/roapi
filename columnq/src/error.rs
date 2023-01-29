@@ -87,19 +87,19 @@ pub enum ColumnQError {
 
 impl ColumnQError {
     pub fn open_parquet_file(e: std::io::Error) -> Self {
-        Self::LoadParquet(format!("Failed to open file: {}", e))
+        Self::LoadParquet(format!("Failed to open file: {e}"))
     }
 
     pub fn parquet_record_reader(e: parquet::errors::ParquetError) -> Self {
-        Self::LoadParquet(format!("Failed to create record reader: {}", e))
+        Self::LoadParquet(format!("Failed to create record reader: {e}"))
     }
 
     pub fn parquet_file_reader(e: parquet::errors::ParquetError) -> Self {
-        Self::LoadParquet(format!("Failed to create file reader: {}", e))
+        Self::LoadParquet(format!("Failed to create file reader: {e}"))
     }
 
     pub fn json_parse(e: serde_json::Error) -> Self {
-        Self::LoadJson(format!("Failed to parse JSON data: {}", e))
+        Self::LoadJson(format!("Failed to parse JSON data: {e}"))
     }
 
     pub fn s3_obj_missing_key() -> Self {
@@ -133,56 +133,56 @@ impl QueryError {
     pub fn plan_sql(error: DataFusionError) -> Self {
         Self {
             error: "plan_sql".to_string(),
-            message: format!("Failed to plan execution from SQL query: {}", error),
+            message: format!("Failed to plan execution from SQL query: {error}"),
         }
     }
 
     pub fn invalid_sort(error: DataFusionError) -> Self {
         Self {
             error: "invalid_sort".to_string(),
-            message: format!("Failed to apply sort operator: {}", error),
+            message: format!("Failed to apply sort operator: {error}"),
         }
     }
 
     pub fn invalid_filter(error: DataFusionError) -> Self {
         Self {
             error: "invalid_filter".to_string(),
-            message: format!("Failed to apply filter operator: {}", error),
+            message: format!("Failed to apply filter operator: {error}"),
         }
     }
 
     pub fn invalid_limit(error: DataFusionError) -> Self {
         Self {
             error: "invalid_limit".to_string(),
-            message: format!("Failed to apply limit operator: {}", error),
+            message: format!("Failed to apply limit operator: {error}"),
         }
     }
 
     pub fn invalid_projection(error: DataFusionError) -> Self {
         Self {
             error: "invalid_projection".to_string(),
-            message: format!("Failed to apply projection operator: {}", error),
+            message: format!("Failed to apply projection operator: {error}"),
         }
     }
 
     pub fn query_exec(error: DataFusionError) -> Self {
         Self {
             error: "query_execution".to_string(),
-            message: format!("Failed to execute query: {}", error),
+            message: format!("Failed to execute query: {error}"),
         }
     }
 
     pub fn invalid_table(error: DataFusionError, table_name: &str) -> Self {
         Self {
             error: "invalid_table".to_string(),
-            message: format!("Failed to load table {}: {}", table_name, error),
+            message: format!("Failed to load table {table_name}: {error}"),
         }
     }
 
     pub fn invalid_kv_name(kv_name: &str) -> Self {
         Self {
             error: "invalid_kv_name".to_string(),
-            message: format!("keyvalue store name `{}` doesn't exist", kv_name),
+            message: format!("keyvalue store name `{kv_name}` doesn't exist"),
         }
     }
 }

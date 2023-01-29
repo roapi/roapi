@@ -20,7 +20,7 @@ where
         .map(|fpath| {
             debug!("loading file from path: {}", fpath);
             let reader = fs::File::open(fpath)
-                .map_err(|e| ColumnQError::FileStore(format!("open file error: {}", e)))?;
+                .map_err(|e| ColumnQError::FileStore(format!("open file error: {e}")))?;
 
             partition_reader(reader)
         })
@@ -43,8 +43,7 @@ where
     debug!("building file list from path {}...", fs_path);
     let files = build_file_list(&fs_path, &file_ext).map_err(|e| {
         ColumnQError::FileStore(format!(
-            "Failed to build file list from path `{}`: {}",
-            fs_path, e
+            "Failed to build file list from path `{fs_path}`: {e}"
         ))
     })?;
 

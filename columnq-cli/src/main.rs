@@ -65,7 +65,7 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
                             pretty::print_batches(&batches)?;
                         }
                         Err(e) => {
-                            println!("Error: {}", e);
+                            println!("Error: {e}");
                         }
                     },
                 }
@@ -75,7 +75,7 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
                 break;
             }
             Err(err) => {
-                println!("Error: {:?}", err);
+                println!("Error: {err:?}");
                 break;
             }
         }
@@ -143,7 +143,7 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
                 other => anyhow::bail!("unsupported output format: {}", other),
             },
             Err(e) => {
-                println!("Error: {}", e);
+                println!("Error: {e}");
             }
         },
         None => {

@@ -77,7 +77,7 @@ impl ApiErrResp {
         Self {
             code: http::StatusCode::BAD_REQUEST,
             error: "read_query".to_string(),
-            message: format!("Failed to decode utf-8 query: {}", error),
+            message: format!("Failed to decode utf-8 query: {error}"),
         }
     }
 

@@ -12,7 +12,7 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    pub fn to_str<'a>(&'a self) -> &'static str {
+    pub fn to_str(&self) -> &'static str {
         match self {
             ContentType::Json => "application/json",
             ContentType::Csv => "application/csv",

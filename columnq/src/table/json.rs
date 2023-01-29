@@ -26,8 +26,7 @@ fn json_partition_to_vec(
             Some(v) => value_ref = v,
             None => {
                 return Err(ColumnQError::LoadJson(format!(
-                    "Invalid json pointer: {}",
-                    p
+                    "Invalid json pointer: {p}"
                 )))
             }
         }
@@ -55,7 +54,7 @@ fn json_vec_to_partition(
             json_rows.iter().map(|v| Ok(v.clone())),
         )
         .map_err(|e| {
-            ColumnQError::LoadJson(format!("Failed to infer schema from JSON data: {}", e))
+            ColumnQError::LoadJson(format!("Failed to infer schema from JSON data: {e}"))
         })?,
     };
 
@@ -81,8 +80,7 @@ fn json_vec_to_partition(
                                 Ok(())
                             }
                             None => Err(arrow::error::ArrowError::JsonError(format!(
-                                "arry encoded JSON row missing column {:?} : {:?}",
-                                i, json_row
+                                "arry encoded JSON row missing column {i:?} : {json_row:?}"
                             ))),
                         }
                     })?;
@@ -94,7 +92,7 @@ fn json_vec_to_partition(
             };
 
         while let Some(batch) = decoder.next_batch(&mut values_iter).map_err(|e| {
-            ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {}", e))
+            ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {e}"))
         })? {
             batches.push(batch);
         }
@@ -134,8 +132,7 @@ async fn to_partitions(
                 match &pointer {
                     Some(p) => {
                         return Err(ColumnQError::LoadJson(format!(
-                            "{} points to an emtpy array",
-                            p
+                            "{p} points to an emtpy array"
                         )));
                     }
                     None => {

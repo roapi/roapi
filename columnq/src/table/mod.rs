@@ -269,7 +269,7 @@ impl TableLoadOption {
         }
     }
 
-    pub fn extension<'a>(&'a self) -> &'static str {
+    pub fn extension(&self) -> &'static str {
         match self {
             Self::json { .. } => "json",
             Self::ndjson { .. } => "ndjson",
@@ -305,8 +305,7 @@ impl TableIoSource {
         match self {
             Self::Memory(data) => Ok(data),
             other => Err(ColumnQError::Generic(format!(
-                "expect memory IO source, got: {:?}",
-                other
+                "expect memory IO source, got: {other:?}"
             ))),
         }
     }
@@ -315,7 +314,7 @@ impl TableIoSource {
 impl std::fmt::Display for TableIoSource {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            TableIoSource::Uri(uri) => write!(f, "uri({})", uri),
+            TableIoSource::Uri(uri) => write!(f, "uri({uri})"),
             TableIoSource::Memory(_) => write!(f, "memory"),
         }
     }
@@ -407,26 +406,23 @@ impl TableSource {
     pub fn parsed_uri(&self) -> Result<URIReference, ColumnQError> {
         match &self.io_source {
             TableIoSource::Uri(uri) => URIReference::try_from(uri.as_str()).map_err(|_| {
-                ColumnQError::InvalidUri(format!("{}. Make sure it's URI encoded.", uri))
+                ColumnQError::InvalidUri(format!("{uri}. Make sure it's URI encoded."))
             }),
             TableIoSource::Memory(_) => URIReference::builder()
                 .with_scheme(Some(uriparse::Scheme::try_from("memory").map_err(|e| {
                     ColumnQError::Generic(format!(
-                        "failed to create uri scheme for memory IO source: {:?}",
-                        e
+                        "failed to create uri scheme for memory IO source: {e:?}"
                     ))
                 })?))
                 .with_path(uriparse::Path::try_from("data").map_err(|e| {
                     ColumnQError::Generic(format!(
-                        "failed to create uri path for memory IO source: {:?}",
-                        e
+                        "failed to create uri path for memory IO source: {e:?}"
                     ))
                 })?)
                 .build()
                 .map_err(|e| {
                     ColumnQError::Generic(format!(
-                        "failed to create uri for memory IO source: {:?}",
-                        e
+                        "failed to create uri for memory IO source: {e:?}"
                     ))
                 }),
         }
@@ -443,8 +439,7 @@ impl TableSource {
                         "sqlite" | "sqlite3" | "db" => "sqlite",
                         _ => {
                             return Err(ColumnQError::InvalidUri(format!(
-                                "unsupported extension in uri: {}",
-                                uri
+                                "unsupported extension in uri: {uri}"
                             )));
                         }
                     },
@@ -456,8 +451,7 @@ impl TableSource {
                             Some(TableLoadOption::postgres {}) => "postgres",
                             _ => {
                                 return Err(ColumnQError::InvalidUri(format!(
-                                    "unsupported extension in uri: {}",
-                                    uri
+                                    "unsupported extension in uri: {uri}"
                                 )));
                             }
                         }
@@ -473,7 +467,10 @@ impl TableSource {
     }
 }
 
-pub async fn load(t: &TableSource, dfctx: &datafusion::execution::context::SessionContext) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn load(
+    t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     if let Some(opt) = &t.option {
         Ok(match opt {
             TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t).await?),
@@ -529,7 +526,7 @@ pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
 
     let uri = uri_args
         .next()
-        .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI argument: {}", uri_arg)))?;
+        .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI argument: {uri_arg}")))?;
     let split = uri.splitn(2, '=').collect::<Vec<&str>>();
 
     let (table_name, uri) = match split.len() {
@@ -539,10 +536,10 @@ pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
                 Some(s) => Ok(s),
                 None => Path::new(uri)
                     .file_name()
-                    .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI: {}", uri))),
+                    .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI: {uri}"))),
             }?
             .to_str()
-            .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI string: {}", uri)))?;
+            .ok_or_else(|| ColumnQError::Generic(format!("invalid table URI string: {uri}")))?;
 
             (table_name, uri)
         }
@@ -553,7 +550,7 @@ pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
     let t = if uri == "stdin" {
         let mut buffer = Vec::new();
         std::io::stdin().read_to_end(&mut buffer).map_err(|e| {
-            ColumnQError::Generic(format!("Failed to read table data from stdin: {:?}", e))
+            ColumnQError::Generic(format!("Failed to read table data from stdin: {e:?}"))
         })?;
         TableSource::new(table_name, TableIoSource::Memory(buffer))
     } else {
@@ -566,10 +563,10 @@ pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
         let mut parts = opt_str.splitn(2, '=');
         let opt_key = parts
             .next()
-            .ok_or_else(|| ColumnQError::Generic(format!("invalid table option: {:?}", opt_str)))?;
+            .ok_or_else(|| ColumnQError::Generic(format!("invalid table option: {opt_str:?}")))?;
         let opt_value = parts
             .next()
-            .ok_or_else(|| ColumnQError::Generic(format!("invalid table option: {:?}", opt_str)))?;
+            .ok_or_else(|| ColumnQError::Generic(format!("invalid table option: {opt_str:?}")))?;
         option_json.insert(
             opt_key.to_string(),
             serde_json::from_str(opt_value).unwrap_or_else(|_| opt_value.into()),
@@ -579,7 +576,7 @@ pub fn parse_table_uri_arg(uri_arg: &str) -> Result<TableSource, ColumnQError> {
     if !option_json.is_empty() {
         let opt: TableLoadOption = serde_json::from_value(serde_json::Value::Object(option_json))
             .map_err(|e| {
-            ColumnQError::Generic(format!("Failed to parse table option: {:?}", e))
+            ColumnQError::Generic(format!("Failed to parse table option: {e:?}"))
         })?;
         Ok(t.with_option(opt))
     } else {

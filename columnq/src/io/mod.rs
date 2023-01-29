@@ -29,8 +29,7 @@ impl TryFrom<Option<&uriparse::Scheme<'_>>> for BlobStoreType {
             Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => Ok(BlobStoreType::Http),
             Some(uriparse::Scheme::Unregistered(s)) => BlobStoreType::try_from(s.as_str()),
             _ => Err(ColumnQError::InvalidUri(format!(
-                "Unsupported scheme: {:?}",
-                scheme
+                "Unsupported scheme: {scheme:?}"
             ))),
         }
     }
@@ -46,8 +45,7 @@ impl TryFrom<&str> for BlobStoreType {
             "az" | "adl" | "adfs" | "adfss" | "azure" => Ok(BlobStoreType::Azure),
             "memory" => Ok(BlobStoreType::Memory),
             _ => Err(ColumnQError::InvalidUri(format!(
-                "Unsupported scheme: {:?}",
-                scheme
+                "Unsupported scheme: {scheme:?}"
             ))),
         }
     }

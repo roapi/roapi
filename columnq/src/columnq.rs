@@ -58,8 +58,7 @@ impl ObjectStoreProvider for ColumnQObjectStoreProvider {
                             }
                         },
                         _ => Err(DataFusionError::Execution(format!(
-                            "Unsupported scheme: {}",
-                            url_schema
+                            "Unsupported scheme: {url_schema}"
                         ))),
                     }
                 }
@@ -229,7 +228,7 @@ mod tests {
         let res = provider
             .get_by_url(&Url::from_str(host_url).unwrap());
         let msg = match res {
-            Err(e) => format!("{}", e),
+            Err(e) => format!("{e}"),
             Ok(_) => "".to_string(),
         };
         assert_eq!("".to_string(), msg);
@@ -258,12 +257,12 @@ mod tests {
         let tmp_gcs_path = tmp_dir.path().join("service_account.json");
         let mut tmp_gcs = File::create(tmp_gcs_path.clone())?;
         writeln!(tmp_gcs, r#"{{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}}"#)?;
-        env::set_var("GOOGLE_SERVICE_ACCOUNT", tmp_gcs_path.clone());
+        env::set_var("GOOGLE_SERVICE_ACCOUNT", tmp_gcs_path);
 
         let res = provider
             .get_by_url(&Url::from_str(host_url).unwrap());
         let msg = match res {
-            Err(e) => format!("{}", e),
+            Err(e) => format!("{e}"),
             Ok(_) => "".to_string(),
         };
         assert_eq!("".to_string(), msg);
@@ -285,7 +284,7 @@ mod tests {
         let res = provider
             .get_by_url(&Url::from_str(host_url).unwrap());
         let msg = match res {
-            Err(e) => format!("{}", e),
+            Err(e) => format!("{e}"),
             Ok(_) => "".to_string(),
         };
         assert_eq!("".to_string(), msg);

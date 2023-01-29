@@ -120,7 +120,7 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         None => Config::default(),
         Some(config_path) => {
             let config_content = fs::read_to_string(config_path)
-                .with_context(|| format!("Failed to read config file: {}", config_path))?;
+                .with_context(|| format!("Failed to read config file: {config_path}"))?;
 
             serde_yaml::from_str(&config_content).context("Failed to parse YAML config")?
         }
