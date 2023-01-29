@@ -63,6 +63,7 @@ serde_yaml = "0.8"
 tempfile = "3.3.0"
 pretty_assertions = "*"
 dotenvy = "*"
+rusqlite = "0"
 
 [features]
 default = ["rustls"]

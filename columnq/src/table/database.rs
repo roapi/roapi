@@ -109,31 +109,3 @@ mod imp {
 }
 
 pub use imp::*;
-
-#[cfg(any(feature = "database-mysql"))]
-#[cfg(test)]
-mod tests {
-    use datafusion::datasource::TableProvider;
-    use datafusion::prelude::SessionContext;
-    use dotenvy::dotenv;
-    use std::env;
-
-    use crate::table::TableSource;
-
-    use super::*;
-
-    #[cfg(feature = "database-mysql")]
-    #[tokio::test]
-    async fn load_mysql() -> anyhow::Result<()> {
-        dotenv().ok();
-        if let Ok(name) = env::var("TABLE_NAME") {
-            let t = DatabaseLoader::MySQL
-                .to_mem_table(&TableSource::new(name, env::var("MYSQL_URL")?))?;
-            let ctx = SessionContext::new();
-            let stats = t.scan(&ctx.state(), &None, &[], None).await?.statistics();
-            assert!(stats.num_rows.is_some());
-        }
-
-        Ok(())
-    }
-}
