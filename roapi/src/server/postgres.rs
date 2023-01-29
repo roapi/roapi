@@ -74,7 +74,7 @@ pub struct PostgresServer<H: RoapiContext> {
 
 impl<H: RoapiContext> PostgresServer<H> {
     pub async fn new(ctx: Arc<H>, config: &Config, default_host: String) -> Self {
-        let default_addr = format!("{}:5432", default_host);
+        let default_addr = format!("{default_host}:5432");
 
         let addr = config
             .addr

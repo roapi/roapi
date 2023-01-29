@@ -11,5 +11,5 @@ pub async fn get<H: RoapiContext>(
 ) -> Result<impl IntoResponse, ApiErrResp> {
     ctx.kv_get(&kv_name, &key)
         .await?
-        .ok_or_else(|| ApiErrResp::not_found(format!("key {} not found", key)))
+        .ok_or_else(|| ApiErrResp::not_found(format!("key {key} not found")))
 }

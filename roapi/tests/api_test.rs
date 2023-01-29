@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use async_process::Command;
 use columnq::arrow::datatypes::Schema;
-use tokio;
+
 
 #[tokio::test]
 async fn test_schema() -> Result<()> {
@@ -13,7 +13,7 @@ async fn test_schema() -> Result<()> {
     let (app, address) = helpers::test_api_app_with_tables(vec![json_table]).await;
     tokio::spawn(app.run_until_stopped());
 
-    let response = helpers::http_get(&format!("{}/api/schema", address), None).await;
+    let response = helpers::http_get(&format!("{address}/api/schema"), None).await;
 
     assert_eq!(response.status(), 200);
     let body = response.json::<HashMap<String, Schema>>().await?;
@@ -28,7 +28,7 @@ async fn test_uk_cities_sql_post() -> Result<()> {
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
-        &format!("{}/api/sql", address),
+        &format!("{address}/api/sql"),
         "SELECT city FROM uk_cities WHERE lat > 52 and lat < 53 and lng < -1",
     )
     .await;
@@ -54,7 +54,7 @@ async fn test_sql_invalid_post() -> Result<()> {
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
 
-    let response = helpers::http_post(&format!("{}/api/sql", address), "SELECT city FROM").await;
+    let response = helpers::http_post(&format!("{address}/api/sql"), "SELECT city FROM").await;
 
     assert_eq!(response.status(), 400);
     let data = response.json::<serde_json::Value>().await?;
@@ -76,7 +76,7 @@ async fn test_ubuntu_ami_sql_post() -> Result<()> {
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
-        &format!("{}/api/sql", address),
+        &format!("{address}/api/sql"),
         "SELECT ami_id FROM ubuntu_ami \
                 WHERE version='12.04 LTS' \
                     AND arch = 'amd64' \
@@ -111,14 +111,13 @@ async fn test_rest_get() -> Result<()> {
     for accept_header in accept_headers {
         let response = helpers::http_get(
             &format!(
-                "{}/api/tables/ubuntu_ami?\
+                "{address}/api/tables/ubuntu_ami?\
                 columns=name,version,release&\
                 filter[arch]='amd64'&\
                 filter[zone]eq='us-west-2'&\
                 filter[instance_type]eq='hvm:ebs-ssd'&\
                 sort=-version,release\
-                ",
-                address
+                "
             ),
             accept_header,
         )
@@ -150,7 +149,7 @@ async fn test_graphql_post_query_op() -> Result<()> {
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
-        &format!("{}/api/graphql", address),
+        &format!("{address}/api/graphql"),
         r#"query {
                     ubuntu_ami(
                         filter: {
@@ -196,7 +195,7 @@ async fn test_graphql_post_selection() -> Result<()> {
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_post(
-        &format!("{}/api/graphql", address),
+        &format!("{address}/api/graphql"),
         r#"{
                 ubuntu_ami(
                     filter: {
@@ -246,7 +245,7 @@ async fn test_http2() -> Result<()> {
         .arg("-s")
         .arg("-I")
         .arg("--http2-prior-knowledge")
-        .arg(format!("{}/api/schema", address))
+        .arg(format!("{address}/api/schema"))
         .arg("-o")
         .arg("/dev/null")
         .arg("-w")
@@ -272,8 +271,7 @@ async fn test_kvstore_get() -> Result<()> {
 
     let response = helpers::http_get(
         &format!(
-            "{}/api/kv/spacex_launch_name/600f9a8d8f798e2a4d5f979e",
-            address
+            "{address}/api/kv/spacex_launch_name/600f9a8d8f798e2a4d5f979e"
         ),
         None,
     )

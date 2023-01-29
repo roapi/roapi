@@ -16,12 +16,11 @@ where
         .map_err(|e| ColumnQError::HttpStore(e.to_string()))?;
     if resp.status().as_u16() / 100 != 2 {
         return Err(ColumnQError::HttpStore(format!(
-            "Invalid response from server: {:?}",
-            resp
+            "Invalid response from server: {resp:?}"
         )));
     }
     let reader = std::io::Cursor::new(resp.bytes().await.map_err(|e| {
-        ColumnQError::HttpStore(format!("Failed to decode server response: {}", e))
+        ColumnQError::HttpStore(format!("Failed to decode server response: {e}"))
     })?);
 
     // HTTP store doesn't support directory listing, so we always only return a single partition

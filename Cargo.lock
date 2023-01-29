@@ -969,7 +969,7 @@ dependencies = [
 
 [[package]]
 name = "columnq-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -3490,7 +3490,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-process",

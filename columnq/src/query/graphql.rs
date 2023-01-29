@@ -26,7 +26,7 @@ impl From<graphql_parser::query::ParseError> for QueryError {
 fn invalid_selection_set(error: datafusion::error::DataFusionError) -> QueryError {
     QueryError {
         error: "invalid_selection_set".to_string(),
-        message: format!("failed to apply selection set for query: {}", error),
+        message: format!("failed to apply selection set for query: {error}"),
     }
 }
 
@@ -40,8 +40,8 @@ fn invalid_query(message: String) -> QueryError {
 // convert order list from graphql argument to datafusion sort columns
 //
 // sort order matters, thus it's modeled as a list
-fn to_datafusion_sort_columns<'a, 'b>(
-    sort_columns: &'a [Value<'b, &'b str>],
+fn to_datafusion_sort_columns<'b>(
+    sort_columns: &[Value<'b, &'b str>],
 ) -> Result<Vec<Expr>, QueryError> {
     sort_columns
         .iter()
@@ -56,8 +56,7 @@ fn to_datafusion_sort_columns<'a, 'b>(
                     }
                     _ => {
                         return Err(invalid_query(format!(
-                            "field in sort option should be a string, got: {}",
-                            optval,
+                            "field in sort option should be a string, got: {optval}",
                         )));
                     }
                 };
@@ -68,25 +67,22 @@ fn to_datafusion_sort_columns<'a, 'b>(
                         "desc" => Ok(column_sort_expr_desc(col.to_string())),
                         "asc" => Ok(column_sort_expr_asc(col.to_string())),
                         other => Err(invalid_query(format!(
-                            "sort order needs to be either `desc` or `asc`, got: {}",
-                            other,
+                            "sort order needs to be either `desc` or `asc`, got: {other}",
                         ))),
                     },
                     Some(v) => Err(invalid_query(format!(
-                        "sort order value should to be a String, got: {}",
-                        v,
+                        "sort order value should to be a String, got: {v}",
                     ))),
                 }
             }
             other => Err(invalid_query(format!(
-                "sort condition should be defined as object, got: {}",
-                other,
+                "sort condition should be defined as object, got: {other}",
             ))),
         })
         .collect()
 }
 
-fn operand_to_datafusion_expr<'a, 'b>(operand: &'a Value<'b, &'b str>) -> Result<Expr, QueryError> {
+fn operand_to_datafusion_expr<'b>(operand: &Value<'b, &'b str>) -> Result<Expr, QueryError> {
     match operand {
         Value::Boolean(b) => Ok(Expr::Literal(ScalarValue::Boolean(Some(*b)))),
         Value::String(s) => Ok(Expr::Literal(ScalarValue::Utf8(Some(s.to_string())))),
@@ -96,15 +92,13 @@ fn operand_to_datafusion_expr<'a, 'b>(operand: &'a Value<'b, &'b str>) -> Result
         Value::Int(n) => Ok(Expr::Literal(ScalarValue::Int64(Some(
             n.as_i64().ok_or_else(|| {
                 invalid_query(format!(
-                    "invalid integer number in filter predicate: {}",
-                    operand
+                    "invalid integer number in filter predicate: {operand}"
                 ))
             })?,
         )))),
         Value::Float(f) => Ok(Expr::Literal(ScalarValue::Float64(Some(f.to_owned())))),
         other => Err(invalid_query(format!(
-            "invalid operand in filter predicate: {}",
-            other,
+            "invalid operand in filter predicate: {other}",
         ))),
     }
 }
@@ -123,9 +117,9 @@ fn operand_to_datafusion_expr<'a, 'b>(operand: &'a Value<'b, &'b str>) -> Result
 //     col4
 // }
 // ```
-fn to_datafusion_predicates<'a, 'b>(
-    col: &'b str,
-    filter: &'a Value<'b, &'b str>,
+fn to_datafusion_predicates<'b>(
+    col: &str,
+    filter: &Value<'b, &'b str>,
 ) -> Result<Vec<Expr>, QueryError> {
     match filter {
         Value::Object(obj) => obj
@@ -140,8 +134,7 @@ fn to_datafusion_predicates<'a, 'b>(
                     "gt" => Ok(binary_expr(col_expr, Operator::Gt, right_expr)),
                     "gte" | "gteq" => Ok(binary_expr(col_expr, Operator::GtEq, right_expr)),
                     other => Err(invalid_query(format!(
-                        "invalid filter predicate operator, got: {}",
-                        other,
+                        "invalid filter predicate operator, got: {other}",
                     ))),
                 }
             })
@@ -155,8 +148,7 @@ fn to_datafusion_predicates<'a, 'b>(
             )])
         }
         other => Err(invalid_query(format!(
-            "filter predicate should be defined as object, got: {}",
-            other,
+            "filter predicate should be defined as object, got: {other}",
         ))),
     }
 }
@@ -187,7 +179,7 @@ pub fn query_to_df(
         n => {
             return Err(QueryError {
                 error: "invalid graphql query".to_string(),
-                message: format!("only 1 definition allowed, got: {}", n),
+                message: format!("only 1 definition allowed, got: {n}"),
             });
         }
     };
@@ -198,7 +190,7 @@ pub fn query_to_df(
         _ => {
             return Err(QueryError {
                 error: "invalid graphql query".to_string(),
-                message: format!("Unsupported operation: {}", def),
+                message: format!("Unsupported operation: {def}"),
             });
         }
     }
@@ -256,7 +248,7 @@ pub fn query_to_df(
             }
             "page" => page = Some(value),
             other => {
-                return Err(invalid_query(format!("invalid query argument: {}", other)));
+                return Err(invalid_query(format!("invalid query argument: {other}")));
             }
         }
     }
@@ -273,8 +265,7 @@ pub fn query_to_df(
             }
             other => {
                 return Err(invalid_query(format!(
-                    "filter argument takes object as value, got: {}",
-                    other
+                    "filter argument takes object as value, got: {other}"
                 )));
             }
         }
@@ -307,8 +298,7 @@ pub fn query_to_df(
             }
             other => {
                 return Err(invalid_query(format!(
-                    "sort argument takes list as value, got: {}",
-                    other
+                    "sort argument takes list as value, got: {other}"
                 )));
             }
         }
@@ -325,8 +315,7 @@ pub fn query_to_df(
                         if let Value::Int(n) = value {
                             n.as_i64().ok_or_else(|| {
                                 invalid_query(format!(
-                                    "invalid 64bits integer number in limit argument: {}",
-                                    value,
+                                    "invalid 64bits integer number in limit argument: {value}",
                                 ))
                             })? - 1
                         } else {
@@ -336,23 +325,21 @@ pub fn query_to_df(
                 };
                 let limit = n.as_i64().ok_or_else(|| {
                     invalid_query(format!(
-                        "invalid 64bits integer number in limit argument: {}",
-                        value,
+                        "invalid 64bits integer number in limit argument: {value}",
                     ))
                 })?;
                 df = df
                     .limit(
                         (skip as usize) * limit as usize,
                         Some(usize::try_from(limit).map_err(|_| {
-                            invalid_query(format!("limit value too large: {}", value))
+                            invalid_query(format!("limit value too large: {value}"))
                         })?),
                     )
                     .map_err(QueryError::invalid_limit)?;
             }
             other => {
                 return Err(invalid_query(format!(
-                    "limit argument takes int as value, got: {}",
-                    other,
+                    "limit argument takes int as value, got: {other}",
                 )));
             }
         }
