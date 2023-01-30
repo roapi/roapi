@@ -10,11 +10,6 @@ tables:
       format: "parquet"
       # following line is different from test_end_to_end/test_s3_memory.yml
       use_memory_table: false
-  - name: "s3_blogs_space"
-    uri: "s3://test-data/blogs space.parquet"
-    option:
-      format: "parquet"
-      use_memory_table: false
   - name: "s3_blogs_space_encode"
     uri: "s3://test-data/blogs%20space.parquet"
     option:

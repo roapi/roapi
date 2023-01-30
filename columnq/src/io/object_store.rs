@@ -1,5 +1,6 @@
 use futures::TryStreamExt;
 use std::str::FromStr;
+use percent_encoding;
 use url::Url;
 use crate::table::TableSource;
 use uriparse::URIReference;
@@ -57,9 +58,12 @@ where
     let client = object_store_provider.get_by_url(url)?;
     let mut partitions = vec![];
 
-    // first try loading table uri as single object
     // url.path starts with "/", but object_store does not expect "/" at the beginning
-    let path = object_store::path::Path::from(&url.path()[1..]);
+    // decode percent: https://github.com/apache/arrow-datafusion/pull/3750/files
+    let decoded_path = percent_encoding::percent_decode_str(&url.path()[1..]).decode_utf8_lossy();
+    let path = object_store::path::Path::from(decoded_path.as_ref());
+
+    // first try loading table uri as single object
     match partition_key_to_reader(client.clone(), &path).await {
         Ok(reader) => {
             partitions.push(partition_reader(reader)?);
