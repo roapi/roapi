@@ -1037,6 +1037,7 @@ dependencies = [
  "lazy_static",
  "log",
  "object_store",
+ "percent-encoding",
  "pretty_assertions",
  "regex",
  "reqwest",

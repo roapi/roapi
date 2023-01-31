@@ -9,6 +9,11 @@ tables:
     option:
       format: "parquet"
       use_memory_table: true
+  - name: "s3_blogs_space_encode"
+    uri: "s3://test-data/blogs%20space.parquet"
+    option:
+      format: "parquet"
+      use_memory_table: true
   - name: "s3_blogs_dir"
     uri: "s3://test-data/blogs/"
     option:
