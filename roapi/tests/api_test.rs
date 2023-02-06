@@ -6,7 +6,6 @@ use anyhow::Result;
 use async_process::Command;
 use columnq::arrow::datatypes::Schema;
 
-
 #[tokio::test]
 async fn test_schema() -> Result<()> {
     let json_table = helpers::get_spacex_table();
@@ -270,9 +269,7 @@ async fn test_kvstore_get() -> Result<()> {
     tokio::spawn(app.run_until_stopped());
 
     let response = helpers::http_get(
-        &format!(
-            "{address}/api/kv/spacex_launch_name/600f9a8d8f798e2a4d5f979e"
-        ),
+        &format!("{address}/api/kv/spacex_launch_name/600f9a8d8f798e2a4d5f979e"),
         None,
     )
     .await;

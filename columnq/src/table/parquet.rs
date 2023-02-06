@@ -16,8 +16,10 @@ use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
-
-pub async fn to_datafusion_table(t: &TableSource, dfctx: &datafusion::execution::context::SessionContext) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn to_datafusion_table(
+    t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
@@ -31,9 +33,7 @@ pub async fn to_datafusion_table(t: &TableSource, dfctx: &datafusion::execution:
         let options = ListingOptions::new(Arc::new(ParquetFormat::default()));
         let schemaref = match &t.schema {
             Some(s) => Arc::new(s.into()),
-            None => {
-                options.infer_schema(&dfctx.state(), &table_url).await?
-            }
+            None => options.infer_schema(&dfctx.state(), &table_url).await?,
         };
 
         let table_config = ListingTableConfig::new(table_url)
@@ -115,7 +115,7 @@ mod tests {
             .with_option(TableLoadOption::parquet(TableOptionParquet {
                 use_memory_table: false,
             })),
-            &ctx
+            &ctx,
         )
         .await
         .unwrap();

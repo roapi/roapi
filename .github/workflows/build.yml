@@ -37,6 +37,8 @@ jobs:
         override: true
     - name: Check
       run: cargo clippy
+    - name: Format
+      run: cargo fmt --check
     - name: Build
       run: cargo build
     - name: Run tests
