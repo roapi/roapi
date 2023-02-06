@@ -44,7 +44,21 @@ pub struct RoapiContextEngine<H: RoapiContext> {
 
 impl<H: RoapiContext> RoapiContextEngine<H> {
     fn ignored_statement(statement: &Statement) -> bool {
-        !matches!(statement, Statement::Query { .. })
+        !matches!(
+            statement,
+            Statement::Query { .. }
+                | Statement::Analyze { .. }
+                | Statement::Fetch { .. }
+                | Statement::ShowFunctions { .. }
+                | Statement::ShowVariable { .. }
+                | Statement::ShowVariables { .. }
+                | Statement::ShowCollation { .. }
+                | Statement::Assert { .. }
+                | Statement::ExplainTable { .. }
+                | Statement::Explain { .. }
+                | Statement::ShowColumns { .. }
+                | Statement::ShowTables { .. }
+        )
     }
 }
 
