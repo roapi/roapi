@@ -79,7 +79,7 @@ pub struct ColumnQ {
 
 impl ColumnQ {
     pub fn new() -> Self {
-        Self::new_with_config(SessionConfig::default())
+        Self::new_with_config(SessionConfig::from_env().with_information_schema(true))
     }
 
     pub fn new_with_config(config: SessionConfig) -> Self {
