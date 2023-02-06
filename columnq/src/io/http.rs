@@ -19,9 +19,10 @@ where
             "Invalid response from server: {resp:?}"
         )));
     }
-    let reader = std::io::Cursor::new(resp.bytes().await.map_err(|e| {
-        ColumnQError::HttpStore(format!("Failed to decode server response: {e}"))
-    })?);
+    let reader =
+        std::io::Cursor::new(resp.bytes().await.map_err(|e| {
+            ColumnQError::HttpStore(format!("Failed to decode server response: {e}"))
+        })?);
 
     // HTTP store doesn't support directory listing, so we always only return a single partition
     Ok(vec![partition_reader(reader)?])

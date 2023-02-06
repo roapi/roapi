@@ -1,25 +1,21 @@
-use futures::TryStreamExt;
-use std::str::FromStr;
-use percent_encoding;
-use url::Url;
-use crate::table::TableSource;
-use uriparse::URIReference;
-use datafusion::datasource::object_store::ObjectStoreProvider;
-use std::sync::Arc;
-use crate::error::ColumnQError;
-use object_store::ObjectStore;
 use crate::columnq::ColumnQObjectStoreProvider;
+use crate::error::ColumnQError;
+use crate::table::TableSource;
+use datafusion::datasource::object_store::ObjectStoreProvider;
+use futures::TryStreamExt;
+use object_store::ObjectStore;
+use percent_encoding;
+use std::str::FromStr;
+use std::sync::Arc;
+use uriparse::URIReference;
+use url::Url;
 
 pub async fn partition_key_to_reader(
     client: Arc<dyn ObjectStore>,
     path: &object_store::path::Path,
 ) -> Result<std::io::Cursor<Vec<u8>>, ColumnQError> {
-    let get_result = client
-        .get(path)
-        .await?;
-    let bytes = get_result
-        .bytes()
-        .await?;
+    let get_result = client.get(path).await?;
+    let bytes = get_result.bytes().await?;
     Ok(std::io::Cursor::new(bytes.to_vec()))
 }
 
@@ -70,7 +66,8 @@ where
         }
         Err(_) => {
             // fallback to directory listing
-            let paths = client.clone()
+            let paths = client
+                .clone()
                 .list(Some(&path))
                 .await?
                 .map_ok(|meta| meta.location)

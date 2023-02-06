@@ -24,11 +24,7 @@ fn json_partition_to_vec(
     if let Some(p) = pointer {
         match value_ref.pointer(p) {
             Some(v) => value_ref = v,
-            None => {
-                return Err(ColumnQError::LoadJson(format!(
-                    "Invalid json pointer: {p}"
-                )))
-            }
+            None => return Err(ColumnQError::LoadJson(format!("Invalid json pointer: {p}"))),
         }
     }
 

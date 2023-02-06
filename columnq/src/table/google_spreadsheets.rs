@@ -246,9 +246,7 @@ async fn resolve_sheet_title<'a, 'b, 'c, 'd>(
     // look up sheet title by sheet id through API
     let resp = gs_api_get(
         token,
-        &format!(
-            "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}"
-        ),
+        &format!("https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}"),
     )
     .await?
     .error_for_status()

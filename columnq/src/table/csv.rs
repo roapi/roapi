@@ -37,9 +37,7 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
         .with_schema(schemaref);
     Ok(Arc::new(ListingTable::try_new(table_config)?))
 }
-pub async fn to_mem_table(
-    t: &TableSource,
-) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
