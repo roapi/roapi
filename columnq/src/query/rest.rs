@@ -54,7 +54,7 @@ fn num_parse_err(e: std::num::ParseIntError) -> QueryError {
     }
 }
 
-pub fn table_query_to_df(
+pub async fn table_query_to_df(
     dfctx: &datafusion::execution::context::SessionContext,
     table_name: &str,
     params: &HashMap<String, String>,
@@ -66,6 +66,7 @@ pub fn table_query_to_df(
 
     let mut df = dfctx
         .table(table_name)
+        .await
         .map_err(|e| QueryError::invalid_table(e, table_name))?;
 
     // filter[col1]eq='foo'
@@ -155,7 +156,7 @@ pub fn table_query_to_df(
         }
     }
 
-    Ok(df)
+    Ok(df.into())
 }
 
 pub async fn query_table(
@@ -163,7 +164,7 @@ pub async fn query_table(
     table_name: &str,
     params: &HashMap<String, String>,
 ) -> Result<Vec<RecordBatch>, QueryError> {
-    let df = table_query_to_df(dfctx, table_name, params)?;
+    let df = table_query_to_df(dfctx, table_name, params).await?;
     df.collect().await.map_err(QueryError::query_exec)
 }
 
@@ -188,18 +189,20 @@ mod tests {
         params.insert("columns".to_string(), "ami_id,version".to_string());
         params.insert("filter[arch]".to_string(), "'amd64'".to_string());
 
-        let df = table_query_to_df(&dfctx, "ubuntu_ami", &params)?;
+        let df = table_query_to_df(&dfctx, "ubuntu_ami", &params).await?;
 
         assert_eq_df(
             df,
             dfctx
-                .table("ubuntu_ami")?
+                .table("ubuntu_ami")
+                .await?
                 .filter(
                     col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))),
                 )?
                 .select(vec![col("ami_id"), col("version")])?
                 .sort(vec![column_sort_expr_asc("ami_id")])?
-                .limit(0, Some(10))?,
+                .limit(0, Some(10))?
+                .into(),
         );
 
         Ok(())

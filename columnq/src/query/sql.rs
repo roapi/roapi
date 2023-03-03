@@ -9,11 +9,13 @@ pub async fn exec_query(
     sql: &str,
 ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
     let plan = dfctx
+        .state()
         .create_logical_plan(sql)
+        .await
         .map_err(QueryError::plan_sql)?;
 
     let df: Arc<datafusion::dataframe::DataFrame> = Arc::new(
-        datafusion::dataframe::DataFrame::new(dfctx.state.clone(), &plan),
+        datafusion::dataframe::DataFrame::new(dfctx.state().clone(), plan),
     );
 
     df.collect().await.map_err(QueryError::query_exec)

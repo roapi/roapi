@@ -30,7 +30,12 @@ pub async fn to_datafusion_table(
         to_mem_table(t).await
     } else {
         let table_url = ListingTableUrl::parse(t.get_uri_str())?;
-        let options = ListingOptions::new(Arc::new(ParquetFormat::default()));
+        // https://github.com/apache/arrow-datafusion/blob/14.0.0/datafusion/core/src/datasource/file_format/parquet.rs#L60-L68
+        let options = ListingOptions::new(Arc::new(
+            ParquetFormat::new()
+                .with_enable_pruning(Some(true))
+                .with_skip_metadata(Some(true)),
+        ));
         let schemaref = match &t.schema {
             Some(s) => Arc::new(s.into()),
             None => options.infer_schema(&dfctx.state(), &table_url).await?,

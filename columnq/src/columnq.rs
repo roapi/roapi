@@ -79,7 +79,11 @@ pub struct ColumnQ {
 
 impl ColumnQ {
     pub fn new() -> Self {
-        Self::new_with_config(SessionConfig::from_env().with_information_schema(true))
+        Self::new_with_config(
+            SessionConfig::from_env()
+                .expect("fail to create SessionConfig from the environment")
+                .with_information_schema(true),
+        )
     }
 
     pub fn new_with_config(config: SessionConfig) -> Self {
@@ -124,7 +128,7 @@ impl ColumnQ {
 
         let filters = &[];
         let exec_plan = table
-            .scan(&self.dfctx.state(), &projections, filters, None)
+            .scan(&self.dfctx.state(), projections.as_ref(), filters, None)
             .await?;
         let batches = collect(exec_plan, self.dfctx.task_ctx()).await?;
         let mut kv = HashMap::new();

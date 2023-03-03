@@ -15,7 +15,7 @@ path = "src/lib.rs"
 # TODO: add serde feature in datafusion to avoid this workaround
 arrow-schema = { version ="26", features = ["serde"] }
 
-datafusion = "14"
+datafusion = "19"
 object_store = { version = "0.5.3", features = ["aws_profile", "gcp", "azure"] }
 percent-encoding = "2.2.0"
 url = "2.2"

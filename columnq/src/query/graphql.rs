@@ -153,7 +153,7 @@ fn to_datafusion_predicates<'b>(
     }
 }
 
-pub fn query_to_df(
+pub async fn query_to_df(
     dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
 ) -> Result<Arc<datafusion::dataframe::DataFrame>, QueryError> {
@@ -229,6 +229,7 @@ pub fn query_to_df(
 
     let mut df = dfctx
         .table(field.name)
+        .await
         .map_err(|e| QueryError::invalid_table(e, field.name))?;
 
     let mut filter = None;
@@ -345,14 +346,15 @@ pub fn query_to_df(
         }
     }
 
-    Ok(df)
+    Ok(df.into())
 }
 
 pub async fn exec_query(
     dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
 ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
-    query_to_df(dfctx, q)?
+    query_to_df(dfctx, q)
+        .await?
         .collect()
         .await
         .map_err(QueryError::query_exec)
@@ -367,8 +369,8 @@ mod tests {
     use super::*;
     use crate::test_util::*;
 
-    #[test]
-    fn simple_query_planning() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn simple_query_planning() -> anyhow::Result<()> {
         let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
@@ -386,21 +388,23 @@ mod tests {
                     bath
                 }
             }"#,
-        )?;
+        )
+        .await?;
 
         let expected_df = dfctx
-            .table("properties")?
+            .table("properties")
+            .await?
             .filter(col("bath").gt_eq(lit(2i64)))?
             .filter(col("bed").gt(lit(3i64)))?
             .select(vec![col("address"), col("bed"), col("bath")])?;
 
-        assert_eq_df(df, expected_df);
+        assert_eq_df(df, expected_df.into());
 
         Ok(())
     }
 
-    #[test]
-    fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
         let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
@@ -420,16 +424,18 @@ mod tests {
                     bed
                 }
             }"#,
-        )?;
+        )
+        .await?;
 
         let expected_df = dfctx
-            .table("properties")?
+            .table("properties")
+            .await?
             .filter(col("bed").gt(lit(3i64)))?
             .select(vec![col("address"), col("bed")])?
             .sort(vec![column_sort_expr_asc("bed")])?
             .limit(0, Some(10))?;
 
-        assert_eq_df(df, expected_df);
+        assert_eq_df(df, expected_df.into());
 
         Ok(())
     }
