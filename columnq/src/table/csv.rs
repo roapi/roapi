@@ -8,13 +8,15 @@ use datafusion::datasource::listing::{
     ListingOptions, ListingTable, ListingTableConfig, ListingTableUrl,
 };
 use datafusion::datasource::TableProvider;
-use datafusion::prelude::SessionContext;
 use log::debug;
 
 use crate::error::ColumnQError;
 use crate::table::{TableLoadOption, TableOptionCsv, TableSource};
 
-pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn to_datafusion_table(
+    t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
@@ -26,10 +28,7 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
     let options = ListingOptions::new(Arc::new(CsvFormat::default()));
     let schemaref = match &t.schema {
         Some(s) => Arc::new(s.into()),
-        None => {
-            let ctx = SessionContext::new();
-            options.infer_schema(&ctx.state(), &table_url).await?
-        }
+        None => options.infer_schema(&dfctx.state(), &table_url).await?,
     };
 
     let table_config = ListingTableConfig::new(table_url)

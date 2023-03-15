@@ -477,7 +477,7 @@ pub async fn load(
             TableLoadOption::ndjson { .. } | TableLoadOption::jsonl { .. } => {
                 Arc::new(ndjson::to_mem_table(t).await?)
             }
-            TableLoadOption::csv { .. } => csv::to_datafusion_table(t).await?,
+            TableLoadOption::csv { .. } => csv::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
@@ -498,7 +498,7 @@ pub async fn load(
         })
     } else {
         let t: Arc<dyn TableProvider> = match t.extension()? {
-            "csv" => csv::to_datafusion_table(t).await?,
+            "csv" => csv::to_datafusion_table(t, dfctx).await?,
             "json" => Arc::new(json::to_mem_table(t).await?),
             "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t).await?),
             "parquet" => parquet::to_datafusion_table(t, dfctx).await?,
