@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use datafusion::arrow;
 
 use crate::error::QueryError;
@@ -14,10 +12,7 @@ pub async fn exec_query(
         .await
         .map_err(QueryError::plan_sql)?;
 
-    let df: Arc<datafusion::dataframe::DataFrame> = Arc::new(
-        datafusion::dataframe::DataFrame::new(dfctx.state().clone(), plan),
-    );
-
+    let df = datafusion::dataframe::DataFrame::new(dfctx.state().clone(), plan);
     df.collect().await.map_err(QueryError::query_exec)
 }
 

@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::logical_expr::Operator;
@@ -58,7 +57,7 @@ pub async fn table_query_to_df(
     dfctx: &datafusion::execution::context::SessionContext,
     table_name: &str,
     params: &HashMap<String, String>,
-) -> Result<Arc<datafusion::dataframe::DataFrame>, QueryError> {
+) -> Result<datafusion::dataframe::DataFrame, QueryError> {
     lazy_static! {
         static ref RE_REST_FILTER: Regex =
             Regex::new(r"filter\[(?P<column>.+)\](?P<op>.+)?").unwrap();

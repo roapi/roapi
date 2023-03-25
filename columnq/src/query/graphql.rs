@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::sync::Arc;
 
 use datafusion::arrow;
 use datafusion::logical_expr::Operator;
@@ -156,7 +155,7 @@ fn to_datafusion_predicates<'b>(
 pub async fn query_to_df(
     dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
-) -> Result<Arc<datafusion::dataframe::DataFrame>, QueryError> {
+) -> Result<datafusion::dataframe::DataFrame, QueryError> {
     let doc = parse_query::<&str>(q)?;
 
     let def = match doc.definitions.len() {
