@@ -25,13 +25,14 @@ fn df_err_to_sql(err: DataFusionError) -> ErrorResponse {
 
 /// A portal built using a logical DataFusion query plan.
 pub struct DataFusionPortal {
-    df: Arc<DataFrame>,
+    df: DataFrame,
 }
 
 #[async_trait]
 impl Portal for DataFusionPortal {
     async fn fetch(&mut self, batch: &mut DataRowBatch) -> Result<(), ErrorResponse> {
-        for arrow_batch in self.df.collect().await.map_err(df_err_to_sql)? {
+        let arrow_batches = self.df.clone().collect().await.map_err(df_err_to_sql)?;
+        for arrow_batch in arrow_batches {
             record_batch_to_rows(&arrow_batch, batch)?;
         }
         Ok(())
@@ -89,12 +90,12 @@ impl<H: RoapiContext> Engine for RoapiContextEngine<H> {
                     .ctx
                     .sql_to_df("SELECT 1 WHERE 1 = 2")
                     .await
-                    .map_err(df_err_to_sql)?.into(),
+                    .map_err(df_err_to_sql)?,
             })
         } else {
             let query = statement.to_string();
             let df = self.ctx.sql_to_df(&query).await.map_err(df_err_to_sql)?;
-            Ok(DataFusionPortal { df: df.into() })
+            Ok(DataFusionPortal { df })
         }
     }
 }
