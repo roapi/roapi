@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use columnq::datafusion::arrow;
@@ -79,7 +78,7 @@ pub trait RoapiContext: Send + Sync + 'static {
 
     async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError>;
 
-    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError>;
+    async fn sql_to_df(&self, query: &str) -> Result<DataFrame, DataFusionError>;
 
     async fn get_response_format(&self) -> encoding::ContentType;
 }
@@ -149,7 +148,7 @@ impl RoapiContext for RawRoapiContext {
     }
 
     #[inline]
-    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
+    async fn sql_to_df(&self, query: &str) -> Result<DataFrame, DataFusionError> {
         self.cq.dfctx.sql(query).await
     }
 
@@ -229,7 +228,7 @@ impl RoapiContext for ConcurrentRoapiContext {
     }
 
     #[inline]
-    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
+    async fn sql_to_df(&self, query: &str) -> Result<DataFrame, DataFusionError> {
         let ctx = self.read().await;
         ctx.cq.dfctx.sql(query).await
     }

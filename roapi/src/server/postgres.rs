@@ -89,12 +89,12 @@ impl<H: RoapiContext> Engine for RoapiContextEngine<H> {
                     .ctx
                     .sql_to_df("SELECT 1 WHERE 1 = 2")
                     .await
-                    .map_err(df_err_to_sql)?,
+                    .map_err(df_err_to_sql)?.into(),
             })
         } else {
             let query = statement.to_string();
             let df = self.ctx.sql_to_df(&query).await.map_err(df_err_to_sql)?;
-            Ok(DataFusionPortal { df })
+            Ok(DataFusionPortal { df: df.into() })
         }
     }
 }
