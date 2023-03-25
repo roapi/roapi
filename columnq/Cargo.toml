@@ -13,7 +13,8 @@ path = "src/lib.rs"
 [dependencies]
 # pulling arrow-schema manually to enable the serde feature.
 # TODO: add serde feature in datafusion to avoid this workaround
-arrow-schema = { version ="26", features = ["serde"] }
+# https://github.com/apache/arrow-datafusion/pull/5729
+arrow-schema = { version ="33", features = ["serde"] }
 
 datafusion = "19"
 object_store = { version = "0.5.3", features = ["aws_profile", "gcp", "azure"] }

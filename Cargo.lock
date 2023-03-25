@@ -329,15 +329,15 @@ name = "arrow-schema"
 version = "26.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f9406eb7834ca6bd8350d1baa515d18b9fcec487eddacfb62f5e19511f7bd37"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "arrow-schema"
 version = "33.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb327717d87eb94be5eff3b0cb8987f54059d343ee5235abf7f143c85f54cfc8"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "arrow-select"
@@ -1247,7 +1247,7 @@ name = "columnq"
 version = "0.6.0"
 dependencies = [
  "anyhow",
- "arrow-schema 26.0.0",
+ "arrow-schema 33.0.0",
  "bytes",
  "calamine",
  "connectorx",
