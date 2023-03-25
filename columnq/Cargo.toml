@@ -48,9 +48,9 @@ hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
 
 [dependencies.deltalake]
 git = "https://github.com/delta-io/delta-rs.git"
-rev = "d1e68cac9fc33b08dfb93260038f50c117c8534d"
+tag = "rust-v0.8.0"
 default-features = false
-features = ["datafusion-ext"]
+features = ["datafusion"]
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
@@ -72,19 +72,19 @@ default = ["rustls"]
 rustls = [
     "hyper-rustls",
     "reqwest/rustls-tls",
-    "deltalake/s3-rustls",
+    "deltalake/s3",
     "yup-oauth2/hyper-rustls",
 ]
 native-tls-vendored = [
     "reqwest/native-tls-vendored",
     "hyper-tls/vendored",
-    "deltalake/s3",
+    "deltalake/s3-native-tls",
     "yup-oauth2/hyper-tls",
 ]
 native-tls = [
     "reqwest/native-tls",
     "hyper-tls",
-    "deltalake/s3",
+    "deltalake/s3-native-tls",
     "yup-oauth2/hyper-tls",
 ]
 simd = ["datafusion/simd"]
