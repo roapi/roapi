@@ -10,5 +10,5 @@ lto = true
 codegen-units = 1
 
 [patch.crates-io]
-convergence = { git = "https://github.com/roapi/convergence.git", rev = "1af3f7ea76b0586362b332f8a1c30053aca58c2e" }
-convergence-arrow = { git = "https://github.com/roapi/convergence.git", rev = "1af3f7ea76b0586362b332f8a1c30053aca58c2e" }
+convergence = { git = "https://github.com/returnString/convergence.git", rev = "2f95a74321e7ee4d59f3aea09788314a3eaf0eb9" }
+convergence-arrow = { git = "https://github.com/returnString/convergence.git", rev = "2f95a74321e7ee4d59f3aea09788314a3eaf0eb9" }
