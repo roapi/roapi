@@ -1123,8 +1123,8 @@ dependencies = [
 
 [[package]]
 name = "connectorx"
-version = "0.3.2-alpha.1"
-source = "git+https://github.com/roapi/connector-x.git?rev=66942bb65a7671cccb228ffe08fd99495430c103#66942bb65a7671cccb228ffe08fd99495430c103"
+version = "0.3.2-alpha.3"
+source = "git+https://github.com/sfu-db/connector-x.git?rev=962b396857979c813486ad842e91a0c21ce55f72#962b396857979c813486ad842e91a0c21ce55f72"
 dependencies = [
  "anyhow",
  "arrow",
