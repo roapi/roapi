@@ -121,7 +121,7 @@ mod tests {
         .unwrap();
 
         let stats = t
-            .scan(&ctx.state(), &None, &[], None)
+            .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
             .statistics();
@@ -146,7 +146,7 @@ mod tests {
         .await?;
 
         let ctx = SessionContext::new();
-        let stats = t.scan(&ctx.state(), &None, &[], None).await?.statistics();
+        let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(500));
 
         Ok(())
@@ -171,7 +171,7 @@ mod tests {
         .await?;
 
         let ctx = SessionContext::new();
-        let stats = t.scan(&ctx.state(), &None, &[], None).await?.statistics();
+        let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(1500));
 
         Ok(())

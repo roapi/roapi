@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::logical_expr::Operator;
@@ -54,11 +53,11 @@ fn num_parse_err(e: std::num::ParseIntError) -> QueryError {
     }
 }
 
-pub fn table_query_to_df(
+pub async fn table_query_to_df(
     dfctx: &datafusion::execution::context::SessionContext,
     table_name: &str,
     params: &HashMap<String, String>,
-) -> Result<Arc<datafusion::dataframe::DataFrame>, QueryError> {
+) -> Result<datafusion::dataframe::DataFrame, QueryError> {
     lazy_static! {
         static ref RE_REST_FILTER: Regex =
             Regex::new(r"filter\[(?P<column>.+)\](?P<op>.+)?").unwrap();
@@ -66,6 +65,7 @@ pub fn table_query_to_df(
 
     let mut df = dfctx
         .table(table_name)
+        .await
         .map_err(|e| QueryError::invalid_table(e, table_name))?;
 
     // filter[col1]eq='foo'
@@ -163,7 +163,7 @@ pub async fn query_table(
     table_name: &str,
     params: &HashMap<String, String>,
 ) -> Result<Vec<RecordBatch>, QueryError> {
-    let df = table_query_to_df(dfctx, table_name, params)?;
+    let df = table_query_to_df(dfctx, table_name, params).await?;
     df.collect().await.map_err(QueryError::query_exec)
 }
 
@@ -188,18 +188,20 @@ mod tests {
         params.insert("columns".to_string(), "ami_id,version".to_string());
         params.insert("filter[arch]".to_string(), "'amd64'".to_string());
 
-        let df = table_query_to_df(&dfctx, "ubuntu_ami", &params)?;
+        let df = table_query_to_df(&dfctx, "ubuntu_ami", &params).await?;
 
         assert_eq_df(
-            df,
+            df.into(),
             dfctx
-                .table("ubuntu_ami")?
+                .table("ubuntu_ami")
+                .await?
                 .filter(
                     col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))),
                 )?
                 .select(vec![col("ami_id"), col("version")])?
                 .sort(vec![column_sort_expr_asc("ami_id")])?
-                .limit(0, Some(10))?,
+                .limit(0, Some(10))?
+                .into(),
         );
 
         Ok(())
@@ -221,7 +223,7 @@ mod tests {
         let batch = &batches[0];
         assert_eq!(
             batch.column(0).as_ref(),
-            Arc::new(StringArray::from(vec!["<a href=\"https://console.aws.amazon.com/ec2/home?region=us-east-2#launchAmi=ami-091a87cd1ff23d97c\">ami-091a87cd1ff23d97c</a>"])).as_ref(),
+            &StringArray::from(vec!["<a href=\"https://console.aws.amazon.com/ec2/home?region=us-east-2#launchAmi=ami-091a87cd1ff23d97c\">ami-091a87cd1ff23d97c</a>"]),
         );
 
         Ok(())
