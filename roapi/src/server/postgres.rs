@@ -20,18 +20,19 @@ use crate::context::RoapiContext;
 use crate::server::RunnableServer;
 
 fn df_err_to_sql(err: DataFusionError) -> ErrorResponse {
-    ErrorResponse::error(SqlState::DATA_EXCEPTION, err.to_string())
+    ErrorResponse::error(SqlState::DataException, err.to_string())
 }
 
 /// A portal built using a logical DataFusion query plan.
 pub struct DataFusionPortal {
-    df: Arc<DataFrame>,
+    df: DataFrame,
 }
 
 #[async_trait]
 impl Portal for DataFusionPortal {
     async fn fetch(&mut self, batch: &mut DataRowBatch) -> Result<(), ErrorResponse> {
-        for arrow_batch in self.df.collect().await.map_err(df_err_to_sql)? {
+        let arrow_batches = self.df.clone().collect().await.map_err(df_err_to_sql)?;
+        for arrow_batch in arrow_batches {
             record_batch_to_rows(&arrow_batch, batch)?;
         }
         Ok(())

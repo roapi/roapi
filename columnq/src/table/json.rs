@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
+#[allow(deprecated)]
 use datafusion::arrow::json::reader::{Decoder, DecoderOptions};
 use datafusion::arrow::record_batch::RecordBatch;
 use serde_json::value::Value;
@@ -55,6 +56,8 @@ fn json_vec_to_partition(
     };
 
     // decode to arrow record batch
+    #[allow(deprecated)]
+    // TODO: switch to RawDecoder
     let decoder = Decoder::new(
         Arc::new(schema.clone()),
         DecoderOptions::new().with_batch_size(batch_size),

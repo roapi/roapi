@@ -39,8 +39,8 @@ clap = { version = "3", features = ["color"] }
 thiserror = "1"
 anyhow = "1"
 
-convergence = "0.10.0"
-convergence-arrow = "0.10.0"
+convergence = "0.11.0"
+convergence-arrow = "0.11.0"
 
 [features]
 default = ["rustls", "snmalloc"]
