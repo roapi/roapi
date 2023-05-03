@@ -47,7 +47,7 @@ hyper-rustls = { version = "0.23.2", default-features = false, optional = true }
 
 [dependencies.deltalake]
 git = "https://github.com/delta-io/delta-rs.git"
-rev = "72a9e5827e99c7d2a1cf05806ffce6f0a4449d47"
+tag = "rust-v0.10.0"
 default-features = false
 features = ["datafusion-ext"]
 

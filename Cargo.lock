@@ -1857,7 +1857,7 @@ dependencies = [
 [[package]]
 name = "deltalake"
 version = "0.10.0"
-source = "git+https://github.com/delta-io/delta-rs.git?rev=72a9e5827e99c7d2a1cf05806ffce6f0a4449d47#72a9e5827e99c7d2a1cf05806ffce6f0a4449d47"
+source = "git+https://github.com/delta-io/delta-rs.git?tag=rust-v0.10.0#edf1355cc7da5e5e256f9638f3a0c0a80d7002de"
 dependencies = [
  "arrow 37.0.0",
  "async-trait",
@@ -1992,7 +1992,7 @@ checksum = "03d8c417d7a8cb362e0c37e5d815f5eb7c37f79ff93707329d5a194e42e54ca0"
 [[package]]
 name = "dynamodb_lock"
 version = "0.4.3"
-source = "git+https://github.com/delta-io/delta-rs.git?rev=72a9e5827e99c7d2a1cf05806ffce6f0a4449d47#72a9e5827e99c7d2a1cf05806ffce6f0a4449d47"
+source = "git+https://github.com/delta-io/delta-rs.git?tag=rust-v0.10.0#edf1355cc7da5e5e256f9638f3a0c0a80d7002de"
 dependencies = [
  "async-trait",
  "log",
@@ -2403,7 +2403,7 @@ dependencies = [
 [[package]]
 name = "glibc_version"
 version = "0.1.2"
-source = "git+https://github.com/delta-io/delta-rs.git?rev=72a9e5827e99c7d2a1cf05806ffce6f0a4449d47#72a9e5827e99c7d2a1cf05806ffce6f0a4449d47"
+source = "git+https://github.com/delta-io/delta-rs.git?tag=rust-v0.10.0#edf1355cc7da5e5e256f9638f3a0c0a80d7002de"
 dependencies = [
  "regex",
 ]
