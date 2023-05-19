@@ -121,8 +121,13 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         Some(config_path) => {
             let config_content = fs::read_to_string(config_path)
                 .with_context(|| format!("Failed to read config file: {config_path}"))?;
-
-            serde_yaml::from_str(&config_content).context("Failed to parse YAML config")?
+            if config_path.ends_with(".yaml") || config_path.ends_with(".yml") {
+                serde_yaml::from_str(&config_content).context("Failed to parse YAML config")?
+            } else if config_path.ends_with(".toml") {
+                toml::from_str(&config_content).context("Failed to parse TOML config")?
+            } else {
+                bail!("Unsupported config file format: {}", config_path);
+            }
         }
     };
 
