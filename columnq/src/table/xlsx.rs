@@ -165,7 +165,32 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn load_xlsx_with_config() {
+    async fn load_xlsx_with_toml_config() {
+        let mut table_source: TableSource = toml::from_str(
+            r#"
+name = "test"
+uri = "test_data/uk_cities_with_headers.xlsx"
+[option]
+format = "xlsx"
+sheet_name = "uk_cities_with_headers"
+"#,
+        )
+        .unwrap();
+        // patch uri path with the correct test data path
+        table_source.io_source = TableIoSource::Uri(test_data_path("uk_cities_with_headers.xlsx"));
+
+        let t = to_mem_table(&table_source).await.unwrap();
+        let ctx = SessionContext::new();
+        let stats = t
+            .scan(&ctx.state(), &None, &[], None)
+            .await
+            .unwrap()
+            .statistics();
+        assert_eq!(stats.num_rows, Some(37));
+    }
+
+    #[tokio::test]
+    async fn load_xlsx_with_yaml_config() {
         let mut table_source: TableSource = serde_yaml::from_str(
             r#"
 name: "test"
