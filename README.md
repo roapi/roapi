@@ -119,7 +119,7 @@ curl 'localhost:8080/api/schema'
 
 ### Config file
 
-You can also configure multiple table sources using YAML config, which supports more
+You can also configure multiple table sources using YAML or Toml config, which supports more
 advanced format specific table options:
 
 ```yaml
@@ -167,7 +167,7 @@ tables:
 To run serve tables using config file:
 
 ```bash
-roapi -c ./roapi.yml
+roapi -c ./roapi.yml # or .toml
 ```
 
 See [config
@@ -180,7 +180,7 @@ source](https://roapi.github.io/docs/config/dataset-formats/gsheet.html).
 By default, ROAPI encodes responses in JSON format, but you can request
 different encodings by specifying the `ACCEPT` header:
 
-```
+```bash
 curl -X POST \
     -H 'ACCEPT: application/vnd.apache.arrow.stream' \
     -d "SELECT launch_library_id FROM spacex_launches WHERE launch_library_id IS NOT NULL" \
@@ -259,10 +259,10 @@ Starlink-21 (v1.0)%
 
 ### Query through Postgres wire protocol
 
-ROAPI can present itself as a Postgre server so users can use Postgres clients
+ROAPI can present itself as a Postgres server so users can use Postgres clients
 to issue SQL queries.
 
-```
+```bash
 $ psql -h 127.0.0.1
 psql (12.10 (Ubuntu 12.10-0ubuntu0.20.04.1), server 13)
 WARNING: psql major version 12, server major version 13.
@@ -270,7 +270,7 @@ WARNING: psql major version 12, server major version 13.
 Type "help" for help.
 
 houqp=> select count(*) from uk_cities;
- COUNT(UInt8(1)) 
+ COUNT(UInt8(1))
 -----------------
               37
 (1 row)
@@ -329,7 +329,7 @@ Misc:
 
 ## Development
 
-The core of ROAPI, including query frontends and data layer, lives in the
+The core of ROAPI, including query front-ends and data layer, lives in the
 self-contained [columnq](https://github.com/roapi/roapi/tree/main/columnq)
 crate. It takes queries and outputs Arrow record batches. Data sources will
 also be loaded and stored in memory as Arrow record batches.
