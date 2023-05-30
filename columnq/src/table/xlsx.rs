@@ -182,7 +182,7 @@ sheet_name = "uk_cities_with_headers"
         let t = to_mem_table(&table_source).await.unwrap();
         let ctx = SessionContext::new();
         let stats = t
-            .scan(&ctx.state(), &None, &[], None)
+            .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
             .statistics();

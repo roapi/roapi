@@ -704,7 +704,7 @@ batch_size: 512
         let ctx = datafusion::prelude::SessionContext::new();
         let table = load(&t, &ctx).await?;
         let stats = table
-            .scan(&ctx.state(), &None, &[], None)
+            .scan(&ctx.state(), None, &[], None)
             .await?
             .statistics();
         assert_eq!(stats.num_rows, Some(37));
@@ -726,7 +726,7 @@ uri: "sqlite://../test_data/sqlite/sample.{}"
             let ctx = datafusion::prelude::SessionContext::new();
             let table = load(&t, &ctx).await?;
             let stats = table
-                .scan(&ctx.state(), &None, &[], None)
+                .scan(&ctx.state(), None, &[], None)
                 .await?
                 .statistics();
             assert_eq!(stats.num_rows, Some(37));
