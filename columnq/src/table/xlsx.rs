@@ -64,7 +64,7 @@ fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
 
             let mut dt_iter = set.iter().cloned();
             let dt = dt_iter.next().unwrap_or(DataType::Utf8);
-            Field::new(&col_name.replace(' ', "_"), dt, true)
+            Field::new(col_name.replace(' ', "_"), dt, true)
         })
         .collect();
     Ok(Schema::new(fields))
@@ -182,7 +182,7 @@ sheet_name = "uk_cities_with_headers"
         let t = to_mem_table(&table_source).await.unwrap();
         let ctx = SessionContext::new();
         let stats = t
-            .scan(&ctx.state(), &None, &[], None)
+            .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
             .statistics();
@@ -207,7 +207,7 @@ option:
         let t = to_mem_table(&table_source).await.unwrap();
         let ctx = SessionContext::new();
         let stats = t
-            .scan(&ctx.state(), &None, &[], None)
+            .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
             .statistics();

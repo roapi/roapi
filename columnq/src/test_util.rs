@@ -137,7 +137,7 @@ pub async fn register_table_ubuntu_ami(dfctx: &mut SessionContext) -> anyhow::Re
 
 pub fn assert_eq_df(df1: Arc<DataFrame>, df2: Arc<DataFrame>) {
     assert_eq!(
-        format!("{:?}", df1.to_logical_plan()),
-        format!("{:?}", df2.to_logical_plan())
+        format!("{:?}", (*df1).clone().into_optimized_plan()),
+        format!("{:?}", (*df2).clone().into_optimized_plan())
     );
 }

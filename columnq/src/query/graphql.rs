@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::sync::Arc;
 
 use datafusion::arrow;
 use datafusion::logical_expr::Operator;
@@ -40,9 +39,7 @@ fn invalid_query(message: String) -> QueryError {
 // convert order list from graphql argument to datafusion sort columns
 //
 // sort order matters, thus it's modeled as a list
-fn to_datafusion_sort_columns<'b>(
-    sort_columns: &[Value<'b, &'b str>],
-) -> Result<Vec<Expr>, QueryError> {
+fn to_datafusion_sort_columns(sort_columns: &[Value<String>]) -> Result<Vec<Expr>, QueryError> {
     sort_columns
         .iter()
         .map(|optval| match optval {
@@ -82,7 +79,7 @@ fn to_datafusion_sort_columns<'b>(
         .collect()
 }
 
-fn operand_to_datafusion_expr<'b>(operand: &Value<'b, &'b str>) -> Result<Expr, QueryError> {
+fn operand_to_datafusion_expr(operand: &Value<String>) -> Result<Expr, QueryError> {
     match operand {
         Value::Boolean(b) => Ok(Expr::Literal(ScalarValue::Boolean(Some(*b)))),
         Value::String(s) => Ok(Expr::Literal(ScalarValue::Utf8(Some(s.to_string())))),
@@ -117,17 +114,14 @@ fn operand_to_datafusion_expr<'b>(operand: &Value<'b, &'b str>) -> Result<Expr, 
 //     col4
 // }
 // ```
-fn to_datafusion_predicates<'b>(
-    col: &str,
-    filter: &Value<'b, &'b str>,
-) -> Result<Vec<Expr>, QueryError> {
+fn to_datafusion_predicates(col: &str, filter: &Value<String>) -> Result<Vec<Expr>, QueryError> {
     match filter {
         Value::Object(obj) => obj
             .iter()
             .map(|(op, operand)| {
                 let col_expr = Expr::Column(Column::from_name(col.to_string()));
                 let right_expr = operand_to_datafusion_expr(operand)?;
-                match *op {
+                match op.as_str() {
                     "eq" => Ok(binary_expr(col_expr, Operator::Eq, right_expr)),
                     "lt" => Ok(binary_expr(col_expr, Operator::Lt, right_expr)),
                     "lte" | "lteq" => Ok(binary_expr(col_expr, Operator::LtEq, right_expr)),
@@ -153,11 +147,11 @@ fn to_datafusion_predicates<'b>(
     }
 }
 
-pub fn query_to_df(
+pub async fn query_to_df(
     dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
-) -> Result<Arc<datafusion::dataframe::DataFrame>, QueryError> {
-    let doc = parse_query::<&str>(q)?;
+) -> Result<datafusion::dataframe::DataFrame, QueryError> {
+    let doc = parse_query::<String>(q)?;
 
     let def = match doc.definitions.len() {
         1 => match &doc.definitions[0] {
@@ -228,15 +222,16 @@ pub fn query_to_df(
     let field = field.ok_or_else(|| invalid_query("field not found in selection".to_string()))?;
 
     let mut df = dfctx
-        .table(field.name)
-        .map_err(|e| QueryError::invalid_table(e, field.name))?;
+        .table(field.name.as_str())
+        .await
+        .map_err(|e| QueryError::invalid_table(e, field.name.as_str()))?;
 
     let mut filter = None;
     let mut sort = None;
     let mut limit = None;
     let mut page = None;
     for (key, value) in &field.arguments {
-        match *key {
+        match key.as_str() {
             "filter" => {
                 filter = Some(value);
             }
@@ -277,7 +272,7 @@ pub fn query_to_df(
         .items
         .iter()
         .map(|selection| match selection {
-            Selection::Field(f) => Ok(f.name),
+            Selection::Field(f) => Ok(f.name.as_str()),
             _ => Err(QueryError {
                 error: "invalid graphql query".to_string(),
                 message: "selection set in query should only contain Fields".to_string(),
@@ -352,7 +347,8 @@ pub async fn exec_query(
     dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
 ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
-    query_to_df(dfctx, q)?
+    query_to_df(dfctx, q)
+        .await?
         .collect()
         .await
         .map_err(QueryError::query_exec)
@@ -367,8 +363,8 @@ mod tests {
     use super::*;
     use crate::test_util::*;
 
-    #[test]
-    fn simple_query_planning() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn simple_query_planning() -> anyhow::Result<()> {
         let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
@@ -386,21 +382,23 @@ mod tests {
                     bath
                 }
             }"#,
-        )?;
+        )
+        .await?;
 
         let expected_df = dfctx
-            .table("properties")?
+            .table("properties")
+            .await?
             .filter(col("bath").gt_eq(lit(2i64)))?
             .filter(col("bed").gt(lit(3i64)))?
             .select(vec![col("address"), col("bed"), col("bath")])?;
 
-        assert_eq_df(df, expected_df);
+        assert_eq_df(df.into(), expected_df.into());
 
         Ok(())
     }
 
-    #[test]
-    fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
         let mut dfctx = SessionContext::new();
         register_table_properties(&mut dfctx)?;
 
@@ -420,16 +418,18 @@ mod tests {
                     bed
                 }
             }"#,
-        )?;
+        )
+        .await?;
 
         let expected_df = dfctx
-            .table("properties")?
+            .table("properties")
+            .await?
             .filter(col("bed").gt(lit(3i64)))?
             .select(vec![col("address"), col("bed")])?
             .sort(vec![column_sort_expr_asc("bed")])?
             .limit(0, Some(10))?;
 
-        assert_eq_df(df, expected_df);
+        assert_eq_df(df.into(), expected_df.into());
 
         Ok(())
     }
@@ -460,18 +460,12 @@ mod tests {
 
         assert_eq!(
             batch.column(0).as_ref(),
-            Arc::new(StringArray::from(vec!["Kenmore, WA", "Fremont, WA",])).as_ref(),
+            &StringArray::from(vec!["Kenmore, WA", "Fremont, WA",]),
         );
 
-        assert_eq!(
-            batch.column(1).as_ref(),
-            Arc::new(Int64Array::from(vec![4, 5])).as_ref(),
-        );
+        assert_eq!(batch.column(1).as_ref(), &Int64Array::from(vec![4, 5]),);
 
-        assert_eq!(
-            batch.column(2).as_ref(),
-            Arc::new(Int64Array::from(vec![3, 3])).as_ref(),
-        );
+        assert_eq!(batch.column(2).as_ref(), &Int64Array::from(vec![3, 3]),);
 
         Ok(())
     }

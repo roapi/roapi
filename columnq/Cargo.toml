@@ -13,10 +13,10 @@ path = "src/lib.rs"
 [dependencies]
 # pulling arrow-schema manually to enable the serde feature.
 # TODO: add serde feature in datafusion to avoid this workaround
-arrow-schema = { version ="26", features = ["serde"] }
+arrow-schema = { version ="37.0.0", features = ["serde"] }
 
-datafusion = "14"
-object_store = { version = "0.5.4", features = ["aws_profile", "gcp", "azure"] }
+datafusion = "23"
+object_store = { version = "0.5.6", features = ["aws_profile", "gcp", "azure"] }
 percent-encoding = "2.2.0"
 url = "2.2"
 
@@ -24,7 +24,7 @@ log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.27"  # version need to be in sync with convergence
+sqlparser = "0.33"  # version need to be in sync with convergence
 yup-oauth2 = { version = "6.2", default-features = false, features = [
     "service_account",
 ] }
@@ -43,18 +43,18 @@ calamine = "0.19.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
-hyper-rustls = { version = "0.23.0", default-features = false, optional = true }
+hyper-rustls = { version = "0.23.2", default-features = false, optional = true }
 
 [dependencies.deltalake]
 git = "https://github.com/delta-io/delta-rs.git"
-rev = "d1e68cac9fc33b08dfb93260038f50c117c8534d"
+rev = "72a9e5827e99c7d2a1cf05806ffce6f0a4449d47"
 default-features = false
 features = ["datafusion-ext"]
 
 [dependencies.connectorx]
-git = "https://github.com/sfu-db/connector-x.git"
-rev = "962b396857979c813486ad842e91a0c21ce55f72"
-version = "0.3.2-alpha.3"
+git = "https://github.com/roapi/connector-x.git"
+rev = "dd58b6a90d28b1ee7e62da859a5ba1d2d6c0b179"
+version = "0.3.2-alpha.5"
 features = ["default", "dst_arrow"]
 optional = true
 
@@ -72,7 +72,7 @@ default = ["rustls"]
 rustls = [
     "hyper-rustls",
     "reqwest/rustls-tls",
-    "deltalake/s3-rustls",
+    "deltalake/s3",
     "yup-oauth2/hyper-rustls",
 ]
 native-tls-vendored = [

@@ -1,8 +1,7 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use async_trait::async_trait;
-use columnq::datafusion::arrow;
+use columnq::arrow::record_batch::RecordBatch;
 use columnq::datafusion::dataframe::DataFrame;
 use columnq::datafusion::error::DataFusionError;
 use columnq::encoding;
@@ -61,25 +60,19 @@ pub trait RoapiContext: Send + Sync + 'static {
 
     async fn table_schema_json_bytes(&self, table_name: &str) -> Result<Vec<u8>, ApiErrResp>;
 
-    async fn query_graphql(
-        &self,
-        query: &str,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+    async fn query_graphql(&self, query: &str) -> Result<Vec<RecordBatch>, QueryError>;
 
-    async fn query_sql(
-        &self,
-        query: &str,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+    async fn query_sql(&self, query: &str) -> Result<Vec<RecordBatch>, QueryError>;
 
     async fn query_rest_table(
         &self,
         table_name: &str,
         params: &HashMap<String, String>,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError>;
+    ) -> Result<Vec<RecordBatch>, QueryError>;
 
     async fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<String>, QueryError>;
 
-    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError>;
+    async fn sql_to_df(&self, query: &str) -> Result<DataFrame, DataFusionError>;
 
     async fn get_response_format(&self) -> encoding::ContentType;
 }
@@ -119,18 +112,12 @@ impl RoapiContext for RawRoapiContext {
     }
 
     #[inline]
-    async fn query_graphql(
-        &self,
-        query: &str,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+    async fn query_graphql(&self, query: &str) -> Result<Vec<RecordBatch>, QueryError> {
         self.cq.query_graphql(query).await
     }
 
     #[inline]
-    async fn query_sql(
-        &self,
-        query: &str,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+    async fn query_sql(&self, query: &str) -> Result<Vec<RecordBatch>, QueryError> {
         self.cq.query_sql(query).await
     }
 
@@ -139,7 +126,7 @@ impl RoapiContext for RawRoapiContext {
         &self,
         table_name: &str,
         params: &HashMap<String, String>,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+    ) -> Result<Vec<RecordBatch>, QueryError> {
         self.cq.query_rest_table(table_name, params).await
     }
 
@@ -149,7 +136,7 @@ impl RoapiContext for RawRoapiContext {
     }
 
     #[inline]
-    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
+    async fn sql_to_df(&self, query: &str) -> Result<DataFrame, DataFusionError> {
         self.cq.dfctx.sql(query).await
     }
 
@@ -195,19 +182,13 @@ impl RoapiContext for ConcurrentRoapiContext {
     }
 
     #[inline]
-    async fn query_graphql(
-        &self,
-        query: &str,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+    async fn query_graphql(&self, query: &str) -> Result<Vec<RecordBatch>, QueryError> {
         let ctx = self.read().await;
         ctx.cq.query_graphql(query).await
     }
 
     #[inline]
-    async fn query_sql(
-        &self,
-        query: &str,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+    async fn query_sql(&self, query: &str) -> Result<Vec<RecordBatch>, QueryError> {
         let ctx = self.read().await;
         ctx.cq.query_sql(query).await
     }
@@ -217,7 +198,7 @@ impl RoapiContext for ConcurrentRoapiContext {
         &self,
         table_name: &str,
         params: &HashMap<String, String>,
-    ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+    ) -> Result<Vec<RecordBatch>, QueryError> {
         let ctx = self.read().await;
         ctx.cq.query_rest_table(table_name, params).await
     }
@@ -229,7 +210,7 @@ impl RoapiContext for ConcurrentRoapiContext {
     }
 
     #[inline]
-    async fn sql_to_df(&self, query: &str) -> Result<Arc<DataFrame>, DataFusionError> {
+    async fn sql_to_df(&self, query: &str) -> Result<DataFrame, DataFusionError> {
         let ctx = self.read().await;
         ctx.cq.dfctx.sql(query).await
     }

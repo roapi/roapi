@@ -7,7 +7,7 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::array::as_string_array;
 use datafusion::arrow::array::StringArray;
-use datafusion::datasource::object_store::{ObjectStoreProvider, ObjectStoreRegistry};
+use datafusion::datasource::object_store::ObjectStoreRegistry;
 use datafusion::error::{DataFusionError, Result as DatafusionResult};
 pub use datafusion::execution::context::SessionConfig;
 use datafusion::execution::context::SessionContext;
@@ -20,11 +20,33 @@ use crate::table::{self, KeyValueSource, TableSource};
 use object_store::aws::AmazonS3Builder;
 use object_store::azure::MicrosoftAzureBuilder;
 use object_store::gcp::GoogleCloudStorageBuilder;
+use object_store::DynObjectStore;
 use url::Url;
 
-pub struct ColumnQObjectStoreProvider {}
-impl ObjectStoreProvider for ColumnQObjectStoreProvider {
-    fn get_by_url(&self, url: &Url) -> DatafusionResult<Arc<dyn object_store::ObjectStore>> {
+#[derive(Default)]
+pub struct ColumnQObjectStoreRegistry {}
+
+impl std::fmt::Debug for ColumnQObjectStoreRegistry {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("ColumnQObjectStoreRegistry").finish()
+    }
+}
+
+impl ColumnQObjectStoreRegistry {
+    pub fn get_by_url(&self, url: &Url) -> DatafusionResult<Arc<DynObjectStore>> {
+        self.get_store(url)
+    }
+}
+impl ObjectStoreRegistry for ColumnQObjectStoreRegistry {
+    fn register_store(
+        &self,
+        _url: &Url,
+        _store: Arc<DynObjectStore>,
+    ) -> Option<Arc<DynObjectStore>> {
+        None
+    }
+
+    fn get_store(&self, url: &Url) -> DatafusionResult<Arc<DynObjectStore>> {
         match url.host_str() {
             None => Err(DataFusionError::Execution(format!(
                 "Missing bucket name: {}",
@@ -79,13 +101,15 @@ pub struct ColumnQ {
 
 impl ColumnQ {
     pub fn new() -> Self {
-        Self::new_with_config(SessionConfig::from_env().with_information_schema(true))
+        Self::new_with_config(
+            SessionConfig::from_env()
+                .expect("Valid environment variables should be set to create SessionConfig")
+                .with_information_schema(true),
+        )
     }
 
     pub fn new_with_config(config: SessionConfig) -> Self {
-        let object_store_provider = ColumnQObjectStoreProvider {};
-        let object_store_registry =
-            ObjectStoreRegistry::new_with_provider(Some(Arc::new(object_store_provider)));
+        let object_store_registry = ColumnQObjectStoreRegistry::default();
         let rn_config =
             RuntimeConfig::new().with_object_store_registry(Arc::new(object_store_registry));
         let runtime_env = RuntimeEnv::new(rn_config).unwrap();
@@ -120,11 +144,11 @@ impl ColumnQ {
             return Err(ColumnQError::invalid_kv_key_type());
         }
         let val_schema_idx = schema.index_of(&value)?;
-        let projections = Some(vec![key_schema_idx, val_schema_idx]);
+        let projections = vec![key_schema_idx, val_schema_idx];
 
         let filters = &[];
         let exec_plan = table
-            .scan(&self.dfctx.state(), &projections, filters, None)
+            .scan(&self.dfctx.state(), Some(&projections), filters, None)
             .await?;
         let batches = collect(exec_plan, self.dfctx.task_ctx()).await?;
         let mut kv = HashMap::new();
@@ -214,15 +238,14 @@ mod tests {
     use std::{env, str::FromStr};
     use tempfile::Builder;
 
-    use datafusion::datasource::object_store::ObjectStoreProvider;
     use url::Url;
 
-    use super::ColumnQObjectStoreProvider;
+    use super::ColumnQObjectStoreRegistry;
 
     #[test]
     fn s3_object_store_type() {
         let host_url = "s3://bucket_name/path";
-        let provider = ColumnQObjectStoreProvider {};
+        let provider = ColumnQObjectStoreRegistry {};
 
         let err = provider
             .get_by_url(&Url::from_str(host_url).unwrap())
@@ -242,7 +265,7 @@ mod tests {
     #[test]
     fn s3_object_store_type_no_bucket() {
         let host_url = "s3://";
-        let provider = ColumnQObjectStoreProvider {};
+        let provider = ColumnQObjectStoreRegistry {};
 
         let err = provider
             .get_by_url(&Url::from_str(host_url).unwrap())
@@ -253,7 +276,7 @@ mod tests {
     #[tokio::test]
     async fn gcs_object_store_type() -> anyhow::Result<()> {
         let host_url = "gs://bucket_name/path";
-        let provider = ColumnQObjectStoreProvider {};
+        let provider = ColumnQObjectStoreRegistry {};
 
         let tmp_dir = Builder::new().prefix("columnq.test.gcs").tempdir()?;
         let tmp_gcs_path = tmp_dir.path().join("service_account.json");
@@ -280,7 +303,7 @@ mod tests {
     #[test]
     fn azure_object_store_type() {
         let host_url = "az://bucket_name/path";
-        let provider = ColumnQObjectStoreProvider {};
+        let provider = ColumnQObjectStoreRegistry {};
         // https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=visual-studio#http-connection-strings
         env::set_var("AZURE_STORAGE_ACCOUNT_NAME", "devstoreaccount1");
         env::set_var("AZURE_STORAGE_ACCOUNT_KEY", "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==");
@@ -299,7 +322,7 @@ mod tests {
     #[test]
     fn unknown_object_store_type() {
         let unknown = "unknown://bucket_name/path";
-        let provider = ColumnQObjectStoreProvider {};
+        let provider = ColumnQObjectStoreRegistry {};
         let err = provider
             .get_by_url(&Url::from_str(unknown).unwrap())
             .unwrap_err();

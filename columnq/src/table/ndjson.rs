@@ -2,6 +2,7 @@ use std::io::{BufReader, Read};
 use std::sync::Arc;
 
 use datafusion::arrow::datatypes::{Schema, SchemaRef};
+#[allow(deprecated)]
 use datafusion::arrow::json::reader::{infer_json_schema, Decoder, DecoderOptions, ValueIter};
 use datafusion::arrow::record_batch::RecordBatch;
 
@@ -18,6 +19,8 @@ fn decode_json_from_reader<R: Read>(
     schema_ref: SchemaRef,
     batch_size: usize,
 ) -> Result<Vec<RecordBatch>, ColumnQError> {
+    #[allow(deprecated)]
+    // TODO: switch to RawDecoder
     let decoder = Decoder::new(
         schema_ref,
         DecoderOptions::new().with_batch_size(batch_size),

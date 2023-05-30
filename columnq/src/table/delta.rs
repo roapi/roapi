@@ -140,7 +140,7 @@ mod tests {
         .await?;
 
         let ctx = SessionContext::new();
-        validate_statistics(t.scan(&ctx.state(), &None, &[], None).await?.statistics());
+        validate_statistics(t.scan(&ctx.state(), None, &[], None).await?.statistics());
 
         match t.as_any().downcast_ref::<MemTable>() {
             Some(_) => Ok(()),

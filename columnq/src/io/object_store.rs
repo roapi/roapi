@@ -1,7 +1,6 @@
-use crate::columnq::ColumnQObjectStoreProvider;
+use crate::columnq::ColumnQObjectStoreRegistry;
 use crate::error::ColumnQError;
 use crate::table::TableSource;
-use datafusion::datasource::object_store::ObjectStoreProvider;
 use futures::TryStreamExt;
 use object_store::ObjectStore;
 use percent_encoding;
@@ -27,7 +26,7 @@ where
     I: Iterator<Item = &'a str>,
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
-    let object_store_provider = ColumnQObjectStoreProvider {};
+    let object_store_provider = ColumnQObjectStoreRegistry {};
     let mut partitions = vec![];
 
     for path_str in path_iter {
@@ -49,7 +48,7 @@ pub async fn partitions_from_uri<'a, F, T>(
 where
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
-    let object_store_provider = ColumnQObjectStoreProvider {};
+    let object_store_provider = ColumnQObjectStoreRegistry {};
     let url = &Url::from_str(t.get_uri_str()).unwrap();
     let client = object_store_provider.get_by_url(url)?;
     let mut partitions = vec![];
