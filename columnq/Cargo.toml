@@ -46,9 +46,8 @@ hyper-tls = { version = "0.5.0", default-features = false, optional = true }
 hyper-rustls = { version = "0.23.2", default-features = false, optional = true }
 
 [dependencies.deltalake]
-git = "https://github.com/delta-io/delta-rs.git"
-rev = "72a9e5827e99c7d2a1cf05806ffce6f0a4449d47"
 default-features = false
+version = "0.10.0"
 features = ["datafusion-ext"]
 
 [dependencies.connectorx]
@@ -73,18 +72,21 @@ rustls = [
     "hyper-rustls",
     "reqwest/rustls-tls",
     "deltalake/s3",
+    "deltalake/azure",
     "yup-oauth2/hyper-rustls",
 ]
 native-tls-vendored = [
     "reqwest/native-tls-vendored",
     "hyper-tls/vendored",
     "deltalake/s3",
+    "deltalake/azure",
     "yup-oauth2/hyper-tls",
 ]
 native-tls = [
     "reqwest/native-tls",
     "hyper-tls",
     "deltalake/s3",
+    "deltalake/azure",
     "yup-oauth2/hyper-tls",
 ]
 simd = ["datafusion/simd"]

@@ -102,6 +102,7 @@ fn json_vec_to_partition(
 
 async fn to_partitions(
     t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<(Option<Schema>, Vec<Vec<RecordBatch>>), ColumnQError> {
     let batch_size = t.batch_size;
     let array_encoded = match &t.option {
@@ -121,7 +122,7 @@ async fn to_partitions(
     };
 
     let mut merged_schema: Option<Schema> = None;
-    let json_partitions: Vec<Value> = partitions_from_table_source!(t, json_value_from_reader)?;
+    let json_partitions: Vec<Value> = partitions_from_table_source!(t, json_value_from_reader, dfctx)?;
 
     let partitions = json_partitions
         .iter()
@@ -159,8 +160,9 @@ async fn to_partitions(
 
 pub async fn to_mem_table(
     t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
-    let (merged_schema, partitions) = to_partitions(t).await?;
+    let (merged_schema, partitions) = to_partitions(t, dfctx).await?;
     Ok(datafusion::datasource::MemTable::try_new(
         Arc::new(
             merged_schema
@@ -174,16 +176,17 @@ pub async fn to_mem_table(
 mod tests {
     use super::*;
 
-    use datafusion::datasource::TableProvider;
+    use datafusion::{datasource::TableProvider, prelude::SessionContext};
 
     use crate::test_util::*;
 
     #[tokio::test]
     async fn nested_struct_and_lists() -> Result<(), ColumnQError> {
+        let ctx = SessionContext::new();
         let t = to_mem_table(&TableSource::new(
             "spacex_launches".to_string(),
             test_data_path("spacex_launches.json"),
-        ))
+        ), &ctx)
         .await?;
 
         let schema = t.schema();
@@ -229,12 +232,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_multiple_batches() -> Result<(), ColumnQError> {
+        let ctx = SessionContext::new();
         let mut source = TableSource::new(
             "spacex_launches".to_string(),
             test_data_path("spacex_launches.json"),
         );
         source.batch_size = 1;
-        let (_, p) = to_partitions(&source).await?;
+        let (_, p) = to_partitions(&source, &ctx).await?;
         assert_eq!(p.len(), 1);
         assert_eq!(p[0][0].num_rows(), source.batch_size);
         assert_eq!(p[0].len(), 132);

@@ -1,7 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 use std::io::Read;
 use std::sync::Arc;
-
 use datafusion::arrow;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
@@ -9,11 +8,11 @@ use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
 use crate::error::ColumnQError;
-use crate::io;
+use crate::io::{self, BlobStoreType};
 use crate::table::{TableLoadOption, TableOptionDelta, TableSource};
 use deltalake;
 
-pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn to_datafusion_table(t: &TableSource, dfctx: &datafusion::execution::context::SessionContext) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
@@ -24,11 +23,12 @@ pub async fn to_datafusion_table(t: &TableSource) -> Result<Arc<dyn TableProvide
     let uri_str = t.get_uri_str();
     let delta_table = deltalake::open_table(uri_str).await?;
     let parsed_uri = t.parsed_uri()?;
-    let blob_type = io::BlobStoreType::try_from(parsed_uri.scheme())?;
+    let url_scheme = parsed_uri.scheme();
+    let blob_type = BlobStoreType::try_from(url_scheme)?;
     let batch_size = t.batch_size;
 
     if *use_memory_table {
-        to_mem_table(delta_table, blob_type, batch_size).await
+        to_mem_table(delta_table, blob_type, batch_size, dfctx).await
     } else {
         to_delta_table(delta_table, blob_type).await
     }
@@ -39,11 +39,7 @@ pub async fn to_delta_table(
     blob_type: io::BlobStoreType,
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     match blob_type {
-        io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
-        io::BlobStoreType::S3 | io::BlobStoreType::GCS => Err(ColumnQError::LoadDelta(format!(
-                "object_store for delta table currently only supported in conjunction with `to_memory_table` config: {}",
-                delta_table.table_uri(),
-            ))),
+        io::BlobStoreType::Azure | io::BlobStoreType::S3 | io::BlobStoreType::GCS | io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
         _ => {
             Err(ColumnQError::InvalidUri(format!(
                 "Scheme in table uri not supported for delta table: {}",
@@ -75,6 +71,7 @@ pub async fn to_mem_table(
     delta_table: deltalake::DeltaTable,
     blob_type: io::BlobStoreType,
     batch_size: usize,
+    dfctx: &datafusion::execution::context::SessionContext
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     if delta_table.get_files().is_empty() {
         return Err(ColumnQError::LoadDelta("empty delta table".to_string()));
@@ -98,6 +95,7 @@ pub async fn to_mem_table(
                 |r| -> Result<Vec<RecordBatch>, ColumnQError> {
                     read_partition::<std::io::Cursor<Vec<u8>>>(r, batch_size)
                 },
+                dfctx
             )
             .await?
         }
@@ -130,16 +128,18 @@ mod tests {
 
     #[tokio::test]
     async fn load_delta_as_memtable() -> Result<(), ColumnQError> {
+        let ctx = SessionContext::new();
         let t = to_datafusion_table(
             &TableSource::new("blogs".to_string(), test_data_path("blogs-delta")).with_option(
                 TableLoadOption::delta(TableOptionDelta {
                     use_memory_table: true,
                 }),
             ),
+            &ctx
         )
         .await?;
 
-        let ctx = SessionContext::new();
+       
         validate_statistics(t.scan(&ctx.state(), None, &[], None).await?.statistics());
 
         match t.as_any().downcast_ref::<MemTable>() {
@@ -150,12 +150,14 @@ mod tests {
 
     #[tokio::test]
     async fn load_delta_as_delta_source() -> Result<(), ColumnQError> {
+        let ctx = SessionContext::new();
         let t = to_datafusion_table(
             &TableSource::new("blogs".to_string(), test_data_path("blogs-delta")).with_option(
                 TableLoadOption::delta(TableOptionDelta {
                     use_memory_table: false,
                 }),
             ),
+            &ctx
         )
         .await?;
 

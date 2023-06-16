@@ -10,6 +10,7 @@ use crate::table::TableSource;
 
 pub async fn to_mem_table(
     t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
     debug!("loading arrow table data...");
     let mut schema_and_partitions = partitions_from_table_source!(t, |mut r| {
@@ -21,7 +22,7 @@ pub async fn to_mem_table(
             .map(|batch| Ok(batch?))
             .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
             .map(|batches| (Some(schema), batches))
-    })?;
+    }, dfctx)?;
 
     let schema_ref = match &t.schema {
         Some(s) => Arc::new(s.into()),
@@ -59,6 +60,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_partitions() -> anyhow::Result<()> {
+        let ctx = SessionContext::new();
         let tmp_dir = Builder::new()
             .prefix("columnq.test.arrows_partitions")
             .tempdir()?;
@@ -75,10 +77,11 @@ mod tests {
                 tmp_dir_path.to_string_lossy().to_string(),
             )
             .with_option(TableLoadOption::arrows {}),
+            &ctx
         )
         .await?;
 
-        let ctx = SessionContext::new();
+        
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37 * 3));
 
@@ -87,11 +90,12 @@ mod tests {
 
     #[tokio::test]
     async fn load_file() -> anyhow::Result<()> {
+        let ctx = SessionContext::new();
         let test_path = test_data_path("uk_cities_with_headers.arrows");
 
-        let t = to_mem_table(&TableSource::new("uk_cities".to_string(), test_path)).await?;
+        let t = to_mem_table(&TableSource::new("uk_cities".to_string(), test_path), &ctx).await?;
 
-        let ctx = SessionContext::new();
+        
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37));
 

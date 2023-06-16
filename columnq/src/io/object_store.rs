@@ -1,4 +1,3 @@
-use crate::columnq::ColumnQObjectStoreRegistry;
 use crate::error::ColumnQError;
 use crate::table::TableSource;
 use futures::TryStreamExt;
@@ -21,17 +20,18 @@ pub async fn partition_key_to_reader(
 pub async fn partitions_from_path_iterator<'a, F, T, I>(
     path_iter: I,
     mut partition_reader: F,
+    dfctx: &datafusion::execution::context::SessionContext
 ) -> Result<Vec<T>, ColumnQError>
 where
     I: Iterator<Item = &'a str>,
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
-    let object_store_provider = ColumnQObjectStoreRegistry {};
+    let object_store_registry = dfctx.runtime_env().object_store_registry.clone();
     let mut partitions = vec![];
 
     for path_str in path_iter {
         let url = &Url::from_str(path_str).unwrap();
-        let client = object_store_provider.get_by_url(url)?;
+        let client = object_store_registry.get_store(url)?;
         let path = object_store::path::Path::from(&url.path()[1..]);
         let reader = partition_key_to_reader(client.clone(), &path).await?;
         partitions.push(partition_reader(reader)?);
@@ -44,13 +44,14 @@ pub async fn partitions_from_uri<'a, F, T>(
     t: &'a TableSource,
     _uri: URIReference<'a>,
     mut partition_reader: F,
+    dfctx: &datafusion::execution::context::SessionContext
 ) -> Result<Vec<T>, ColumnQError>
 where
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,
 {
-    let object_store_provider = ColumnQObjectStoreRegistry {};
+    let object_store_registry = dfctx.runtime_env().object_store_registry.clone();
     let url = &Url::from_str(t.get_uri_str()).unwrap();
-    let client = object_store_provider.get_by_url(url)?;
+    let client = object_store_registry.get_store(url)?;
     let mut partitions = vec![];
 
     // url.path starts with "/", but object_store does not expect "/" at the beginning
