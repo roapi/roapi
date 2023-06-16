@@ -37,7 +37,7 @@ pub async fn to_datafusion_table(
     Ok(Arc::new(ListingTable::try_new(table_config)?))
 }
 pub async fn to_mem_table(
-    t: &TableSource, 
+    t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
@@ -56,16 +56,21 @@ pub async fn to_mem_table(
     let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
         Some(s) => Arc::new(s.into()),
         None => {
-            let schemas = partitions_from_table_source!(t, |mut r| {
-                let (schema, record_count) =
-                    arrow::csv::reader::infer_reader_schema(&mut r, delimiter, None, has_header)?;
+            let schemas = partitions_from_table_source!(
+                t,
+                |mut r| {
+                    let (schema, record_count) = arrow::csv::reader::infer_reader_schema(
+                        &mut r, delimiter, None, has_header,
+                    )?;
 
-                if record_count > 0 {
-                    Ok(Some(schema))
-                } else {
-                    Ok(None)
-                }
-            }, dfctx)?
+                    if record_count > 0 {
+                        Ok(Some(schema))
+                    } else {
+                        Ok(None)
+                    }
+                },
+                dfctx
+            )?
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
@@ -75,8 +80,9 @@ pub async fn to_mem_table(
     };
 
     debug!("loading csv table data...");
-    let partitions: Vec<Vec<RecordBatch>> =
-        partitions_from_table_source!(t, |r| -> Result<Vec<RecordBatch>, ColumnQError> {
+    let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
+        t,
+        |r| -> Result<Vec<RecordBatch>, ColumnQError> {
             let csv_reader = arrow::csv::Reader::new(
                 r,
                 schema_ref.clone(),
@@ -92,7 +98,9 @@ pub async fn to_mem_table(
                 .into_iter()
                 .map(|batch| Ok(batch?))
                 .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
-        }, dfctx)?;
+        },
+        dfctx
+    )?;
 
     let table = Arc::new(datafusion::datasource::MemTable::try_new(
         schema_ref, partitions,
@@ -132,11 +140,10 @@ mod tests {
             .with_option(TableLoadOption::csv(
                 TableOptionCsv::default().with_has_header(true),
             )),
-            &ctx
+            &ctx,
         )
         .await?;
 
-        
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37 * 3));
 
@@ -160,7 +167,6 @@ c1,c2,c3
             ));
         let t = to_mem_table(&source, &ctx).await?;
 
-        
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(3));
 

@@ -19,7 +19,8 @@ macro_rules! partitions_from_table_source {
                 io::http::partitions_from_uri(&$table_source, uri, $call_with_r).await
             }
             io::BlobStoreType::S3 | io::BlobStoreType::GCS | io::BlobStoreType::Azure => {
-                io::object_store::partitions_from_uri(&$table_source, uri, $call_with_r, &$ctx).await
+                io::object_store::partitions_from_uri(&$table_source, uri, $call_with_r, &$ctx)
+                    .await
             }
             io::BlobStoreType::Memory => {
                 io::memory::partitions_from_memory(&$table_source, $call_with_r).await

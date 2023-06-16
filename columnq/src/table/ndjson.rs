@@ -53,12 +53,11 @@ pub async fn to_mem_table(
         }
     };
 
-    let partitions: Vec<Vec<RecordBatch>> =
-        partitions_from_table_source!(t, |reader| decode_json_from_reader(
-            reader,
-            schema_ref.clone(),
-            batch_size
-        ), dfctx)?;
+    let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
+        t,
+        |reader| decode_json_from_reader(reader, schema_ref.clone(), batch_size),
+        dfctx
+    )?;
 
     Ok(datafusion::datasource::MemTable::try_new(
         schema_ref, partitions,
@@ -75,10 +74,13 @@ mod tests {
     #[tokio::test]
     async fn load_simple_ndjson_file() {
         let ctx = SessionContext::new();
-        let t = to_mem_table(&TableSource::new(
-            "spacex_launches".to_string(),
-            test_data_path("spacex_launches.ndjson"),
-        ), &ctx)
+        let t = to_mem_table(
+            &TableSource::new(
+                "spacex_launches".to_string(),
+                test_data_path("spacex_launches.ndjson"),
+            ),
+            &ctx,
+        )
         .await
         .unwrap();
 
@@ -124,10 +126,13 @@ mod tests {
     #[tokio::test]
     async fn load_simple_jsonl_file() {
         let ctx = SessionContext::new();
-        let t = to_mem_table(&TableSource::new(
-            "spacex_launches".to_string(),
-            test_data_path("spacex_launches.jsonl"),
-        ), &ctx)
+        let t = to_mem_table(
+            &TableSource::new(
+                "spacex_launches".to_string(),
+                test_data_path("spacex_launches.jsonl"),
+            ),
+            &ctx,
+        )
         .await
         .unwrap();
 

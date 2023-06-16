@@ -7,16 +7,16 @@ use datafusion::arrow;
 use datafusion::arrow::array::as_string_array;
 use datafusion::arrow::array::StringArray;
 use datafusion::error::DataFusionError;
-use datafusion::error::{Result as DatafusionResult};
-use object_store::DynObjectStore;
-use object_store::ObjectStore;
-use object_store::aws::AmazonS3Builder;
-use object_store::azure::MicrosoftAzureBuilder;
-use object_store::gcp::GoogleCloudStorageBuilder;
+use datafusion::error::Result as DatafusionResult;
 pub use datafusion::execution::context::SessionConfig;
 use datafusion::execution::context::SessionContext;
 use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
 use datafusion::physical_plan::collect;
+use object_store::aws::AmazonS3Builder;
+use object_store::azure::MicrosoftAzureBuilder;
+use object_store::gcp::GoogleCloudStorageBuilder;
+use object_store::DynObjectStore;
+use object_store::ObjectStore;
 use url::Url;
 
 use crate::error::{ColumnQError, QueryError};
@@ -54,17 +54,14 @@ impl ColumnQ {
     }
 
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
-   
         match &t.io_source {
             TableIoSource::Uri(uri_str) => {
                 if let Ok(url) = Url::parse(uri_str) {
                     let _ = self.register_object_storage(&url);
                 }
-        
-            },
-            TableIoSource::Memory(_) => {},
+            }
+            TableIoSource::Memory(_) => {}
         };
-
 
         let table = table::load(t, &self.dfctx).await?;
         self.schema_map.insert(t.name.clone(), table.schema());
@@ -73,16 +70,23 @@ impl ColumnQ {
 
         Ok(())
     }
-    pub fn register_object_storage(&mut self, url: &Url) -> Result<Option<Arc<dyn ObjectStore>>, ColumnQError> {
+    pub fn register_object_storage(
+        &mut self,
+        url: &Url,
+    ) -> Result<Option<Arc<dyn ObjectStore>>, ColumnQError> {
         let url_scheme = url.scheme();
         let blob_type = BlobStoreType::try_from(url_scheme)?;
 
         let object_store: DatafusionResult<Arc<DynObjectStore>> = match url.host() {
-            None => Err(DataFusionError::Execution(format!("Missing bucket name: {}", url))),
+            None => Err(DataFusionError::Execution(format!(
+                "Missing bucket name: {}",
+                url
+            ))),
             Some(host) => {
                 match blob_type {
                     BlobStoreType::S3 => {
-                        let mut s3_builder = AmazonS3Builder::from_env().with_bucket_name(host.to_string());
+                        let mut s3_builder =
+                            AmazonS3Builder::from_env().with_bucket_name(host.to_string());
                         // for minio in CI
                         s3_builder = s3_builder.with_allow_http(true);
 
@@ -92,8 +96,8 @@ impl ColumnQ {
                         }
                     }
                     BlobStoreType::GCS => {
-                        let gcs_builder =
-                            GoogleCloudStorageBuilder::from_env().with_bucket_name(host.to_string());
+                        let gcs_builder = GoogleCloudStorageBuilder::from_env()
+                            .with_bucket_name(host.to_string());
                         match gcs_builder.build() {
                             Ok(gcs) => Ok(Arc::new(gcs)),
                             Err(err) => Err(DataFusionError::External(Box::new(err))),
@@ -109,7 +113,7 @@ impl ColumnQ {
                     }
                     _ => Err(DataFusionError::Execution(format!(
                         "Unsupported scheme: {url_scheme:?}"
-                    )))
+                    ))),
                 }
             }
         };
@@ -118,9 +122,9 @@ impl ColumnQ {
                 let runtime_env = self.dfctx.runtime_env();
                 let result_store = runtime_env.register_object_store(url, store);
                 Ok(result_store)
-            },
+            }
             Err(e) => Err(ColumnQError::InvalidUri(e.to_string())),
-        }
+        };
     }
     pub async fn load_kv(&mut self, kv: KeyValueSource) -> Result<(), ColumnQError> {
         use datafusion::arrow::datatypes::DataType;
@@ -224,16 +228,14 @@ impl Default for ColumnQ {
 #[cfg(test)]
 mod tests {
 
-
     use std::fs::File;
     use std::io::Write;
     use std::{env, str::FromStr};
     use tempfile::Builder;
     use url::Url;
 
-    use crate::ColumnQ;
     use crate::error::ColumnQError;
-
+    use crate::ColumnQ;
 
     #[test]
     fn s3_object_store_type() -> Result<(), ColumnQError> {
@@ -242,7 +244,7 @@ mod tests {
         let _ = cq.register_object_storage(&Url::parse("s3://bucket_name/path/foo.csv").unwrap());
         let host_url = "s3://bucket_name/path";
         let provider = &cq.dfctx.runtime_env().object_store_registry;
-        
+
         let res = provider.get_store(&Url::from_str(host_url).unwrap());
         let msg = match res {
             Err(e) => format!("{e}"),
@@ -258,8 +260,10 @@ mod tests {
         env::set_var("AWS_REGION", "us-east-1");
         let mut cq = ColumnQ::new();
         let host_url = "s3://";
-    
-        let err = cq.register_object_storage(&Url::parse(host_url).unwrap()).unwrap_err();
+
+        let err = cq
+            .register_object_storage(&Url::parse(host_url).unwrap())
+            .unwrap_err();
 
         assert!(err.to_string().contains("Missing bucket name: s3://"));
     }
@@ -270,7 +274,7 @@ mod tests {
         let host_url = "gs://bucket_name/path";
         let _ = cq.register_object_storage(&Url::parse(host_url).unwrap());
         let provider = &cq.dfctx.runtime_env().object_store_registry;
-      
+
         let tmp_dir = Builder::new().prefix("columnq.test.gcs").tempdir()?;
         let tmp_gcs_path = tmp_dir.path().join("service_account.json");
         let mut tmp_gcs = File::create(tmp_gcs_path.clone())?;
@@ -304,8 +308,6 @@ mod tests {
         let _ = cq.register_object_storage(&Url::parse(host_url).unwrap());
         let provider = &cq.dfctx.runtime_env().object_store_registry;
 
-
-
         let res = provider.get_store(&Url::from_str(host_url).unwrap());
         let msg = match res {
             Err(e) => format!("{e}"),
@@ -320,9 +322,9 @@ mod tests {
     #[test]
     fn unknown_object_store_type() {
         let mut cq = ColumnQ::new();
-        let err = cq.register_object_storage(&Url::parse("unknown://bucket_name/path").unwrap()).unwrap_err();
-        assert!(err
-            .to_string()
-            .contains("Unsupported scheme: \"unknown\""))
+        let err = cq
+            .register_object_storage(&Url::parse("unknown://bucket_name/path").unwrap())
+            .unwrap_err();
+        assert!(err.to_string().contains("Unsupported scheme: \"unknown\""))
     }
 }

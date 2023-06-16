@@ -1,18 +1,21 @@
-use std::convert::{TryFrom, TryInto};
-use std::io::Read;
-use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use std::convert::{TryFrom, TryInto};
+use std::io::Read;
+use std::sync::Arc;
 
 use crate::error::ColumnQError;
 use crate::io::{self, BlobStoreType};
 use crate::table::{TableLoadOption, TableOptionDelta, TableSource};
 use deltalake;
 
-pub async fn to_datafusion_table(t: &TableSource, dfctx: &datafusion::execution::context::SessionContext) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn to_datafusion_table(
+    t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
@@ -39,13 +42,14 @@ pub async fn to_delta_table(
     blob_type: io::BlobStoreType,
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     match blob_type {
-        io::BlobStoreType::Azure | io::BlobStoreType::S3 | io::BlobStoreType::GCS | io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
-        _ => {
-            Err(ColumnQError::InvalidUri(format!(
-                "Scheme in table uri not supported for delta table: {}",
-                delta_table.table_uri(),
-            )))
-        }
+        io::BlobStoreType::Azure
+        | io::BlobStoreType::S3
+        | io::BlobStoreType::GCS
+        | io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
+        _ => Err(ColumnQError::InvalidUri(format!(
+            "Scheme in table uri not supported for delta table: {}",
+            delta_table.table_uri(),
+        ))),
     }
 }
 
@@ -71,7 +75,7 @@ pub async fn to_mem_table(
     delta_table: deltalake::DeltaTable,
     blob_type: io::BlobStoreType,
     batch_size: usize,
-    dfctx: &datafusion::execution::context::SessionContext
+    dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     if delta_table.get_files().is_empty() {
         return Err(ColumnQError::LoadDelta("empty delta table".to_string()));
@@ -95,7 +99,7 @@ pub async fn to_mem_table(
                 |r| -> Result<Vec<RecordBatch>, ColumnQError> {
                     read_partition::<std::io::Cursor<Vec<u8>>>(r, batch_size)
                 },
-                dfctx
+                dfctx,
             )
             .await?
         }
@@ -135,11 +139,10 @@ mod tests {
                     use_memory_table: true,
                 }),
             ),
-            &ctx
+            &ctx,
         )
         .await?;
 
-       
         validate_statistics(t.scan(&ctx.state(), None, &[], None).await?.statistics());
 
         match t.as_any().downcast_ref::<MemTable>() {
@@ -157,7 +160,7 @@ mod tests {
                     use_memory_table: false,
                 }),
             ),
-            &ctx
+            &ctx,
         )
         .await?;
 

@@ -98,7 +98,6 @@ mod tests {
 
         let t = to_mem_table(&TableSource::new("uk_cities".to_string(), test_path), &ctx).await?;
 
-       
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37));
 

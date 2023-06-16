@@ -484,8 +484,12 @@ pub async fn load(
             }
             TableLoadOption::xlsx { .. } => Arc::new(xlsx::to_mem_table(t).await?),
             TableLoadOption::delta { .. } => delta::to_datafusion_table(t, dfctx).await?,
-            TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?),
-            TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t, dfctx).await?),
+            TableLoadOption::arrow { .. } => {
+                Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?)
+            }
+            TableLoadOption::arrows { .. } => {
+                Arc::new(arrow_ipc_stream::to_mem_table(t, dfctx).await?)
+            }
             TableLoadOption::mysql { .. } => {
                 Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?)
             }

@@ -20,7 +20,7 @@ pub async fn partition_key_to_reader(
 pub async fn partitions_from_path_iterator<'a, F, T, I>(
     path_iter: I,
     mut partition_reader: F,
-    dfctx: &datafusion::execution::context::SessionContext
+    dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<Vec<T>, ColumnQError>
 where
     I: Iterator<Item = &'a str>,
@@ -44,7 +44,7 @@ pub async fn partitions_from_uri<'a, F, T>(
     t: &'a TableSource,
     _uri: URIReference<'a>,
     mut partition_reader: F,
-    dfctx: &datafusion::execution::context::SessionContext
+    dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<Vec<T>, ColumnQError>
 where
     F: FnMut(std::io::Cursor<Vec<u8>>) -> Result<T, ColumnQError>,

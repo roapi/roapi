@@ -13,16 +13,20 @@ pub async fn to_mem_table(
     dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
     debug!("loading arrow table data...");
-    let mut schema_and_partitions = partitions_from_table_source!(t, |mut r| {
-        let arrow_stream_reader = arrow::ipc::reader::StreamReader::try_new(&mut r, None)?;
-        let schema = (*arrow_stream_reader.schema()).clone();
+    let mut schema_and_partitions = partitions_from_table_source!(
+        t,
+        |mut r| {
+            let arrow_stream_reader = arrow::ipc::reader::StreamReader::try_new(&mut r, None)?;
+            let schema = (*arrow_stream_reader.schema()).clone();
 
-        arrow_stream_reader
-            .into_iter()
-            .map(|batch| Ok(batch?))
-            .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
-            .map(|batches| (Some(schema), batches))
-    }, dfctx)?;
+            arrow_stream_reader
+                .into_iter()
+                .map(|batch| Ok(batch?))
+                .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
+                .map(|batches| (Some(schema), batches))
+        },
+        dfctx
+    )?;
 
     let schema_ref = match &t.schema {
         Some(s) => Arc::new(s.into()),
@@ -77,11 +81,10 @@ mod tests {
                 tmp_dir_path.to_string_lossy().to_string(),
             )
             .with_option(TableLoadOption::arrows {}),
-            &ctx
+            &ctx,
         )
         .await?;
 
-        
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37 * 3));
 
@@ -95,7 +98,6 @@ mod tests {
 
         let t = to_mem_table(&TableSource::new("uk_cities".to_string(), test_path), &ctx).await?;
 
-        
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37));
 

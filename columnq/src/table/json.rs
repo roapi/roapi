@@ -122,7 +122,8 @@ async fn to_partitions(
     };
 
     let mut merged_schema: Option<Schema> = None;
-    let json_partitions: Vec<Value> = partitions_from_table_source!(t, json_value_from_reader, dfctx)?;
+    let json_partitions: Vec<Value> =
+        partitions_from_table_source!(t, json_value_from_reader, dfctx)?;
 
     let partitions = json_partitions
         .iter()
@@ -183,10 +184,13 @@ mod tests {
     #[tokio::test]
     async fn nested_struct_and_lists() -> Result<(), ColumnQError> {
         let ctx = SessionContext::new();
-        let t = to_mem_table(&TableSource::new(
-            "spacex_launches".to_string(),
-            test_data_path("spacex_launches.json"),
-        ), &ctx)
+        let t = to_mem_table(
+            &TableSource::new(
+                "spacex_launches".to_string(),
+                test_data_path("spacex_launches.json"),
+            ),
+            &ctx,
+        )
         .await?;
 
         let schema = t.schema();
