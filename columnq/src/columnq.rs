@@ -55,14 +55,10 @@ impl ColumnQ {
 
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
    
-        let _ = match &t.io_source {
+        match &t.io_source {
             TableIoSource::Uri(uri_str) => {
-                match Url::parse(&uri_str) {
-                    Ok(url) => {
-                        let _ = self.register_object_storage(&url);
-                    },
-                    Err(_) => {},
-                    
+                if let Ok(url) = Url::parse(uri_str) {
+                    let _ = self.register_object_storage(&url);
                 }
         
             },
@@ -82,10 +78,7 @@ impl ColumnQ {
         let blob_type = BlobStoreType::try_from(url_scheme)?;
 
         let object_store: DatafusionResult<Arc<DynObjectStore>> = match url.host() {
-            None => Err(DataFusionError::Execution(format!(
-                "Missing bucket name: {}",
-                url.to_string()
-            ))),
+            None => Err(DataFusionError::Execution(format!("Missing bucket name: {}", url))),
             Some(host) => {
                 match blob_type {
                     BlobStoreType::S3 => {
@@ -123,7 +116,7 @@ impl ColumnQ {
         return match object_store {
             Ok(store) => {
                 let runtime_env = self.dfctx.runtime_env();
-                let result_store = runtime_env.register_object_store(&url, store);
+                let result_store = runtime_env.register_object_store(url, store);
                 Ok(result_store)
             },
             Err(e) => Err(ColumnQError::InvalidUri(e.to_string())),
