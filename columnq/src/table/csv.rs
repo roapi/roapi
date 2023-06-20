@@ -22,7 +22,7 @@ pub async fn to_datafusion_table(
         .clone()
         .unwrap_or_else(|| TableLoadOption::csv(TableOptionCsv::default()));
     if opt.as_csv().unwrap().use_memory_table {
-        return to_mem_table(t).await;
+        return to_mem_table(t, dfctx).await;
     }
     let table_url = ListingTableUrl::parse(t.get_uri_str())?;
     let options = ListingOptions::new(Arc::new(CsvFormat::default()));
@@ -36,7 +36,10 @@ pub async fn to_datafusion_table(
         .with_schema(schemaref);
     Ok(Arc::new(ListingTable::try_new(table_config)?))
 }
-pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn to_mem_table(
+    t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let opt = t
         .option
         .clone()
@@ -53,16 +56,21 @@ pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, Col
     let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
         Some(s) => Arc::new(s.into()),
         None => {
-            let schemas = partitions_from_table_source!(t, |mut r| {
-                let (schema, record_count) =
-                    arrow::csv::reader::infer_reader_schema(&mut r, delimiter, None, has_header)?;
+            let schemas = partitions_from_table_source!(
+                t,
+                |mut r| {
+                    let (schema, record_count) = arrow::csv::reader::infer_reader_schema(
+                        &mut r, delimiter, None, has_header,
+                    )?;
 
-                if record_count > 0 {
-                    Ok(Some(schema))
-                } else {
-                    Ok(None)
-                }
-            })?
+                    if record_count > 0 {
+                        Ok(Some(schema))
+                    } else {
+                        Ok(None)
+                    }
+                },
+                dfctx
+            )?
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
@@ -72,8 +80,9 @@ pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, Col
     };
 
     debug!("loading csv table data...");
-    let partitions: Vec<Vec<RecordBatch>> =
-        partitions_from_table_source!(t, |r| -> Result<Vec<RecordBatch>, ColumnQError> {
+    let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
+        t,
+        |r| -> Result<Vec<RecordBatch>, ColumnQError> {
             let csv_reader = arrow::csv::Reader::new(
                 r,
                 schema_ref.clone(),
@@ -89,7 +98,9 @@ pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, Col
                 .into_iter()
                 .map(|batch| Ok(batch?))
                 .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
-        })?;
+        },
+        dfctx
+    )?;
 
     let table = Arc::new(datafusion::datasource::MemTable::try_new(
         schema_ref, partitions,
@@ -110,6 +121,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_partitions() -> anyhow::Result<()> {
+        let ctx = SessionContext::new();
         let tmp_dir = Builder::new()
             .prefix("columnq.test.csv_partitions")
             .tempdir()?;
@@ -128,10 +140,10 @@ mod tests {
             .with_option(TableLoadOption::csv(
                 TableOptionCsv::default().with_has_header(true),
             )),
+            &ctx,
         )
         .await?;
 
-        let ctx = SessionContext::new();
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(37 * 3));
 
@@ -140,6 +152,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_from_memory() -> anyhow::Result<()> {
+        let ctx = SessionContext::new();
         let csv_content = r#"
 c1,c2,c3
 1,"hello",true
@@ -152,9 +165,8 @@ c1,c2,c3
             .with_option(TableLoadOption::csv(
                 TableOptionCsv::default().with_has_header(true),
             ));
-        let t = to_mem_table(&source).await?;
+        let t = to_mem_table(&source, &ctx).await?;
 
-        let ctx = SessionContext::new();
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(3));
 

@@ -473,9 +473,9 @@ pub async fn load(
 ) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     if let Some(opt) = &t.option {
         Ok(match opt {
-            TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t).await?),
+            TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t, dfctx).await?),
             TableLoadOption::ndjson { .. } | TableLoadOption::jsonl { .. } => {
-                Arc::new(ndjson::to_mem_table(t).await?)
+                Arc::new(ndjson::to_mem_table(t, dfctx).await?)
             }
             TableLoadOption::csv { .. } => csv::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t, dfctx).await?,
@@ -483,9 +483,13 @@ pub async fn load(
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
             TableLoadOption::xlsx { .. } => Arc::new(xlsx::to_mem_table(t).await?),
-            TableLoadOption::delta { .. } => delta::to_datafusion_table(t).await?,
-            TableLoadOption::arrow { .. } => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
-            TableLoadOption::arrows { .. } => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
+            TableLoadOption::delta { .. } => delta::to_datafusion_table(t, dfctx).await?,
+            TableLoadOption::arrow { .. } => {
+                Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?)
+            }
+            TableLoadOption::arrows { .. } => {
+                Arc::new(arrow_ipc_stream::to_mem_table(t, dfctx).await?)
+            }
             TableLoadOption::mysql { .. } => {
                 Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?)
             }
@@ -499,11 +503,11 @@ pub async fn load(
     } else {
         let t: Arc<dyn TableProvider> = match t.extension()? {
             "csv" => csv::to_datafusion_table(t, dfctx).await?,
-            "json" => Arc::new(json::to_mem_table(t).await?),
-            "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t).await?),
+            "json" => Arc::new(json::to_mem_table(t, dfctx).await?),
+            "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t, dfctx).await?),
             "parquet" => parquet::to_datafusion_table(t, dfctx).await?,
-            "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t).await?),
-            "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t).await?),
+            "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?),
+            "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t, dfctx).await?),
             "mysql" => Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?),
             "sqlite" => Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?),
             "postgresql" => Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?),

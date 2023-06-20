@@ -36,6 +36,7 @@ fn decode_json_from_reader<R: Read>(
 
 pub async fn to_mem_table(
     t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
     let batch_size = t.batch_size;
 
@@ -44,7 +45,7 @@ pub async fn to_mem_table(
         // infer schema from data if not provided by user
         None => {
             let inferred_schema: Vec<Schema> =
-                partitions_from_table_source!(t, json_schema_from_reader)?;
+                partitions_from_table_source!(t, json_schema_from_reader, dfctx)?;
             if inferred_schema.is_empty() {
                 return Err(ColumnQError::LoadJson("failed to load schema".to_string()));
             }
@@ -52,12 +53,11 @@ pub async fn to_mem_table(
         }
     };
 
-    let partitions: Vec<Vec<RecordBatch>> =
-        partitions_from_table_source!(t, |reader| decode_json_from_reader(
-            reader,
-            schema_ref.clone(),
-            batch_size
-        ))?;
+    let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
+        t,
+        |reader| decode_json_from_reader(reader, schema_ref.clone(), batch_size),
+        dfctx
+    )?;
 
     Ok(datafusion::datasource::MemTable::try_new(
         schema_ref, partitions,
@@ -66,17 +66,21 @@ pub async fn to_mem_table(
 
 #[cfg(test)]
 mod tests {
-    use datafusion::datasource::TableProvider;
+    use datafusion::{datasource::TableProvider, prelude::SessionContext};
 
     use super::*;
     use crate::{table::TableSource, test_util::test_data_path};
 
     #[tokio::test]
     async fn load_simple_ndjson_file() {
-        let t = to_mem_table(&TableSource::new(
-            "spacex_launches".to_string(),
-            test_data_path("spacex_launches.ndjson"),
-        ))
+        let ctx = SessionContext::new();
+        let t = to_mem_table(
+            &TableSource::new(
+                "spacex_launches".to_string(),
+                test_data_path("spacex_launches.ndjson"),
+            ),
+            &ctx,
+        )
         .await
         .unwrap();
 
@@ -121,10 +125,14 @@ mod tests {
 
     #[tokio::test]
     async fn load_simple_jsonl_file() {
-        let t = to_mem_table(&TableSource::new(
-            "spacex_launches".to_string(),
-            test_data_path("spacex_launches.jsonl"),
-        ))
+        let ctx = SessionContext::new();
+        let t = to_mem_table(
+            &TableSource::new(
+                "spacex_launches".to_string(),
+                test_data_path("spacex_launches.jsonl"),
+            ),
+            &ctx,
+        )
         .await
         .unwrap();
 

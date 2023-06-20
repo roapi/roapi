@@ -27,7 +27,7 @@ pub async fn to_datafusion_table(
     let TableOptionParquet { use_memory_table } = opt.as_parquet()?;
 
     if *use_memory_table {
-        to_mem_table(t).await
+        to_mem_table(t, dfctx).await
     } else {
         let table_url = ListingTableUrl::parse(t.get_uri_str())?;
         let options = ListingOptions::new(Arc::new(ParquetFormat::default()));
@@ -43,13 +43,17 @@ pub async fn to_datafusion_table(
     }
 }
 
-pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+pub async fn to_mem_table(
+    t: &TableSource,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, ColumnQError> {
     let batch_size = t.batch_size;
 
     let mut schema: Option<Schema> = None;
 
-    let partitions: Vec<Vec<RecordBatch>> =
-        partitions_from_table_source!(t, |mut r| -> Result<Vec<RecordBatch>, ColumnQError> {
+    let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
+        t,
+        |mut r| -> Result<Vec<RecordBatch>, ColumnQError> {
             // TODO: this is very inefficient, we are copying the parquet data in memory twice when
             // it's being fetched from http store
             let mut buffer = Vec::new();
@@ -75,7 +79,9 @@ pub async fn to_mem_table(t: &TableSource) -> Result<Arc<dyn TableProvider>, Col
             Ok(record_batch_reader
                 .into_iter()
                 .collect::<arrow::error::Result<Vec<RecordBatch>>>()?)
-        })?;
+        },
+        dfctx
+    )?;
 
     if partitions.is_empty() {
         return Err(ColumnQError::LoadParquet(
@@ -139,13 +145,13 @@ mod tests {
 
     #[tokio::test]
     async fn load_simple_parquet() -> Result<(), ColumnQError> {
-        let t = to_mem_table(&TableSource::new(
-            "blogs".to_string(),
-            test_data_path("blogs.parquet"),
-        ))
+        let ctx = SessionContext::new();
+        let t = to_mem_table(
+            &TableSource::new("blogs".to_string(), test_data_path("blogs.parquet")),
+            &ctx,
+        )
         .await?;
 
-        let ctx = SessionContext::new();
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(500));
 
@@ -154,6 +160,7 @@ mod tests {
 
     #[tokio::test]
     async fn load_partitions() -> anyhow::Result<()> {
+        let ctx = SessionContext::new();
         let tmp_dir = Builder::new()
             .prefix("columnq.test.parquet_partitions")
             .tempdir()?;
@@ -167,10 +174,10 @@ mod tests {
         let t = to_mem_table(
             &TableSource::new_with_uri("blogs", tmp_dir_path.to_string_lossy())
                 .with_option(TableLoadOption::parquet(TableOptionParquet::default())),
+            &ctx,
         )
         .await?;
 
-        let ctx = SessionContext::new();
         let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
         assert_eq!(stats.num_rows, Some(1500));
 
