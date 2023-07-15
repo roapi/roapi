@@ -345,3 +345,31 @@ Building ROAPI with `simd` optimization requires nightly rust toolchain.
 ```bash
 docker build --rm -t ghcr.io/roapi/roapi:latest .
 ```
+### DevContainer
+
+#### Requirements
+- [x] Vscode
+- [x] Ensure this extension is installed on your vs code `ms-vscode-remote.remote-containers`
+---
+Once done you will see prompt from left side to reopen the project in dev container or open command palette and search for open with remote container:
+
+1. install dependencies
+```bash 
+apt-get update  && apt-get install --no-install-recommends -y cmake
+```
+2. connect to database from your local using db client of choice using the following credentials
+```
+username: user
+password: user
+database: test
+```
+once done create table so you can map it in `-t` arg or consider using sample in `.devcontainer/db-migration.sql` to populate some tables with data
+
+3. run cargo command with mysql db as feature
+```bash
+cargo run --bin roapi --features database -- -a localhost:8080 -t posts=mysql://user:user@db:3306/test 
+```
+otherwise if you are looking for other features 
+you have to select appropriate one from `roapi/Cargo.toml` 
+
+
