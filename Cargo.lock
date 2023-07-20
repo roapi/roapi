@@ -1207,6 +1207,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tokio-postgres",
  "toml 0.7.4",
  "uriparse",
  "url",
@@ -1271,24 +1272,34 @@ dependencies = [
  "anyhow",
  "arrow",
  "chrono",
+ "csv",
  "fallible-streaming-iterator",
  "fehler",
+ "hex",
  "itertools",
  "log",
  "mysql_common",
+ "native-tls",
  "num-traits",
+ "openssl",
  "owning_ref",
+ "postgres",
+ "postgres-native-tls",
+ "postgres-openssl",
  "r2d2",
  "r2d2_mysql",
+ "r2d2_postgres",
  "r2d2_sqlite",
  "rayon",
  "rusqlite",
  "rust_decimal",
+ "rust_decimal_macros",
  "serde_json",
  "sqlparser 0.11.0",
  "thiserror",
  "url",
  "urlencoding",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -1574,7 +1585,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "url",
- "uuid",
+ "uuid 1.3.3",
  "xz2",
  "zstd 0.12.3+zstd.1.5.2",
 ]
@@ -1672,7 +1683,7 @@ dependencies = [
  "regex",
  "sha2 0.10.6",
  "unicode-segmentation",
- "uuid",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -1759,7 +1770,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "uuid",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -1865,7 +1876,7 @@ dependencies = [
  "rusoto_dynamodb",
  "thiserror",
  "tokio",
- "uuid",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -2998,7 +3009,7 @@ dependencies = [
  "subprocess",
  "thiserror",
  "time 0.3.22",
- "uuid",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -3518,6 +3529,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "postgres-native-tls"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d442770e2b1e244bb5eb03b31c79b65bb2568f413b899eaba850fa945a65954"
+dependencies = [
+ "futures",
+ "native-tls",
+ "tokio",
+ "tokio-native-tls",
+ "tokio-postgres",
+]
+
+[[package]]
+name = "postgres-openssl"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1de0ea6504e07ca78355a6fb88ad0f36cafe9e696cbc6717f16a207f3a60be72"
+dependencies = [
+ "futures",
+ "openssl",
+ "tokio",
+ "tokio-openssl",
+ "tokio-postgres",
+]
+
+[[package]]
 name = "postgres-protocol"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3542,8 +3579,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f028f05971fe20f512bcc679e2c10227e57809a3af86a7606304435bc8896cd6"
 dependencies = [
  "bytes",
+ "chrono",
  "fallible-iterator",
  "postgres-protocol",
+ "serde",
+ "serde_json",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -3678,6 +3719,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9733d738ce65959a744f387bae69aa690a867e18d48e5486b171c47bc7b0c575"
 dependencies = [
  "mysql",
+ "r2d2",
+]
+
+[[package]]
+name = "r2d2_postgres"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7029c56be658cb54f321e0bee597810ee16796b735fa2559d7056bf06b12230b"
+dependencies = [
+ "postgres",
  "r2d2",
 ]
 
@@ -3893,7 +3944,7 @@ dependencies = [
  "rkyv_derive",
  "seahash",
  "tinyvec",
- "uuid",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -4069,6 +4120,16 @@ dependencies = [
  "rkyv",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "rust_decimal_macros"
+version = "1.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ca5c398d85f83b9a44de754a2048625a8c5eafcf070da7b8f116b685e2f6608"
+dependencies = [
+ "quote",
+ "rust_decimal",
 ]
 
 [[package]]
@@ -4845,6 +4906,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-openssl"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c08f9ffb7809f1b20c1b398d92acf4cc719874b3b2b2d9ea2f09b4a80350878a"
+dependencies = [
+ "futures-util",
+ "openssl",
+ "openssl-sys",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-postgres"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5169,6 +5242,12 @@ name = "utf8parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
+
+[[package]]
+name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "uuid"

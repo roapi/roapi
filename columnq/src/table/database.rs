@@ -4,14 +4,21 @@ pub enum DatabaseLoader {
     Postgres,
 }
 
-#[cfg(any(feature = "database-sqlite", feature = "database-mysql"))]
+#[cfg(any(
+    feature = "database-sqlite",
+    feature = "database-mysql",
+    feature = "database-postgres"
+))]
 mod imp {
+    use std::str::FromStr;
+
     use crate::error::ColumnQError;
     use crate::table::TableSource;
     use connectorx::prelude::*;
     #[cfg(feature = "database-mysql")]
     use connectorx::sources::mysql::BinaryProtocol;
-    use datafusion::arrow::record_batch::RecordBatch;
+    #[cfg(feature = "database-postgres")]
+    use connectorx::sources::postgres::BinaryProtocol;
     use log::debug;
 
     use super::DatabaseLoader;
@@ -40,6 +47,12 @@ mod imp {
                         dispatcher
                             .run()
                             .map_err(|e| ColumnQError::Database(e.to_string()))?;
+                        let schema_ref = destination.arrow_schema();
+                        let data: Vec<RecordBatch> = destination.arrow().unwrap();
+                        Ok(datafusion::datasource::MemTable::try_new(
+                            schema_ref,
+                            vec![data],
+                        )?)
                     }
                     #[cfg(not(feature = "database-mysql"))]
                     {
@@ -64,6 +77,13 @@ mod imp {
                         dispatcher
                             .run()
                             .map_err(|e| ColumnQError::Database(e.to_string()))?;
+
+                        let schema_ref = destination.arrow_schema();
+                        let data: Vec<RecordBatch> = destination.arrow().unwrap();
+                        Ok(datafusion::datasource::MemTable::try_new(
+                            schema_ref,
+                            vec![data],
+                        )?)
                     }
                     #[cfg(not(feature = "database-sqlite"))]
                     {
@@ -73,23 +93,63 @@ mod imp {
                     }
                 }
                 DatabaseLoader::Postgres => {
-                    // ToDo `Cannot start a runtime from within a runtime` error in `connector-x PostgresSource`
-                    return Err(ColumnQError::Database(
-                        "Postgres database features not be supported for now.".to_string(),
-                    ));
+                    #[cfg(feature = "database-postgres")]
+                    {
+                        let config = tokio_postgres::Config::from_str(t.get_uri_str())
+                            .map_err(|e| ColumnQError::Database(e.to_string()))?;
+                        let tls = match config.get_ssl_mode() {
+                            tokio_postgres::config::SslMode::Require => tokio_postgres::NoTls,
+                            _ => tokio_postgres::NoTls,
+                        };
+                        let source: PostgresSource<BinaryProtocol, tokio_postgres::NoTls> =
+                            PostgresSource::new(config.into(), tls, 2)
+                                .map_err(|e| ColumnQError::Database(e.to_string()))?;
+                        let queries = queries.clone();
+                        let task = tokio::task::spawn_blocking(move || {
+                            let dispatcher = Dispatcher::<
+                                PostgresSource<BinaryProtocol, tokio_postgres::NoTls>,
+                                ArrowDestination,
+                                PostgresArrowTransport<BinaryProtocol, tokio_postgres::NoTls>,
+                            >::new(
+                                source, &mut destination, &queries, None
+                            );
+
+                            if let Err(e) = dispatcher.run() {
+                                return Err(ColumnQError::Database(e.to_string()));
+                            }
+
+                            let schema_ref = destination.arrow_schema();
+                            match destination.arrow() {
+                                Ok(data) => datafusion::datasource::MemTable::try_new(
+                                    schema_ref,
+                                    vec![data],
+                                )
+                                .map_err(|e| ColumnQError::Database(e.to_string())),
+                                Err(e) => Err(ColumnQError::Database(e.to_string())),
+                            }
+                        });
+
+                        // FIXME: Maybe use other way to block the async task instead of block_on
+                        futures::executor::block_on(task)
+                            .map_err(|e| ColumnQError::Database(e.to_string()))?
+                    }
+                    #[cfg(not(feature = "database-postgres"))]
+                    {
+                        return Err(ColumnQError::Database(
+                            "Postgres database feature not enabled.".to_string(),
+                        ));
+                    }
                 }
-            };
-            let schema_ref = destination.arrow_schema();
-            let data: Vec<RecordBatch> = destination.arrow().unwrap();
-            Ok(datafusion::datasource::MemTable::try_new(
-                schema_ref,
-                vec![data],
-            )?)
+            }
         }
     }
 }
 
-#[cfg(not(any(feature = "database-sqlite", feature = "database-mysql")))]
+#[cfg(not(any(
+    feature = "database-sqlite",
+    feature = "database-mysql",
+    feature = "database-postgres"
+)))]
 mod imp {
     use crate::error::ColumnQError;
     use crate::table::TableSource;

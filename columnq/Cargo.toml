@@ -44,6 +44,7 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
 hyper-rustls = { version = "0.23.2", default-features = false, optional = true }
+tokio-postgres = {version = "0.7.8", optional = true}
 
 [dependencies.deltalake]
 default-features = false
@@ -68,31 +69,11 @@ rusqlite = "0"
 
 [features]
 default = ["rustls"]
-rustls = [
-    "hyper-rustls",
-    "reqwest/rustls-tls",
-    "deltalake/s3",
-    "deltalake/azure",
-    "yup-oauth2/hyper-rustls",
-]
-native-tls-vendored = [
-    "reqwest/native-tls-vendored",
-    "hyper-tls/vendored",
-    "deltalake/s3",
-    "deltalake/azure",
-    "yup-oauth2/hyper-tls",
-]
-native-tls = [
-    "reqwest/native-tls",
-    "hyper-tls",
-    "deltalake/s3",
-    "deltalake/azure",
-    "yup-oauth2/hyper-tls",
-]
+rustls = ["hyper-rustls", "reqwest/rustls-tls", "deltalake/s3", "deltalake/azure", "yup-oauth2/hyper-rustls"]
+native-tls-vendored = ["reqwest/native-tls-vendored", "hyper-tls/vendored", "deltalake/s3", "deltalake/azure", "yup-oauth2/hyper-tls"]
+native-tls = ["reqwest/native-tls", "hyper-tls", "deltalake/s3", "deltalake/azure", "yup-oauth2/hyper-tls"]
 simd = ["datafusion/simd"]
 database-sqlite = ["connectorx/src_sqlite"]
 database-mysql = ["connectorx/src_mysql"]
-database = [
-    "database-sqlite",
-    "database-mysql",
-]
+database-postgres = ["connectorx/src_postgres","dep:tokio-postgres"]
+database = ["database-sqlite", "database-mysql", "database-postgres"]
