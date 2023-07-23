@@ -345,7 +345,7 @@ Building ROAPI with `simd` optimization requires nightly rust toolchain.
 ```bash
 docker build --rm -t ghcr.io/roapi/roapi:latest .
 ```
-### DevContainer
+### VS Code DevContainer
 
 #### Requirements
 - [x] Vscode
