@@ -1,0 +1,20 @@
+{
+  "name": "Roapi",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "forwardPorts": [
+    8080,
+    5432
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "rust-lang.rust-analyzer",
+        "rangav.vscode-thunder-client"
+      ]
+    }
+  }
+}

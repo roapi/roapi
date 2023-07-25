@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/rust
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+  db:
+    image: mysql
+    restart: unless-stopped
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: pass
+      MYSQL_DATABASE: test
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user
+    ports:
+      - 3306:3306
+
+volumes:
+  mysql-data:
