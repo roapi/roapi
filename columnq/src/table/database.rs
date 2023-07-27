@@ -15,10 +15,9 @@ mod imp {
     use crate::error::ColumnQError;
     use crate::table::TableSource;
     use connectorx::prelude::*;
-    #[cfg(feature = "database-mysql")]
-    use connectorx::sources::mysql::BinaryProtocol;
-    #[cfg(feature = "database-postgres")]
-    use connectorx::sources::postgres::BinaryProtocol;
+    #[cfg(any(feature = "database-postgres", feature = "database-mysql"))]
+    use connectorx::sources::{mysql, postgres};
+    use datafusion::arrow::record_batch::RecordBatch;
     use log::debug;
 
     use super::DatabaseLoader;
@@ -35,12 +34,12 @@ mod imp {
                 DatabaseLoader::MySQL => {
                     #[cfg(feature = "database-mysql")]
                     {
-                        let source = MySQLSource::<BinaryProtocol>::new(t.get_uri_str(), 2)
+                        let source = MySQLSource::<mysql::BinaryProtocol>::new(t.get_uri_str(), 2)
                             .map_err(|e| ColumnQError::Database(e.to_string()))?;
                         let dispatcher = Dispatcher::<
-                            MySQLSource<BinaryProtocol>,
+                            MySQLSource<mysql::BinaryProtocol>,
                             ArrowDestination,
-                            MySQLArrowTransport<BinaryProtocol>,
+                            MySQLArrowTransport<mysql::BinaryProtocol>,
                         >::new(
                             source, &mut destination, queries, None
                         );
@@ -101,15 +100,20 @@ mod imp {
                             tokio_postgres::config::SslMode::Require => tokio_postgres::NoTls,
                             _ => tokio_postgres::NoTls,
                         };
-                        let source: PostgresSource<BinaryProtocol, tokio_postgres::NoTls> =
-                            PostgresSource::new(config.into(), tls, 2)
-                                .map_err(|e| ColumnQError::Database(e.to_string()))?;
+                        let source: PostgresSource<
+                            postgres::BinaryProtocol,
+                            tokio_postgres::NoTls,
+                        > = PostgresSource::new(config.into(), tls, 2)
+                            .map_err(|e| ColumnQError::Database(e.to_string()))?;
                         let queries = queries.clone();
                         let task = tokio::task::spawn_blocking(move || {
                             let dispatcher = Dispatcher::<
-                                PostgresSource<BinaryProtocol, tokio_postgres::NoTls>,
+                                PostgresSource<postgres::BinaryProtocol, tokio_postgres::NoTls>,
                                 ArrowDestination,
-                                PostgresArrowTransport<BinaryProtocol, tokio_postgres::NoTls>,
+                                PostgresArrowTransport<
+                                    postgres::BinaryProtocol,
+                                    tokio_postgres::NoTls,
+                                >,
                             >::new(
                                 source, &mut destination, &queries, None
                             );
