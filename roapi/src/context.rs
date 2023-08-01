@@ -23,7 +23,10 @@ pub struct RawRoapiContext {
 
 impl RawRoapiContext {
     pub async fn new(config: &Config) -> anyhow::Result<Self> {
-        let mut cq = ColumnQ::new();
+        let mut cq = match config.get_datafusion_config() {
+            Ok(df_cfg) => ColumnQ::new_with_config(df_cfg),
+            _ => ColumnQ::new(),
+        };
 
         if config.tables.is_empty() && config.kvstores.is_empty() {
             anyhow::bail!("No table nor kvstore found in config");
