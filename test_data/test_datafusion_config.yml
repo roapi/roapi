@@ -1,0 +1,37 @@
+addr:
+  # binding address for TCP port that speaks HTTP protocol
+  http: 0.0.0.0:8000
+  # binding address for TCP port that speaks Postgres wire protocol
+  postgres: 0.0.0.0:5432
+tables:
+  - name: "s3_blogs"
+    uri: "s3://test-data/blogs.parquet"
+    option:
+      format: "parquet"
+      use_memory_table: true
+  - name: "s3_blogs_space_encode"
+    uri: "s3://test-data/blogs%20space.parquet"
+    option:
+      format: "parquet"
+      use_memory_table: true
+  - name: "s3_blogs_dir"
+    uri: "s3://test-data/blogs/"
+    option:
+      format: "parquet"
+      use_memory_table: true
+  - name: "gcs_blogs"
+    uri: "gs://test-data/blogs.parquet"
+    option:
+      format: "parquet"
+      use_memory_table: true
+  - name: "azure_blogs"
+    uri: "az://test-data/blogs.parquet"
+    option:
+      format: "parquet"
+      use_memory_table: true
+datafusion:
+  sql_parser.dialect: "Hive"
+  explain.physical_plan_only: true
+  optimizer.max_passes: 10
+  execution.batch_size: 100
+  catalog.format: "parquet"
