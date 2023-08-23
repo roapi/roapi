@@ -1,3 +1,6 @@
+use anyhow::Ok;
+use columnq::datafusion::config::ConfigOptions;
+use columnq::SessionConfig;
 use serde_derive::Deserialize;
 
 use anyhow::{bail, Context, Result};
@@ -6,6 +9,7 @@ use columnq::encoding;
 use columnq::table::parse_table_uri_arg;
 use columnq::table::KeyValueSource;
 use columnq::table::TableSource;
+use std::collections::HashMap;
 use std::fs;
 use std::time::Duration;
 
@@ -26,6 +30,8 @@ pub struct Config {
     pub kvstores: Vec<KeyValueSource>,
     #[serde(default)]
     pub response_format: encoding::ContentType,
+    #[serde(default)]
+    pub datafusion: Option<HashMap<String, String>>,
 }
 
 fn table_arg() -> clap::Arg<'static> {
@@ -163,4 +169,19 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
     }
 
     Ok(config)
+}
+
+impl Config {
+    pub fn get_datafusion_config(&self) -> Result<SessionConfig> {
+        match &self.datafusion {
+            Some(df_cfg) => {
+                let mut opt = ConfigOptions::default();
+                for (k, v) in df_cfg {
+                    opt.set(format!("datafusion.{}", k).as_str(), v)?;
+                }
+                Ok(opt.into())
+            }
+            None => Ok(SessionConfig::default()),
+        }
+    }
 }

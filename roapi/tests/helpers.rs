@@ -13,6 +13,7 @@ pub fn test_data_path(relative_path: &str) -> String {
     d.to_string_lossy().to_string()
 }
 
+#[allow(dead_code)]
 pub async fn test_api_app_with_tables(tables: Vec<TableSource>) -> (Application, String) {
     test_api_app(tables, vec![]).await
 }
@@ -66,6 +67,7 @@ pub async fn http_post(url: &str, payload: impl Into<reqwest::Body>) -> reqwest:
         .expect("Unable to execute POST request")
 }
 
+#[allow(dead_code)]
 pub fn get_spacex_table() -> TableSource {
     let json_source_path = test_data_path("spacex_launches.json");
     TableSource::new("spacex_launches".to_string(), json_source_path)
