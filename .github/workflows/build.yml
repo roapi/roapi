@@ -143,35 +143,18 @@ jobs:
         # toolchain: nightly
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
         override: true
-    - name: Install minio server (S3)
+    - name: Setup minio server (S3)
       run: |
-        docker run -d -p 9000:9000 quay.io/minio/minio server /data
-    - name: Install minio client (S3)
+        bash ci/scripts/setup_minio.sh
+        bash ci/scripts/populate_minio.sh
+    - name: Setup fake gcs server (GCS)
       run: |
-        curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
-        chmod +x $HOME/minio-binaries/mc
-    - name: Create bucket and copy test data (S3)
+        bash ci/scripts/setup_gcs.sh
+        bash ci/scripts/populate_gcs.sh
+    - name: Setup Azure storage server (Azure)
       run: |
-        $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
-        $HOME/minio-binaries/mc mb local/test-data
-        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
-        $HOME/minio-binaries/mc cp test_data/blogs.parquet "local/test-data/blogs space.parquet"
-        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
-    - name: Install fake gcs server (GCS)
-      run: |
-        docker run -d -p 4443:4443 fsouza/fake-gcs-server -scheme http
-        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
-    - name: Create bucket and copy test data (GCS)
-      run: |
-        curl -XPOST --data-binary '{"name":"test-data"}' -H "Content-Type: application/json" "http://localhost:4443/storage/v1/b"
-        curl -XPOST --data-binary '@test_data/blogs.parquet' "http://localhost:4443/storage/v1/b/test-data/o?uploadType=media&name=blogs.parquet"
-    - name: Install azure storage server (Azure)
-      run: |
-        docker run -d -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite
-    - name: Create bucket and copy test data (Azure)
-      run: |
-        az storage container create -n test-data --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;QueueEndpoint=http://localhost:10001/devstoreaccount1;'
-        az storage blob upload -f test_data/blogs.parquet -c test-data -n blogs.parquet --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;QueueEndpoint=http://localhost:10001/devstoreaccount1;'
+        bash ci/scripts/setup_azure.sh
+        bash ci/scripts/populate_azure.sh
     - name: Start roapi and Query
       env:
         AWS_DEFAULT_REGION: "us-east-1"
@@ -220,35 +203,18 @@ jobs:
         # toolchain: nightly
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
         override: true
-    - name: Install minio server (S3)
+    - name: Setup minio server (S3)
       run: |
-        docker run -d -p 9000:9000 quay.io/minio/minio server /data
-    - name: Install minio client (S3)
+        bash ci/scripts/setup_minio.sh
+        bash ci/scripts/populate_minio.sh
+    - name: Setup fake gcs server (GCS)
       run: |
-        curl https://dl.min.io/client/mc/release/linux-amd64/mc --create-dirs -o $HOME/minio-binaries/mc
-        chmod +x $HOME/minio-binaries/mc
-    - name: Create bucket and copy test data (S3)
+        bash ci/scripts/setup_gcs.sh
+        bash ci/scripts/populate_gcs.sh
+    - name: Setup Azure storage server (Azure)
       run: |
-        $HOME/minio-binaries/mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
-        $HOME/minio-binaries/mc mb local/test-data
-        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data
-        $HOME/minio-binaries/mc cp test_data/blogs.parquet "local/test-data/blogs space.parquet"
-        $HOME/minio-binaries/mc cp test_data/blogs.parquet local/test-data/blogs/
-    - name: Install fake gcs server (GCS)
-      run: |
-        docker run -d -p 4443:4443 fsouza/fake-gcs-server -scheme http
-        echo '{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}' > "/tmp/gcs.json"
-    - name: Create bucket and copy test data (GCS)
-      run: |
-        curl -XPOST --data-binary '{"name":"test-data"}' -H "Content-Type: application/json" "http://localhost:4443/storage/v1/b"
-        curl -XPOST --data-binary '@test_data/blogs.parquet' "http://localhost:4443/storage/v1/b/test-data/o?uploadType=media&name=blogs.parquet"
-    - name: Install azure storage server (Azure)
-      run: |
-        docker run -d -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite
-    - name: Create bucket and copy test data (Azure)
-      run: |
-        az storage container create -n test-data --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;QueueEndpoint=http://localhost:10001/devstoreaccount1;'
-        az storage blob upload -f test_data/blogs.parquet -c test-data -n blogs.parquet --connection-string 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;QueueEndpoint=http://localhost:10001/devstoreaccount1;'
+        bash ci/scripts/setup_azure.sh
+        bash ci/scripts/populate_azure.sh
     - name: Start roapi and Query
       env:
         AWS_DEFAULT_REGION: "us-east-1"
