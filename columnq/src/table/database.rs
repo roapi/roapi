@@ -94,9 +94,9 @@ mod imp {
                 DatabaseLoader::Postgres => {
                     #[cfg(feature = "database-postgres")]
                     {
-                        use std::str::FromStr;
-                        
-                        let config = tokio_postgres::Config::from_str(t.get_uri_str())
+                        let config = t
+                            .get_uri_str()
+                            .parse::<tokio_postgres::Config>()
                             .map_err(|e| ColumnQError::Database(e.to_string()))?;
                         let tls = match config.get_ssl_mode() {
                             tokio_postgres::config::SslMode::Require => tokio_postgres::NoTls,
