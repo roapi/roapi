@@ -310,7 +310,7 @@ Data layer:
 - [x] Google spreadsheet
 - [x] MySQL
 - [x] SQLite
-- [ ] Postgres
+- [x] Postgres
 - [ ] Airtable
 - Data format
   - [x] CSV

@@ -13,7 +13,7 @@ path = "src/lib.rs"
 [dependencies]
 # pulling arrow-schema manually to enable the serde feature.
 # TODO: add serde feature in datafusion to avoid this workaround
-arrow-schema = { version ="37.0.0", features = ["serde"] }
+arrow-schema = { version = "37.0.0", features = ["serde"] }
 
 datafusion = "23"
 object_store = { version = "0.5.6", features = ["aws_profile", "gcp", "azure"] }
@@ -24,7 +24,7 @@ log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.33"  # version need to be in sync with convergence
+sqlparser = "0.33" # version need to be in sync with convergence
 yup-oauth2 = { version = "6.2", default-features = false, features = [
     "service_account",
 ] }
@@ -44,6 +44,7 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
 hyper-rustls = { version = "0.23.2", default-features = false, optional = true }
+tokio-postgres = { version = "0.7.8", optional = true }
 
 [dependencies.deltalake]
 default-features = false
@@ -92,7 +93,9 @@ native-tls = [
 simd = ["datafusion/simd"]
 database-sqlite = ["connectorx/src_sqlite"]
 database-mysql = ["connectorx/src_mysql"]
+database-postgres = ["connectorx/src_postgres", "dep:tokio-postgres"]
 database = [
     "database-sqlite",
     "database-mysql",
+    "database-postgres"
 ]

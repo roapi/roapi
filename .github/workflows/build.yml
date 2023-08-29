@@ -289,7 +289,7 @@ jobs:
         # set SDKROOT for C dependencies
         export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
         cd roapi && \
-          cargo build --bin roapi --features database --target aarch64-apple-darwin
+          cargo build --bin roapi --features database-sqlite,database-mysql  --target aarch64-apple-darwin
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
