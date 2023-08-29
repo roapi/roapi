@@ -274,6 +274,10 @@ jobs:
         restore-keys: |
           mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           mac-1-${{ runner.os }}-cargo-
+    - name: Install OpenSSL
+      uses: ConorMacBride/install-package@v1.1.0
+      with:
+        brew: openssl
     - name: Install Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
