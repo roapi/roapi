@@ -10,13 +10,13 @@ pub enum DatabaseLoader {
     feature = "database-postgres"
 ))]
 mod imp {
-    use std::str::FromStr;
-
     use crate::error::ColumnQError;
     use crate::table::TableSource;
     use connectorx::prelude::*;
-    #[cfg(any(feature = "database-postgres", feature = "database-mysql"))]
-    use connectorx::sources::{mysql, postgres};
+    #[cfg(any(feature = "database-mysql"))]
+    use connectorx::sources::mysql;
+    #[cfg(any(feature = "database-postgres"))]
+    use connectorx::sources::postgres;
     use datafusion::arrow::record_batch::RecordBatch;
     use log::debug;
 
@@ -94,6 +94,8 @@ mod imp {
                 DatabaseLoader::Postgres => {
                     #[cfg(feature = "database-postgres")]
                     {
+                        use std::str::FromStr;
+                        
                         let config = tokio_postgres::Config::from_str(t.get_uri_str())
                             .map_err(|e| ColumnQError::Database(e.to_string()))?;
                         let tls = match config.get_ssl_mode() {
