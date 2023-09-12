@@ -32,7 +32,9 @@ mod imp {
                 .map_err(|e| ColumnQError::Database(e.to_string()))?;
             Ok(datafusion::datasource::MemTable::try_new(
                 destination.arrow_schema(),
-                vec![destination.arrow().unwrap()],
+                vec![destination
+                    .arrow()
+                    .map_err(|e| ColumnQError::Database(e.to_string()))?],
             )?)
         }
     }
