@@ -142,35 +142,41 @@ jobs:
             image_tag: "x86_64-musl"
             features: "simd,rustls,database-sqlite"
             name_suffix: ""
+            rustflags: "-C target-cpu=skylake"
             upload: "true"
           # - manylinux: "2010"
           #   target: "x86_64-unknown-linux-musl"
           #   image_tag: "x86_64-musl"
           #   features: "simd,native-tls"
+          #   rustflags: "-C target-cpu=skylake"
           #   name_suffix: "-openssl"
           #   upload: "false"
           - manylinux: '2014'
             target: "aarch64-unknown-linux-musl"
             image_tag: "aarch64-musl"
             features: "rustls,database-sqlite"
+            rustflags: ""
             name_suffix: ""
             upload: "true"
           # - manylinux: '2014'
           #   target: "aarch64-unknown-linux-musl"
           #   image_tag: "aarch64-musl"
           #   features: "native-tls"
+          #   rustflags: ""
           #   name_suffix: "-openssl"
           #   upload: "false"
           - manylinux: '2014'
             target: "armv7-unknown-linux-musleabihf"
             image_tag: "armv7-musleabihf"
             features: "rustls,database-sqlite"
+            rustflags: ""
             name_suffix: ""
             upload: "true"
           # - manylinux: '2014'
           #   target: "armv7-unknown-linux-musleabihf"
           #   image_tag: "armv7-musleabihf"
           #   features: "native-tls"
+          #   rustflags: ""
           #   name_suffix: "-openssl"
           #   upload: "false"
     container:
@@ -195,7 +201,7 @@ jobs:
       - name: Build Wheels
         run: |
           sudo python3 -m pip install 'maturin<0.12'
-          export RUSTFLAGS='-C target-cpu=skylake'
+          export RUSTFLAGS='${{ matrix.platform.rustflags }}'
           maturin build -m roapi/Cargo.toml -b bin --no-sdist --release -o dist \
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
             --cargo-extra-args="--no-default-features --features=${{ matrix.platform.features }}"
