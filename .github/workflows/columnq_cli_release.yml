@@ -163,13 +163,13 @@ jobs:
           #   name_suffix: "-openssl"
           #   rustflags: ""
           #   upload: "false"
-          - manylinux: '2014'
-            target: "armv7-unknown-linux-musleabihf"
-            image_tag: "armv7-musleabihf"
-            rustflags: ""
-            features: "rustls,database-sqlite"
-            name_suffix: ""
-            upload: "true"
+          # - manylinux: '2014'
+          #   target: "armv7-unknown-linux-musleabihf"
+          #   image_tag: "armv7-musleabihf"
+          #   rustflags: ""
+          #   features: "rustls,database-sqlite"
+          #   name_suffix: ""
+          #   upload: "true"
           # - manylinux: '2014'
           #   target: "armv7-unknown-linux-musleabihf"
           #   image_tag: "armv7-musleabihf"
