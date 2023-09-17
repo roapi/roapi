@@ -5,8 +5,17 @@ use crate::error::ColumnQError;
 pub fn record_batches_to_bytes(
     batches: &[arrow::record_batch::RecordBatch],
 ) -> Result<Vec<u8>, ColumnQError> {
-    let json_rows = arrow::json::writer::record_batches_to_json_rows(batches)?;
-    serde_json::to_vec(&json_rows).map_err(ColumnQError::json_parse)
+    let buf = Vec::new();
+    let mut writer = arrow::json::writer::ArrayWriter::new(buf);
+    // TODO: update upstream writer to take an interator so we don't need to collect a new array
+    // here
+    writer.write_batches(
+        &batches
+            .iter()
+            .collect::<Vec<&arrow::record_batch::RecordBatch>>(),
+    )?;
+    writer.finish()?;
+    Ok(writer.into_inner())
 }
 
 #[cfg(test)]

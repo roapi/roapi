@@ -13,10 +13,10 @@ path = "src/lib.rs"
 [dependencies]
 # pulling arrow-schema manually to enable the serde feature.
 # TODO: add serde feature in datafusion to avoid this workaround
-arrow-schema = { version = "37.0.0", features = ["serde"] }
+arrow-schema = { version = "46.0.0", features = ["serde"] }
 
-datafusion = "23"
-object_store = { version = "0.5.6", features = ["aws_profile", "gcp", "azure"] }
+datafusion = "31"
+object_store = { version = "0.7", features = ["gcp", "azure"] }
 percent-encoding = "2.2.0"
 url = "2.2"
 
@@ -24,7 +24,7 @@ log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.33" # version need to be in sync with convergence
+sqlparser = "0.37" # version need to be in sync with convergence and datafusion
 yup-oauth2 = { version = "6.2", default-features = false, features = [
     "service_account",
 ] }
@@ -48,13 +48,15 @@ tokio-postgres = { version = "0.7.8", optional = true }
 
 [dependencies.deltalake]
 default-features = false
-version = "0.10.0"
-features = ["datafusion-ext"]
+version = "0.15"
+git = "https://github.com/delta-io/delta-rs.git"
+rev = "63c14b3716428ff65e01404c6f7e62f341c98f05"
+features = ["datafusion"]
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
-rev = "dd58b6a90d28b1ee7e62da859a5ba1d2d6c0b179"
-version = "0.3.2-alpha.5"
+rev = "1e642af502d3076476ab4bc8c7e40807059a42fe"
+version = "0.3.3-alpha.1"
 features = ["default", "dst_arrow"]
 optional = true
 

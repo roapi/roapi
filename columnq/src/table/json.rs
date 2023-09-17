@@ -4,7 +4,7 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 #[allow(deprecated)]
-use datafusion::arrow::json::reader::{Decoder, DecoderOptions};
+use datafusion::arrow::json::reader::ReaderBuilder;
 use datafusion::arrow::record_batch::RecordBatch;
 use serde_json::value::Value;
 
@@ -55,49 +55,47 @@ fn json_vec_to_partition(
         })?,
     };
 
-    // decode to arrow record batch
-    #[allow(deprecated)]
-    // TODO: switch to RawDecoder
-    let decoder = Decoder::new(
-        Arc::new(schema.clone()),
-        DecoderOptions::new().with_batch_size(batch_size),
-    );
-    let mut batches = vec![];
-    {
-        // enclose values_iter in its own scope so it won't borrow schema_ref til end of this
-        // function
-        let mut values_iter: Box<dyn Iterator<Item = arrow::error::Result<Value>>> =
-            if array_encoded {
-                // convert row array to object based on schema
-                // TODO: support array_encoded read in upstream arrow json reader instead
-                Box::new(json_rows.into_iter().map(|json_row| {
-                    let mut m = serde_json::map::Map::new();
-                    schema.fields().iter().enumerate().try_for_each(|(i, f)| {
-                        match json_row.get(i) {
-                            Some(x) => {
-                                m.insert(f.name().to_string(), x.clone());
-                                Ok(())
-                            }
-                            None => Err(arrow::error::ArrowError::JsonError(format!(
-                                "arry encoded JSON row missing column {i:?} : {json_row:?}"
-                            ))),
+    // TODO: batch_size setting here doesn't work because we are invoking serialize directly. might
+    // be better to break up the batch ourselives.
+    let mut decoder = ReaderBuilder::new(Arc::new(schema.clone()))
+        .with_batch_size(batch_size)
+        .build_decoder()?;
+
+    if array_encoded {
+        // convert row array to object based on schema
+        // TODO: support array_encoded read in upstream arrow json reader instead
+        let objects = json_rows
+            .into_iter()
+            .map(|json_row| {
+                let mut m = serde_json::map::Map::new();
+                schema.fields().iter().enumerate().try_for_each(|(i, f)| {
+                    match json_row.get(i) {
+                        Some(x) => {
+                            m.insert(f.name().to_string(), x.clone());
+                            Ok(())
                         }
-                    })?;
-                    Ok(Value::Object(m))
-                }))
-            } else {
-                // no need to convert row since each row is already an object
-                Box::new(json_rows.into_iter().map(Ok))
-            };
+                        None => Err(arrow::error::ArrowError::JsonError(format!(
+                            "arry encoded JSON row missing column {i:?} : {json_row:?}"
+                        ))),
+                    }
+                })?;
+                Ok(Value::Object(m))
+            })
+            .collect::<Result<Vec<Value>, ColumnQError>>()?;
 
-        while let Some(batch) = decoder.next_batch(&mut values_iter).map_err(|e| {
-            ColumnQError::LoadJson(format!("Failed decode JSON into Arrow record batch: {e}"))
-        })? {
-            batches.push(batch);
-        }
-    }
+        // TODO: avoid unnecessary collection here, update upstream json reader to take an iterator
+        // instead of slice
+        decoder.serialize(&objects)?;
+    } else {
+        // Note: serialize ignores any batch size setting, and always decodes all rows
+        decoder.serialize(&json_rows)?;
+    };
 
-    Ok((schema, batches))
+    let batch = decoder
+        .flush()?
+        .ok_or_else(|| ColumnQError::LoadJson("No item found".to_string()))?;
+
+    Ok((schema, vec![batch]))
 }
 
 async fn to_partitions(

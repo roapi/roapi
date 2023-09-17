@@ -40,8 +40,11 @@ clap = { version = "3", features = ["color"] }
 thiserror = "1"
 anyhow = "1"
 
-convergence = "0.11.0"
-convergence-arrow = "0.11.0"
+# convergence = "0.13"
+# convergence-arrow = "0.13"
+# patch for datafusion 31
+convergence = { git = "https://github.com/roapi/convergence", rev = "95fe472e429d02f18016a0d03c884a78fa62861e" }
+convergence-arrow = { git = "https://github.com/roapi/convergence", rev = "95fe472e429d02f18016a0d03c884a78fa62861e" }
 
 [features]
 default = ["rustls", "snmalloc"]
