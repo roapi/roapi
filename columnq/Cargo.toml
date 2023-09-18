@@ -29,7 +29,7 @@ yup-oauth2 = { version = "6.2", default-features = false, features = [
     "service_account",
 ] }
 thiserror = "1"
-serde_json = { version = "1", features = ["arbitrary_precision"] }
+serde_json = { version = "1" }
 serde_derive = "1"
 serde = "1"
 uriparse = "0"
@@ -47,11 +47,11 @@ hyper-rustls = { version = "0.23.2", default-features = false, optional = true }
 tokio-postgres = { version = "0.7.8", optional = true }
 
 [dependencies.deltalake]
-default-features = false
 version = "0.15"
 git = "https://github.com/delta-io/delta-rs.git"
 rev = "63c14b3716428ff65e01404c6f7e62f341c98f05"
 features = ["datafusion"]
+default-features = false
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"

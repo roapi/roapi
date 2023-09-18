@@ -174,6 +174,7 @@ pub async fn to_mem_table(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     use datafusion::{datasource::TableProvider, prelude::SessionContext};
 
@@ -181,6 +182,48 @@ mod tests {
 
     #[tokio::test]
     async fn nested_struct_and_lists() -> Result<(), ColumnQError> {
+        let json_content = r#"[
+          {
+            "foo": [
+              {
+                "bar": "1234",
+                "baz": 1
+              }
+            ]
+          }
+        ]"#;
+
+        let tmp_dir = tempfile::TempDir::new().unwrap();
+        let tmp_file_path = tmp_dir.path().join("nested.json");
+        let mut f = std::fs::File::create(tmp_file_path.clone()).unwrap();
+        writeln!(f, "{}", json_content).unwrap();
+
+        let ctx = SessionContext::new();
+        let t = to_mem_table(
+            &TableSource::new(
+                "nested_json".to_string(),
+                format!("{}", tmp_file_path.to_string_lossy()),
+            ),
+            &ctx,
+        )
+        .await
+        .unwrap();
+
+        let schema = t.schema();
+        let fields = schema.fields();
+
+        let mut obj_keys = fields.iter().map(|f| f.name()).collect::<Vec<_>>();
+        obj_keys.sort();
+        let mut expected_obj_keys = vec!["foo"];
+        expected_obj_keys.sort();
+
+        assert_eq!(obj_keys, expected_obj_keys);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn spacex_launches() -> Result<(), ColumnQError> {
         let ctx = SessionContext::new();
         let t = to_mem_table(
             &TableSource::new(
@@ -189,7 +232,8 @@ mod tests {
             ),
             &ctx,
         )
-        .await?;
+        .await
+        .unwrap();
 
         let schema = t.schema();
         let fields = schema.fields();

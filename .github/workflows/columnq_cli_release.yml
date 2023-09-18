@@ -12,7 +12,7 @@ on:
 
 env:
   # NOTE: the version is also defined in build.yml and Dockerfile
-  RUST_TC_NIGHTLY_VER: "2022-09-24"
+  RUST_TC_NIGHTLY_VER: "2023-09-15"
 
 jobs:
   # skip tag version validation on non-release branch run

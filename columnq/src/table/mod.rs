@@ -439,7 +439,7 @@ impl TableSource {
                         "sqlite" | "sqlite3" | "db" => "sqlite",
                         _ => {
                             return Err(ColumnQError::InvalidUri(format!(
-                                "unsupported extension in uri: {uri}"
+                                "unsupported extension {ext} in uri: {uri}"
                             )));
                         }
                     },
