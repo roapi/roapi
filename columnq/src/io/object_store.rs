@@ -1,6 +1,7 @@
 use crate::error::ColumnQError;
 use crate::table::TableSource;
 use futures::TryStreamExt;
+use log::debug;
 use object_store::ObjectStore;
 use percent_encoding;
 use std::str::FromStr;
@@ -64,7 +65,8 @@ where
         Ok(reader) => {
             partitions.push(partition_reader(reader)?);
         }
-        Err(_) => {
+        Err(e) => {
+            debug!("`{path}` is not an object, try to list as a directory: {e}");
             // fallback to directory listing
             let paths = client
                 .clone()

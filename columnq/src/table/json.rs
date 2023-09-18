@@ -286,8 +286,9 @@ mod tests {
         source.batch_size = 1;
         let (_, p) = to_partitions(&source, &ctx).await?;
         assert_eq!(p.len(), 1);
-        assert_eq!(p[0][0].num_rows(), source.batch_size);
-        assert_eq!(p[0].len(), 132);
+        let batch = &p[0];
+        assert_eq!(batch[0].num_rows(), 132);
+        assert_eq!(batch.len(), source.batch_size);
         Ok(())
     }
 }
