@@ -58,11 +58,11 @@ pub async fn to_mem_table(
         None => {
             let schemas = partitions_from_table_source!(
                 t,
-                |mut r| {
-                    let (schema, record_count) = arrow::csv::reader::infer_reader_schema(
-                        &mut r, delimiter, None, has_header,
-                    )?;
-
+                |r| {
+                    let fmt = arrow::csv::reader::Format::default()
+                        .with_delimiter(delimiter)
+                        .with_header(has_header);
+                    let (schema, record_count) = fmt.infer_schema(r, None)?;
                     if record_count > 0 {
                         Ok(Some(schema))
                     } else {
@@ -83,19 +83,15 @@ pub async fn to_mem_table(
     let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
         t,
         |r| -> Result<Vec<RecordBatch>, ColumnQError> {
-            let csv_reader = arrow::csv::Reader::new(
-                r,
-                schema_ref.clone(),
-                has_header,
-                Some(delimiter),
-                batch_size,
-                None,
-                projection.cloned(),
-                None,
-            );
-
+            let mut builder = arrow::csv::reader::ReaderBuilder::new(schema_ref.clone())
+                .has_header(has_header)
+                .with_delimiter(delimiter)
+                .with_batch_size(batch_size);
+            if let Some(p) = projection {
+                builder = builder.with_projection(p.clone());
+            }
+            let csv_reader = builder.build(r)?;
             csv_reader
-                .into_iter()
                 .map(|batch| Ok(batch?))
                 .collect::<Result<Vec<RecordBatch>, ColumnQError>>()
         },

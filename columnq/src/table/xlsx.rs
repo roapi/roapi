@@ -48,7 +48,7 @@ fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
         for (i, col_val) in row.iter().enumerate() {
             let col_name = col_names.get(i).unwrap();
             let col_type = infer_value_type(col_val).unwrap();
-            let entry = col_types.entry(col_name).or_insert_with(HashSet::new);
+            let entry = col_types.entry(col_name).or_default();
             entry.insert(col_type);
         }
     }

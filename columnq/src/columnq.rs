@@ -117,14 +117,14 @@ impl ColumnQ {
                 }
             }
         };
-        return match object_store {
+        match object_store {
             Ok(store) => {
                 let runtime_env = self.dfctx.runtime_env();
                 let result_store = runtime_env.register_object_store(url, store);
                 Ok(result_store)
             }
             Err(e) => Err(ColumnQError::InvalidUri(e.to_string())),
-        };
+        }
     }
     pub async fn load_kv(&mut self, kv: KeyValueSource) -> Result<(), ColumnQError> {
         use datafusion::arrow::datatypes::DataType;

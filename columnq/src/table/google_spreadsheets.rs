@@ -121,7 +121,7 @@ fn infer_schema(rows: &[Vec<String>]) -> Schema {
         row.iter().enumerate().for_each(|(i, col_val)| {
             let col_name = &col_names[i];
             let col_type = infer_value_type(col_val);
-            let entry = col_types.entry(col_name).or_insert_with(HashSet::new);
+            let entry = col_types.entry(col_name).or_default();
             entry.insert(col_type);
         });
     });
