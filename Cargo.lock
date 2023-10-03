@@ -470,7 +470,7 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tower",
- "tower-http 0.3.5",
+ "tower-http",
  "tower-layer",
  "tower-service",
 ]
@@ -904,9 +904,8 @@ dependencies = [
 
 [[package]]
 name = "columnq"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
- "anyhow",
  "arrow-schema",
  "bytes",
  "calamine",
@@ -930,6 +929,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
+ "snafu",
  "sqlparser",
  "tempfile",
  "thiserror",
@@ -3703,7 +3703,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-process",
@@ -3727,7 +3727,7 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "toml 0.7.8",
- "tower-http 0.4.4",
+ "tower-http",
  "tower-layer",
  "tracing",
 ]
@@ -4825,24 +4825,6 @@ dependencies = [
  "http-range-header",
  "pin-project-lite",
  "tower",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "tower-http"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c5bb1d698276a2443e5ecfabc1008bf15a36c12e6a7176e7bf089ea9131140"
-dependencies = [
- "bitflags 2.4.0",
- "bytes",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "http-range-header",
- "pin-project-lite",
  "tower-layer",
  "tower-service",
 ]

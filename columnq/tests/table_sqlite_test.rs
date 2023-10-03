@@ -4,16 +4,17 @@ mod sqlite {
     use columnq::ColumnQ;
 
     #[tokio::test]
-    async fn text_column() -> anyhow::Result<()> {
-        let f = tempfile::NamedTempFile::new()?;
-        let conn = rusqlite::Connection::open(f.path())?;
+    async fn text_column() {
+        let f = tempfile::NamedTempFile::new().unwrap();
+        let conn = rusqlite::Connection::open(f.path()).unwrap();
         conn.execute_batch(
             "
             CREATE TABLE users (name TEXT);
             INSERT INTO users VALUES ('Alice');
             INSERT INTO users VALUES ('Bob');
             ",
-        )?;
+        )
+        .unwrap();
 
         let mut cq = ColumnQ::new();
 
@@ -27,6 +28,5 @@ mod sqlite {
         let batches = cq.query_sql("SELECT * FROM users").await.unwrap();
 
         assert_eq!(batches[0].num_rows(), 2);
-        Ok(())
     }
 }

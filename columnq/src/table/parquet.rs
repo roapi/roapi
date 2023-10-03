@@ -1,9 +1,6 @@
 use std::io::Read;
 use std::sync::Arc;
 
-use crate::error::ColumnQError;
-use crate::table::{TableLoadOption, TableOptionParquet, TableSource};
-
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
@@ -15,11 +12,44 @@ use datafusion::datasource::listing::{
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use snafu::prelude::*;
+
+use crate::table::{self, TableLoadOption, TableOptionParquet, TableSource};
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Failed to build parquet reader: {source}"))]
+    BuildReader {
+        source: datafusion::parquet::errors::ParquetError,
+    },
+    #[snafu(display("Failed to merge parquet schema: {source}"))]
+    MergeSchema {
+        source: datafusion::arrow::error::ArrowError,
+    },
+    #[snafu(display("Failed to collect record batches: {source}"))]
+    CollectBatches {
+        source: datafusion::arrow::error::ArrowError,
+    },
+    #[snafu(display("Failed to load parquety data into buffer: {source}"))]
+    LoadBytes { source: std::io::Error },
+    #[snafu(display("No parquet file found"))]
+    EmptyPartition {},
+    #[snafu(display("Schema not found"))]
+    SchemaNotFound {},
+    #[snafu(display("Failed to infer table schema: {source}"))]
+    InferSchema {
+        source: datafusion::error::DataFusionError,
+    },
+    #[snafu(display("Failed to parse table uri: {source}"))]
+    ParseUri {
+        source: datafusion::error::DataFusionError,
+    },
+}
 
 pub async fn to_datafusion_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
-) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+) -> Result<Arc<dyn TableProvider>, table::Error> {
     let opt = t
         .option
         .clone()
@@ -29,73 +59,92 @@ pub async fn to_datafusion_table(
     if *use_memory_table {
         to_mem_table(t, dfctx).await
     } else {
-        let table_url = ListingTableUrl::parse(t.get_uri_str())?;
+        let table_url = ListingTableUrl::parse(t.get_uri_str())
+            .context(ParseUriSnafu)
+            .context(table::LoadParquetSnafu)?;
         let options = ListingOptions::new(Arc::new(ParquetFormat::default()));
         let schemaref = match &t.schema {
             Some(s) => Arc::new(s.into()),
-            None => options.infer_schema(&dfctx.state(), &table_url).await?,
+            None => options
+                .infer_schema(&dfctx.state(), &table_url)
+                .await
+                .context(InferSchemaSnafu)
+                .context(table::LoadParquetSnafu)?,
         };
 
         let table_config = ListingTableConfig::new(table_url)
             .with_listing_options(options)
             .with_schema(schemaref);
-        Ok(Arc::new(ListingTable::try_new(table_config)?))
+        Ok(Arc::new(
+            ListingTable::try_new(table_config).context(table::CreateListingTableSnafu)?,
+        ))
     }
 }
 
 pub async fn to_mem_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
-) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+) -> Result<Arc<dyn TableProvider>, table::Error> {
     let batch_size = t.batch_size;
 
     let mut schema: Option<Schema> = None;
 
     let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
         t,
-        |mut r| -> Result<Vec<RecordBatch>, ColumnQError> {
+        |mut r| -> Result<Vec<RecordBatch>, table::Error> {
             // TODO: this is very inefficient, we are copying the parquet data in memory twice when
             // it's being fetched from http store
             let mut buffer = Vec::new();
-            r.read_to_end(&mut buffer).map_err(|_| {
-                ColumnQError::LoadParquet("failed to copy parquet data into memory".to_string())
-            })?;
+            r.read_to_end(&mut buffer)
+                .context(LoadBytesSnafu)
+                .context(table::LoadParquetSnafu)?;
 
             let record_batch_reader = ParquetRecordBatchReaderBuilder::try_new_with_options(
                 bytes::Bytes::from(buffer),
                 ArrowReaderOptions::new(),
-            )?
+            )
+            .context(BuildReaderSnafu)
+            .context(table::LoadParquetSnafu)?
             .with_batch_size(batch_size)
-            .build()?;
+            .build()
+            .context(BuildReaderSnafu)
+            .context(table::LoadParquetSnafu)?;
 
             let batch_schema = &*record_batch_reader.schema();
             schema = Some(match &schema {
                 Some(s) if s != batch_schema => {
-                    Schema::try_merge(vec![s.clone(), batch_schema.clone()])?
+                    Schema::try_merge(vec![s.clone(), batch_schema.clone()])
+                        .context(MergeSchemaSnafu)
+                        .context(table::LoadParquetSnafu)?
                 }
                 _ => batch_schema.clone(),
             });
 
-            Ok(record_batch_reader
+            record_batch_reader
                 .into_iter()
-                .collect::<arrow::error::Result<Vec<RecordBatch>>>()?)
+                .collect::<arrow::error::Result<Vec<RecordBatch>>>()
+                .context(CollectBatchesSnafu)
+                .context(table::LoadParquetSnafu)
         },
         dfctx
-    )?;
+    )
+    .context(table::IoSnafu)?;
 
     if partitions.is_empty() {
-        return Err(ColumnQError::LoadParquet(
-            "no parquet file found".to_string(),
-        ));
+        return Err(Error::EmptyPartition {}).context(table::LoadParquetSnafu);
     }
 
-    let table =
-        Arc::new(datafusion::datasource::MemTable::try_new(
-            Arc::new(schema.ok_or_else(|| {
-                ColumnQError::LoadParquet("schema not found for table".to_string())
-            })?),
+    let table = Arc::new(
+        datafusion::datasource::MemTable::try_new(
+            Arc::new(
+                schema
+                    .ok_or(Error::SchemaNotFound {})
+                    .context(table::LoadParquetSnafu)?,
+            ),
             partitions,
-        )?);
+        )
+        .context(table::CreateMemTableSnafu)?,
+    );
 
     Ok(table)
 }
@@ -144,43 +193,50 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn load_simple_parquet() -> Result<(), ColumnQError> {
+    async fn load_simple_parquet() {
         let ctx = SessionContext::new();
         let t = to_mem_table(
             &TableSource::new("blogs".to_string(), test_data_path("blogs.parquet")),
             &ctx,
         )
-        .await?;
+        .await
+        .unwrap();
 
-        let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
+        let stats = t
+            .scan(&ctx.state(), None, &[], None)
+            .await
+            .unwrap()
+            .statistics();
         assert_eq!(stats.num_rows, Some(500));
-
-        Ok(())
     }
 
     #[tokio::test]
-    async fn load_partitions() -> anyhow::Result<()> {
+    async fn load_partitions() {
         let ctx = SessionContext::new();
         let tmp_dir = Builder::new()
             .prefix("columnq.test.parquet_partitions")
-            .tempdir()?;
+            .tempdir()
+            .unwrap();
         let tmp_dir_path = tmp_dir.path();
 
         let source_path = test_data_path("blogs.parquet");
-        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-01.parquet"))? > 0);
-        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-02.parquet"))? > 0);
-        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-03.parquet"))? > 0);
+        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-01.parquet")).unwrap() > 0);
+        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-02.parquet")).unwrap() > 0);
+        assert!(fs::copy(&source_path, tmp_dir_path.join("2020-01-03.parquet")).unwrap() > 0);
 
         let t = to_mem_table(
             &TableSource::new_with_uri("blogs", tmp_dir_path.to_string_lossy())
                 .with_option(TableLoadOption::parquet(TableOptionParquet::default())),
             &ctx,
         )
-        .await?;
+        .await
+        .unwrap();
 
-        let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
+        let stats = t
+            .scan(&ctx.state(), None, &[], None)
+            .await
+            .unwrap()
+            .statistics();
         assert_eq!(stats.num_rows, Some(1500));
-
-        Ok(())
     }
 }

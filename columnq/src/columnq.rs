@@ -126,6 +126,7 @@ impl ColumnQ {
             Err(e) => Err(ColumnQError::InvalidUri(e.to_string())),
         }
     }
+
     pub async fn load_kv(&mut self, kv: KeyValueSource) -> Result<(), ColumnQError> {
         use datafusion::arrow::datatypes::DataType;
 
@@ -227,7 +228,6 @@ impl Default for ColumnQ {
 
 #[cfg(test)]
 mod tests {
-
     use std::fs::File;
     use std::io::Write;
     use std::{env, str::FromStr};
@@ -238,7 +238,7 @@ mod tests {
     use crate::ColumnQ;
 
     #[test]
-    fn s3_object_store_type() -> Result<(), ColumnQError> {
+    fn s3_object_store_type() {
         env::set_var("AWS_REGION", "us-east-1");
         let mut cq = ColumnQ::new();
         let _ = cq.register_object_storage(&Url::parse("s3://bucket_name/path/foo.csv").unwrap());
@@ -252,7 +252,6 @@ mod tests {
         };
         assert_eq!("".to_string(), msg);
         env::remove_var("AWS_REGION");
-        Ok(())
     }
 
     #[test]
@@ -269,19 +268,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn gcs_object_store_type() -> anyhow::Result<()> {
+    async fn gcs_object_store_type() {
         let mut cq = ColumnQ::new();
         let host_url = "gs://bucket_name/path";
         let _ = cq.register_object_storage(&Url::parse(host_url).unwrap());
         let provider = &cq.dfctx.runtime_env().object_store_registry;
 
-        let tmp_dir = Builder::new().prefix("columnq.test.gcs").tempdir()?;
+        let tmp_dir = Builder::new().prefix("columnq.test.gcs").tempdir().unwrap();
         let tmp_gcs_path = tmp_dir.path().join("service_account.json");
-        let mut tmp_gcs = File::create(tmp_gcs_path.clone())?;
+        let mut tmp_gcs = File::create(tmp_gcs_path.clone()).unwrap();
         writeln!(
             tmp_gcs,
             r#"{{"gcs_base_url": "http://localhost:4443", "disable_oauth": true, "client_email": "", "private_key": ""}}"#
-        )?;
+        ).unwrap();
         env::set_var("GOOGLE_SERVICE_ACCOUNT", tmp_gcs_path);
 
         let res = provider.get_store(&Url::from_str(host_url).unwrap());
@@ -292,9 +291,8 @@ mod tests {
         assert_eq!("".to_string(), msg);
 
         drop(tmp_gcs);
-        tmp_dir.close()?;
+        tmp_dir.close().unwrap();
         env::remove_var("GOOGLE_SERVICE_ACCOUNT");
-        Ok(())
     }
 
     #[test]
@@ -321,10 +319,22 @@ mod tests {
 
     #[test]
     fn unknown_object_store_type() {
+        use crate::io::Error;
+
         let mut cq = ColumnQ::new();
         let err = cq
             .register_object_storage(&Url::parse("unknown://bucket_name/path").unwrap())
             .unwrap_err();
-        assert!(err.to_string().contains("Unsupported scheme: \"unknown\""))
+
+        match err {
+            ColumnQError::IoError {
+                source: Error::InvalidUriScheme { scheme },
+            } => {
+                assert_eq!(scheme, "unknown");
+            }
+            _ => {
+                panic!("Expect unknown uri scheme error");
+            }
+        }
     }
 }

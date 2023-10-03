@@ -36,7 +36,7 @@ jobs:
         toolchain: stable
         override: true
     - name: Check
-      run: cargo clippy
+      run: cargo clippy --features database
     - name: Format
       run: cargo fmt --check
     - name: Build

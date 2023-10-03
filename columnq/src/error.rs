@@ -4,16 +4,25 @@ use datafusion::error::DataFusionError;
 use datafusion::{arrow, parquet};
 use uriparse::uri_reference::URIReferenceError;
 
+use crate::io;
+use crate::table;
+
 #[derive(thiserror::Error, Debug)]
 pub enum ColumnQError {
-    #[error("Invalid table URI: {0}")]
-    InvalidUri(String),
+    #[error("IO error: {source}")]
+    IoError {
+        #[from]
+        source: io::Error,
+    },
+
+    #[error("Table error: {source}")]
+    TableError {
+        #[from]
+        source: table::Error,
+    },
 
     #[error("Missing required table option config")]
     MissingOption,
-
-    #[error("Invalid format specified, expect: {0}")]
-    ExpectFormatOption(String),
 
     #[error("Unexpected Google Spreadsheets error: {0}")]
     GoogleSpreadsheets(String),
@@ -83,6 +92,9 @@ pub enum ColumnQError {
 
     #[error("Database error: {0}")]
     Database(String),
+
+    #[error("Invalid URI: {0}")]
+    InvalidUri(String),
 }
 
 impl ColumnQError {

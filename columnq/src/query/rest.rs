@@ -178,9 +178,9 @@ mod tests {
     use crate::test_util::*;
 
     #[tokio::test]
-    async fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
+    async fn consistent_and_deterministics_logical_plan() {
         let mut dfctx = SessionContext::new();
-        register_table_ubuntu_ami(&mut dfctx).await?;
+        register_table_ubuntu_ami(&mut dfctx).await;
 
         let mut params = HashMap::<String, String>::new();
         params.insert("limit".to_string(), "10".to_string());
@@ -188,29 +188,32 @@ mod tests {
         params.insert("columns".to_string(), "ami_id,version".to_string());
         params.insert("filter[arch]".to_string(), "'amd64'".to_string());
 
-        let df = table_query_to_df(&dfctx, "ubuntu_ami", &params).await?;
+        let df = table_query_to_df(&dfctx, "ubuntu_ami", &params)
+            .await
+            .unwrap();
 
         assert_eq_df(
             df.into(),
             dfctx
                 .table("ubuntu_ami")
-                .await?
-                .filter(
-                    col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))),
-                )?
-                .select(vec![col("ami_id"), col("version")])?
-                .sort(vec![column_sort_expr_asc("ami_id")])?
-                .limit(0, Some(10))?
+                .await
+                .unwrap()
+                .filter(col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))))
+                .unwrap()
+                .select(vec![col("ami_id"), col("version")])
+                .unwrap()
+                .sort(vec![column_sort_expr_asc("ami_id")])
+                .unwrap()
+                .limit(0, Some(10))
+                .unwrap()
                 .into(),
         );
-
-        Ok(())
     }
 
     #[tokio::test]
-    async fn simple_filter() -> anyhow::Result<()> {
+    async fn simple_filter() {
         let mut dfctx = SessionContext::new();
-        register_table_ubuntu_ami(&mut dfctx).await?;
+        register_table_ubuntu_ami(&mut dfctx).await;
         let mut params = HashMap::<String, String>::new();
 
         params.insert("columns".to_string(), "ami_id".to_string());
@@ -218,14 +221,12 @@ mod tests {
         params.insert("filter[arch]".to_string(), "'amd64'".to_string());
         params.insert("filter[zone]".to_string(), "'us-east-2'".to_string());
 
-        let batches = query_table(&dfctx, "ubuntu_ami", &params).await?;
+        let batches = query_table(&dfctx, "ubuntu_ami", &params).await.unwrap();
 
         let batch = &batches[0];
         assert_eq!(
             batch.column(0).as_ref(),
             &StringArray::from(vec!["<a href=\"https://console.aws.amazon.com/ec2/home?region=us-east-2#launchAmi=ami-091a87cd1ff23d97c\">ami-091a87cd1ff23d97c</a>"]),
         );
-
-        Ok(())
     }
 }

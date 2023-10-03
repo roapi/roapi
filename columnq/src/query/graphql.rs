@@ -364,9 +364,9 @@ mod tests {
     use crate::test_util::*;
 
     #[tokio::test]
-    async fn simple_query_planning() -> anyhow::Result<()> {
+    async fn simple_query_planning() {
         let mut dfctx = SessionContext::new();
-        register_table_properties(&mut dfctx)?;
+        register_table_properties(&mut dfctx);
 
         let df = query_to_df(
             &dfctx,
@@ -383,24 +383,27 @@ mod tests {
                 }
             }"#,
         )
-        .await?;
+        .await
+        .unwrap();
 
         let expected_df = dfctx
             .table("properties")
-            .await?
-            .filter(col("bath").gt_eq(lit(2i64)))?
-            .filter(col("bed").gt(lit(3i64)))?
-            .select(vec![col("address"), col("bed"), col("bath")])?;
+            .await
+            .unwrap()
+            .filter(col("bath").gt_eq(lit(2i64)))
+            .unwrap()
+            .filter(col("bed").gt(lit(3i64)))
+            .unwrap()
+            .select(vec![col("address"), col("bed"), col("bath")])
+            .unwrap();
 
         assert_eq_df(df.into(), expected_df.into());
-
-        Ok(())
     }
 
     #[tokio::test]
-    async fn consistent_and_deterministics_logical_plan() -> anyhow::Result<()> {
+    async fn consistent_and_deterministics_logical_plan() {
         let mut dfctx = SessionContext::new();
-        register_table_properties(&mut dfctx)?;
+        register_table_properties(&mut dfctx);
 
         let df = query_to_df(
             &dfctx,
@@ -419,25 +422,29 @@ mod tests {
                 }
             }"#,
         )
-        .await?;
+        .await
+        .unwrap();
 
         let expected_df = dfctx
             .table("properties")
-            .await?
-            .filter(col("bed").gt(lit(3i64)))?
-            .select(vec![col("address"), col("bed")])?
-            .sort(vec![column_sort_expr_asc("bed")])?
-            .limit(0, Some(10))?;
+            .await
+            .unwrap()
+            .filter(col("bed").gt(lit(3i64)))
+            .unwrap()
+            .select(vec![col("address"), col("bed")])
+            .unwrap()
+            .sort(vec![column_sort_expr_asc("bed")])
+            .unwrap()
+            .limit(0, Some(10))
+            .unwrap();
 
         assert_eq_df(df.into(), expected_df.into());
-
-        Ok(())
     }
 
     #[tokio::test]
-    async fn boolean_literal_as_predicate_operand() -> anyhow::Result<()> {
+    async fn boolean_literal_as_predicate_operand() {
         let mut dfctx = SessionContext::new();
-        register_table_properties(&mut dfctx)?;
+        register_table_properties(&mut dfctx);
 
         let batches = exec_query(
             &dfctx,
@@ -454,7 +461,8 @@ mod tests {
                 }
             }"#,
         )
-        .await?;
+        .await
+        .unwrap();
 
         let batch = &batches[0];
 
@@ -466,7 +474,5 @@ mod tests {
         assert_eq!(batch.column(1).as_ref(), &Int64Array::from(vec![4, 5]),);
 
         assert_eq!(batch.column(2).as_ref(), &Int64Array::from(vec![3, 3]),);
-
-        Ok(())
     }
 }

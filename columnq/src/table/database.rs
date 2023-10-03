@@ -12,30 +12,51 @@ pub enum DatabaseLoader {
 mod imp {
     use std::convert::TryFrom;
 
-    use crate::error::ColumnQError;
-    use crate::table::TableSource;
+    use crate::table::{self, TableSource};
     use connectorx::prelude::*;
     use log::debug;
+    use snafu::prelude::*;
 
     use super::DatabaseLoader;
+
+    #[derive(Debug, Snafu)]
+    pub enum Error {
+        #[snafu(display("Failed to create source connection: {source}"))]
+        Source {
+            source: connectorx::prelude::ConnectorXError,
+        },
+        #[snafu(display("Failed to create destination connection: {source}"))]
+        Destination {
+            source: connectorx::prelude::ConnectorXOutError,
+        },
+        #[snafu(display("Failed to convert to arrow: {source}"))]
+        ToArrow {
+            source: connectorx::destinations::arrow::ArrowDestinationError,
+        },
+    }
 
     impl DatabaseLoader {
         pub fn to_mem_table(
             &self,
             t: &TableSource,
-        ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+        ) -> Result<datafusion::datasource::MemTable, table::Error> {
             debug!("loading database table data...");
             let queries = CXQuery::naked(format!("SELECT * FROM {}", t.name));
             let source = SourceConn::try_from(t.get_uri_str())
-                .map_err(|e| ColumnQError::Database(e.to_string()))?;
+                .context(SourceSnafu)
+                .context(table::LoadDatabaseSnafu)?;
             let destination = connectorx::get_arrow::get_arrow(&source, None, &[queries])
-                .map_err(|e| ColumnQError::Database(e.to_string()))?;
-            Ok(datafusion::datasource::MemTable::try_new(
+                .context(DestinationSnafu)
+                .context(table::LoadDatabaseSnafu)?;
+
+            datafusion::datasource::MemTable::try_new(
                 destination.arrow_schema(),
                 vec![destination
                     .arrow()
-                    .map_err(|e| ColumnQError::Database(e.to_string()))?],
-            )?)
+                    .context(ToArrowSnafu)
+                    .context(table::LoadDatabaseSnafu)?],
+            )
+            .context(table::CreateMemTableSnafu)
         }
     }
 }
@@ -46,21 +67,25 @@ mod imp {
     feature = "database-postgres"
 )))]
 mod imp {
-    use crate::error::ColumnQError;
     use crate::table::TableSource;
 
     use super::DatabaseLoader;
+    use crate::table;
+    use snafu::prelude::*;
+
+    #[derive(Debug, Snafu)]
+    pub struct Error {}
 
     impl DatabaseLoader {
         pub fn to_mem_table(
             &self,
             _t: &TableSource,
-        ) -> Result<datafusion::datasource::MemTable, ColumnQError> {
-            Err(ColumnQError::Database(
-                "Enable 'database' feature flag to support this".to_string(),
-            ))
+        ) -> Result<datafusion::datasource::MemTable, table::Error> {
+            Err(table::Error::Generic {
+                msg: "Enable 'database' feature flag to support this".to_string(),
+            })
         }
     }
 }
 
-pub use imp::*;
+pub use imp::Error;

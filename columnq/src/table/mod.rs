@@ -9,9 +9,11 @@ use datafusion::datasource::TableProvider;
 use datafusion::arrow;
 use serde::de::{Deserialize, Deserializer};
 use serde_derive::Deserialize;
+use snafu::prelude::*;
 use uriparse::URIReference;
 
 use crate::error::ColumnQError;
+use crate::io;
 
 pub mod arrow_ipc_file;
 pub mod arrow_ipc_stream;
@@ -23,6 +25,67 @@ pub mod json;
 pub mod ndjson;
 pub mod parquet;
 pub mod xlsx;
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Failed to parse JSON: {source}"))]
+    LoadJson { source: json::Error },
+    #[snafu(display("Failed to parse NDJSON: {source}"))]
+    LoadNdJson { source: ndjson::Error },
+    #[snafu(display("Failed to load parquet: {source}"))]
+    LoadParquet { source: parquet::Error },
+    #[snafu(display("Failed to load csv data: {source}"))]
+    LoadCsv { source: csv::Error },
+    #[snafu(display("Failed to load delta table: {source}"))]
+    LoadDelta { source: delta::Error },
+    #[snafu(display("Failed to load Arrow IPC data: {source}"))]
+    LoadArrowIpc { source: arrow_ipc_stream::Error },
+    #[snafu(display("Failed to load Arrow IPC file data: {source}"))]
+    LoadArrowIpcFile { source: arrow_ipc_file::Error },
+    #[snafu(display("Failed to load Google Sheet data: {source}"))]
+    LoadGoogleSheet { source: google_spreadsheets::Error },
+    #[snafu(display("Failed to load XLSX data: {source}"))]
+    LoadXlsx { source: xlsx::Error },
+    #[snafu(display("Failed to load database data: {source}"))]
+    LoadDatabase { source: database::Error },
+    #[snafu(display("Failed to cast IO source to memory bytes for source: {table_source}"))]
+    MemoryCast { table_source: TableIoSource },
+    #[snafu(display("Failed to resolve extension: {msg}"))]
+    Extension { msg: String },
+    #[snafu(display("Failed to create datafusion memory table: {source}"))]
+    CreateMemTable {
+        source: datafusion::error::DataFusionError,
+    },
+    #[snafu(display("Failed to create datafusion listing table: {source}"))]
+    CreateListingTable {
+        source: datafusion::error::DataFusionError,
+    },
+    #[snafu(display("Failed to read table data: {source}"))]
+    Io { source: io::Error },
+    #[snafu(display("Invalid format specified, expect: {fmt}"))]
+    ExpectFormatOption { fmt: &'static str },
+    #[snafu(display("Invalid table URI: {msg}"))]
+    InvalidUri { msg: String },
+    #[snafu(display("Invalid URI: {source}"))]
+    InvalidUriReference { source: uriparse::URIReferenceError },
+    #[snafu(display("Failed to infer schema for listing table"))]
+    InferListingTableSchema {
+        source: datafusion::error::DataFusionError,
+    },
+    #[snafu(display("Failed to parse URI for listing table: {uri}"))]
+    ListingTableUri {
+        uri: String,
+        source: datafusion::error::DataFusionError,
+    },
+    #[snafu(display("Failed to merge schema: {source}"))]
+    MergeSchema {
+        source: datafusion::arrow::error::ArrowError,
+    },
+    #[snafu(display("Table source missing required option"))]
+    MissingOption {},
+    #[snafu(display("Generic error: {msg}"))]
+    Generic { msg: String },
+}
 
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -232,40 +295,40 @@ pub enum TableLoadOption {
 }
 
 impl TableLoadOption {
-    fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreadsheet, ColumnQError> {
+    fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreadsheet, Error> {
         match self {
             Self::google_spreadsheet(opt) => Ok(opt),
-            _ => Err(ColumnQError::ExpectFormatOption(
-                "google_spreadsheets".to_string(),
-            )),
+            _ => Err(Error::ExpectFormatOption {
+                fmt: "google_spreadsheets",
+            }),
         }
     }
 
-    fn as_xlsx(&self) -> Result<&TableOptionXlsx, ColumnQError> {
+    fn as_xlsx(&self) -> Result<&TableOptionXlsx, Error> {
         match self {
             Self::xlsx(opt) => Ok(opt),
-            _ => Err(ColumnQError::ExpectFormatOption("xlsx".to_string())),
+            _ => Err(Error::ExpectFormatOption { fmt: "xlsx" }),
         }
     }
 
-    fn as_csv(&self) -> Result<&TableOptionCsv, ColumnQError> {
+    fn as_csv(&self) -> Result<&TableOptionCsv, Error> {
         match self {
             Self::csv(opt) => Ok(opt),
-            _ => Err(ColumnQError::ExpectFormatOption("csv".to_string())),
+            _ => Err(Error::ExpectFormatOption { fmt: "csv" }),
         }
     }
 
-    fn as_parquet(&self) -> Result<&TableOptionParquet, ColumnQError> {
+    fn as_parquet(&self) -> Result<&TableOptionParquet, Error> {
         match self {
             Self::parquet(opt) => Ok(opt),
-            _ => Err(ColumnQError::ExpectFormatOption("parquet".to_string())),
+            _ => Err(Error::ExpectFormatOption { fmt: "parquet" }),
         }
     }
 
-    fn as_delta(&self) -> Result<&TableOptionDelta, ColumnQError> {
+    fn as_delta(&self) -> Result<&TableOptionDelta, Error> {
         match self {
             Self::delta(opt) => Ok(opt),
-            _ => Err(ColumnQError::ExpectFormatOption("delta".to_string())),
+            _ => Err(Error::ExpectFormatOption { fmt: "delta" }),
         }
     }
 
@@ -301,12 +364,12 @@ impl<T: Into<String>> From<T> for TableIoSource {
 }
 
 impl TableIoSource {
-    pub fn as_memory(&self) -> Result<&[u8], ColumnQError> {
+    pub fn as_memory(&self) -> Result<&[u8], Error> {
         match self {
             Self::Memory(data) => Ok(data),
-            other => Err(ColumnQError::Generic(format!(
-                "expect memory IO source, got: {other:?}"
-            ))),
+            _ => Err(Error::MemoryCast {
+                table_source: self.clone(),
+            }),
         }
     }
 }
@@ -403,32 +466,32 @@ impl TableSource {
         }
     }
 
-    pub fn parsed_uri(&self) -> Result<URIReference, ColumnQError> {
+    pub fn parsed_uri(&self) -> Result<URIReference, Error> {
         match &self.io_source {
-            TableIoSource::Uri(uri) => URIReference::try_from(uri.as_str()).map_err(|_| {
-                ColumnQError::InvalidUri(format!("{uri}. Make sure it's URI encoded."))
-            }),
+            TableIoSource::Uri(uri) => {
+                URIReference::try_from(uri.as_str()).map_err(|_| Error::InvalidUri {
+                    msg: format!("{uri}. Make sure it's URI encoded."),
+                })
+            }
             TableIoSource::Memory(_) => URIReference::builder()
                 .with_scheme(Some(uriparse::Scheme::try_from("memory").map_err(|e| {
-                    ColumnQError::Generic(format!(
-                        "failed to create uri scheme for memory IO source: {e:?}"
-                    ))
+                    Error::InvalidUri {
+                        msg: format!("failed to create uri scheme for memory IO source: {e:?}"),
+                    }
                 })?))
-                .with_path(uriparse::Path::try_from("data").map_err(|e| {
-                    ColumnQError::Generic(format!(
-                        "failed to create uri path for memory IO source: {e:?}"
-                    ))
-                })?)
+                .with_path(
+                    uriparse::Path::try_from("data").map_err(|e| Error::InvalidUri {
+                        msg: format!("failed to create uri path for memory IO source: {e:?}"),
+                    })?,
+                )
                 .build()
-                .map_err(|e| {
-                    ColumnQError::Generic(format!(
-                        "failed to create uri for memory IO source: {e:?}"
-                    ))
+                .map_err(|e| Error::InvalidUri {
+                    msg: format!("failed to create uri for memory IO source: {e:?}"),
                 }),
         }
     }
 
-    pub fn extension(&self) -> Result<&str, ColumnQError> {
+    pub fn extension(&self) -> Result<&str, Error> {
         Ok(match (&self.option, &self.io_source) {
             (Some(opt), _) => opt.extension(),
             (None, TableIoSource::Uri(uri)) => {
@@ -438,9 +501,9 @@ impl TableSource {
                         | "xlsx" => ext,
                         "sqlite" | "sqlite3" | "db" => "sqlite",
                         _ => {
-                            return Err(ColumnQError::InvalidUri(format!(
-                                "unsupported extension {ext} in uri: {uri}"
-                            )));
+                            return Err(Error::Extension {
+                                msg: format!("unsupported extension {ext} in uri: {uri}"),
+                            });
                         }
                     },
                     None => {
@@ -450,18 +513,18 @@ impl TableSource {
                             Some(TableLoadOption::sqlite {}) => "sqlite",
                             Some(TableLoadOption::postgres {}) => "postgres",
                             _ => {
-                                return Err(ColumnQError::InvalidUri(format!(
-                                    "unsupported extension in uri: {uri}"
-                                )));
+                                return Err(Error::Extension {
+                                    msg: format!("unsupported extension in uri: {uri}"),
+                                });
                             }
                         }
                     }
                 }
             }
             (None, TableIoSource::Memory(_)) => {
-                return Err(ColumnQError::Generic(
-                    "cannot detect table extension from memory IO source, please specify a format option".to_string()
-                ));
+                return Err(Error::Extension{
+                    msg: "cannot detect table extension from memory IO source, please specify a format option".to_string()
+                });
             }
         })
     }
@@ -470,7 +533,7 @@ impl TableSource {
 pub async fn load(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
-) -> Result<Arc<dyn TableProvider>, ColumnQError> {
+) -> Result<Arc<dyn TableProvider>, Error> {
     if let Some(opt) = &t.option {
         Ok(match opt {
             TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t, dfctx).await?),
@@ -512,10 +575,12 @@ pub async fn load(
             "sqlite" => Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?),
             "postgresql" => Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?),
             ext => {
-                return Err(ColumnQError::InvalidUri(format!(
-                    "failed to register `{}` as table `{}`, unsupported table format `{}`",
-                    t.io_source, t.name, ext,
-                )));
+                return Err(Error::InvalidUri {
+                    msg: format!(
+                        "failed to register `{}` as table `{}`, unsupported table format `{}`",
+                        t.io_source, t.name, ext,
+                    ),
+                });
             }
         };
 
@@ -636,7 +701,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn uri_deserialization() -> anyhow::Result<()> {
+    fn uri_deserialization() {
         let table_source: TableSource = serde_yaml::from_str(
             r#"
 name: "ubuntu_ami"
@@ -652,29 +717,27 @@ schema:
     - name: "name"
       data_type: "Utf8"
 "#,
-        )?;
+        )
+        .unwrap();
 
         assert_eq!(
             table_source.io_source,
             TableIoSource::Uri("test_data/ubuntu-ami.json".to_string())
         );
-
-        Ok(())
     }
 
     #[test]
-    fn batch_size_deserialisation() -> anyhow::Result<()> {
+    fn batch_size_deserialisation() {
         let table_source: TableSource = serde_yaml::from_str(
             r#"
 name: "ubuntu_ami"
 uri: "test_data/ubuntu-ami.json"
 batch_size: 512
 "#,
-        )?;
+        )
+        .unwrap();
 
         assert_eq!(table_source.batch_size, 512);
-
-        Ok(())
     }
 
     #[test]
@@ -703,22 +766,21 @@ batch_size: 512
 
     #[cfg(feature = "database-sqlite")]
     #[tokio::test]
-    async fn test_load_sqlite_table() -> anyhow::Result<()> {
+    async fn test_load_sqlite_table() {
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite/sample.db");
         let ctx = datafusion::prelude::SessionContext::new();
-        let table = load(&t, &ctx).await?;
+        let table = load(&t, &ctx).await.unwrap();
         let stats = table
             .scan(&ctx.state(), None, &[], None)
-            .await?
+            .await
+            .unwrap()
             .statistics();
         assert_eq!(stats.num_rows, Some(37));
-
-        Ok(())
     }
 
     #[cfg(feature = "database-sqlite")]
     #[tokio::test]
-    async fn test_load_sqlite_table_with_config() -> anyhow::Result<()> {
+    async fn test_load_sqlite_table_with_config() {
         for ext in vec!["db", "sqlite", "sqlite3"] {
             let t: TableSource = serde_yaml::from_str(&format!(
                 r#"
@@ -726,15 +788,16 @@ name: "uk_cities"
 uri: "sqlite://../test_data/sqlite/sample.{}"
 "#,
                 ext
-            ))?;
+            ))
+            .unwrap();
             let ctx = datafusion::prelude::SessionContext::new();
-            let table = load(&t, &ctx).await?;
+            let table = load(&t, &ctx).await.unwrap();
             let stats = table
                 .scan(&ctx.state(), None, &[], None)
-                .await?
+                .await
+                .unwrap()
                 .statistics();
             assert_eq!(stats.num_rows, Some(37));
         }
-        Ok(())
     }
 }

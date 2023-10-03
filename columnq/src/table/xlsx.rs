@@ -1,31 +1,44 @@
-use crate::{error::ColumnQError, table::TableSource};
+use crate::table::{self, TableSource};
 use calamine::{open_workbook, Range, Reader, Xlsx};
 use datafusion::arrow::array::{ArrayRef, BooleanArray, PrimitiveArray, StringArray};
 use datafusion::arrow::datatypes::{DataType, Field, Float64Type, Int64Type, Schema};
 use datafusion::arrow::record_batch::RecordBatch;
+use snafu::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::vec;
 
-fn infer_value_type(v: &calamine::DataType) -> Result<DataType, ColumnQError> {
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Failed to load XLSX: {msg}"))]
+    Load { msg: String },
+    #[snafu(display("Failed to create record batch: {source}"))]
+    CreateRecordBatch {
+        source: datafusion::arrow::error::ArrowError,
+    },
+    #[snafu(display("Failed to open workbook: {source}"))]
+    OpenWorkbook { source: calamine::XlsxError },
+}
+
+fn infer_value_type(v: &calamine::DataType) -> Result<DataType, Error> {
     match v {
         calamine::DataType::Int(_) if v.get_int().is_some() => Ok(DataType::Int64),
         calamine::DataType::Float(_) if v.get_float().is_some() => Ok(DataType::Float64),
         calamine::DataType::Bool(_) if v.get_bool().is_some() => Ok(DataType::Boolean),
         calamine::DataType::String(_) if v.get_string().is_some() => Ok(DataType::Utf8),
-        calamine::DataType::Error(e) => Err(ColumnQError::LoadXlsx(e.to_string())),
+        calamine::DataType::Error(e) => Err(Error::Load { msg: e.to_string() }),
         // TODO(upstream): support `Date64`
-        calamine::DataType::DateTime(_) => Err(ColumnQError::LoadXlsx(
-            "Unsupported data type: DateTime".to_owned(),
-        )),
+        calamine::DataType::DateTime(_) => Err(Error::Load {
+            msg: "Unsupported data type: DateTime".to_owned(),
+        }),
         calamine::DataType::Empty => Ok(DataType::Null),
-        _ => Err(ColumnQError::LoadXlsx(
-            "Failed to parse the cell value".to_owned(),
-        )),
+        _ => Err(Error::Load {
+            msg: "Failed to parse the cell value".to_owned(),
+        }),
     }
 }
 
-fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
+fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, Error> {
     let mut col_types: HashMap<&str, HashSet<DataType>> = HashMap::new();
     let mut rows = r.rows();
     let col_names: Result<Vec<&str>, _> = rows
@@ -34,8 +47,9 @@ fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
         .iter()
         .enumerate()
         .map(|(i, c)| {
-            c.get_string()
-                .ok_or_else(|| ColumnQError::LoadXlsx(format!("The {i}th column name is empty")))
+            c.get_string().ok_or_else(|| Error::Load {
+                msg: format!("The {i}th column name is empty"),
+            })
         })
         .collect();
 
@@ -70,9 +84,7 @@ fn infer_schema(r: &Range<calamine::DataType>) -> Result<Schema, ColumnQError> {
     Ok(Schema::new(fields))
 }
 
-fn xlsx_sheet_value_to_record_batch(
-    r: Range<calamine::DataType>,
-) -> Result<RecordBatch, ColumnQError> {
+fn xlsx_sheet_value_to_record_batch(r: Range<calamine::DataType>) -> Result<RecordBatch, Error> {
     let schema = infer_schema(&r)?;
     let arrays = schema
         .fields()
@@ -100,38 +112,43 @@ fn xlsx_sheet_value_to_record_batch(
             }
         })
         .collect::<Vec<ArrayRef>>();
-    Ok(RecordBatch::try_new(Arc::new(schema), arrays)?)
+
+    RecordBatch::try_new(Arc::new(schema), arrays).context(CreateRecordBatchSnafu)
 }
 
 pub async fn to_mem_table(
     t: &TableSource,
-) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+) -> Result<datafusion::datasource::MemTable, table::Error> {
     let opt = t
         .option
         .as_ref()
-        .ok_or(ColumnQError::MissingOption)?
+        .ok_or(table::Error::MissingOption {})?
         .as_xlsx()?;
     let uri = t.get_uri_str();
     let mut workbook: Xlsx<_> = open_workbook(uri)
-        .map_err(|_| ColumnQError::LoadXlsx("Failed to load .xlsx file".to_owned()))?;
+        .context(OpenWorkbookSnafu)
+        .context(table::LoadXlsxSnafu)?;
     match &opt.sheet_name {
         Some(sheet) => {
             if let Some(Ok(r)) = workbook.worksheet_range(sheet) {
-                let batch = xlsx_sheet_value_to_record_batch(r)?;
+                let batch = xlsx_sheet_value_to_record_batch(r).context(table::LoadXlsxSnafu)?;
                 let schema_ref = batch.schema();
                 let partitions = vec![vec![batch]];
-                Ok(datafusion::datasource::MemTable::try_new(
-                    schema_ref, partitions,
-                )?)
+                Ok(
+                    datafusion::datasource::MemTable::try_new(schema_ref, partitions)
+                        .context(table::CreateMemTableSnafu)?,
+                )
             } else {
-                Err(ColumnQError::LoadXlsx(
-                    "Failed to open .xlsx file.".to_owned(),
-                ))
+                Err(Error::Load {
+                    msg: "Failed to open .xlsx file.".to_owned(),
+                })
+                .context(table::LoadXlsxSnafu)
             }
         }
-        None => Err(ColumnQError::LoadXlsx(
-            "`sheet_name` is not specified".to_owned(),
-        )),
+        None => Err(Error::Load {
+            msg: "`sheet_name` is not specified".to_owned(),
+        })
+        .context(table::LoadXlsxSnafu),
     }
 }
 
