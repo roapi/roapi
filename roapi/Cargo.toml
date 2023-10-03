@@ -4,7 +4,7 @@ version = "0.10.0"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 [lib]
 name = "roapi"

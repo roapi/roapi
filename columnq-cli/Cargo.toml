@@ -5,7 +5,7 @@ homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 readme = "README.md"
 authors = ["QP Hou <dave2008713@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [[bin]]
 name = "columnq"
