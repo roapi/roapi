@@ -5,25 +5,50 @@ use datafusion::arrow::datatypes::{Schema, SchemaRef};
 #[allow(deprecated)]
 use datafusion::arrow::json::reader::{infer_json_schema, ReaderBuilder};
 use datafusion::arrow::record_batch::RecordBatch;
+use snafu::prelude::*;
 
-use crate::error::ColumnQError;
-use crate::table::TableSource;
+use crate::table::{self, TableSource};
 
-fn json_schema_from_reader<R: Read>(r: R) -> Result<Schema, ColumnQError> {
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Failed to infer NDJSON schema: {source}"))]
+    InferSchema {
+        source: datafusion::arrow::error::ArrowError,
+    },
+    #[snafu(display("Found empty NDJSON schema"))]
+    EmptySchema {},
+    #[snafu(display("Failed to build arrow reader: {source}"))]
+    BuildReader {
+        source: datafusion::arrow::error::ArrowError,
+    },
+    #[snafu(display("Failed to collect arrow record batches: {source}"))]
+    CollectBatches {
+        source: datafusion::arrow::error::ArrowError,
+    },
+}
+
+fn json_schema_from_reader<R: Read>(r: R) -> Result<Schema, table::Error> {
     let mut reader = BufReader::new(r);
-    Ok(infer_json_schema(&mut reader, None)?)
+    infer_json_schema(&mut reader, None)
+        .context(InferSchemaSnafu)
+        .context(table::LoadNdJsonSnafu)
 }
 
 fn decode_json_from_reader<R: Read>(
     r: R,
     schema_ref: SchemaRef,
     batch_size: usize,
-) -> Result<Vec<RecordBatch>, ColumnQError> {
+) -> Result<Vec<RecordBatch>, table::Error> {
     let batch_reader = ReaderBuilder::new(schema_ref)
         .with_batch_size(batch_size)
-        .build(BufReader::new(r))?;
+        .build(BufReader::new(r))
+        .context(BuildReaderSnafu)
+        .context(table::LoadNdJsonSnafu)?;
 
-    let batches = batch_reader.collect::<Result<Vec<RecordBatch>, _>>()?;
+    let batches = batch_reader
+        .collect::<Result<Vec<RecordBatch>, _>>()
+        .context(CollectBatchesSnafu)
+        .context(table::LoadNdJsonSnafu)?;
 
     Ok(batches)
 }
@@ -31,7 +56,7 @@ fn decode_json_from_reader<R: Read>(
 pub async fn to_mem_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
-) -> Result<datafusion::datasource::MemTable, ColumnQError> {
+) -> Result<datafusion::datasource::MemTable, table::Error> {
     let batch_size = t.batch_size;
 
     let schema_ref: SchemaRef = match &t.schema {
@@ -39,11 +64,16 @@ pub async fn to_mem_table(
         // infer schema from data if not provided by user
         None => {
             let inferred_schema: Vec<Schema> =
-                partitions_from_table_source!(t, json_schema_from_reader, dfctx)?;
+                partitions_from_table_source!(t, json_schema_from_reader, dfctx)
+                    .context(table::IoSnafu)?;
             if inferred_schema.is_empty() {
-                return Err(ColumnQError::LoadJson("failed to load schema".to_string()));
+                return Err(Error::EmptySchema {}).context(table::LoadNdJsonSnafu);
             }
-            Arc::new(Schema::try_merge(inferred_schema)?)
+            Arc::new(
+                Schema::try_merge(inferred_schema)
+                    .context(InferSchemaSnafu)
+                    .context(table::LoadNdJsonSnafu)?,
+            )
         }
     };
 
@@ -51,11 +81,11 @@ pub async fn to_mem_table(
         t,
         |reader| decode_json_from_reader(reader, schema_ref.clone(), batch_size),
         dfctx
-    )?;
+    )
+    .context(table::IoSnafu)?;
 
-    Ok(datafusion::datasource::MemTable::try_new(
-        schema_ref, partitions,
-    )?)
+    datafusion::datasource::MemTable::try_new(schema_ref, partitions)
+        .context(table::CreateMemTableSnafu)
 }
 
 #[cfg(test)]

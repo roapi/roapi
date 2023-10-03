@@ -11,7 +11,7 @@ macro_rules! partitions_from_table_source {
         use std::convert::TryFrom;
 
         let uri = $table_source.parsed_uri()?;
-        match io::BlobStoreType::try_from(uri.scheme())? {
+        match io::BlobStoreType::try_from(uri.scheme()).context(table::IoSnafu)? {
             io::BlobStoreType::FileSystem => {
                 io::fs::partitions_from_uri(&$table_source, uri, $call_with_r)
             }

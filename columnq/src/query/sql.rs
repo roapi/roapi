@@ -26,9 +26,9 @@ mod tests {
     use crate::test_util::*;
 
     #[tokio::test]
-    async fn group_by_aggregation() -> anyhow::Result<()> {
+    async fn group_by_aggregation() {
         let mut dfctx = SessionContext::new();
-        register_table_properties(&mut dfctx)?;
+        register_table_properties(&mut dfctx);
 
         let batches = exec_query(
             &dfctx,
@@ -39,7 +39,8 @@ mod tests {
             ORDER BY landlord
             "#,
         )
-        .await?;
+        .await
+        .unwrap();
 
         let batch = &batches[0];
 
@@ -52,7 +53,5 @@ mod tests {
             batch.column(1).as_ref(),
             &Int64Array::from(vec![3, 3, 4, 3, 2]),
         );
-
-        Ok(())
     }
 }

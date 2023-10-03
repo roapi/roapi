@@ -9,16 +9,19 @@ mod postgres {
     use columnq::table::database::DatabaseLoader;
 
     #[tokio::test]
-    async fn load_postgres() -> anyhow::Result<()> {
+    async fn load_postgres() {
         dotenvy::dotenv().ok();
         if let Ok(name) = env::var("TABLE_NAME") {
             let t = DatabaseLoader::Postgres
-                .to_mem_table(&TableSource::new(name, env::var("POSGRES_URL")?))?;
+                .to_mem_table(&TableSource::new(name, env::var("POSGRES_URL").unwrap()))
+                .unwrap();
             let ctx = SessionContext::new();
-            let stats = t.scan(&ctx.state(), None, &[], None).await?.statistics();
+            let stats = t
+                .scan(&ctx.state(), None, &[], None)
+                .await
+                .unwrap()
+                .statistics();
             assert!(stats.num_rows.is_some());
         }
-
-        Ok(())
     }
 }
