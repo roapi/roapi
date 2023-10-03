@@ -38,7 +38,17 @@ serde_yaml = "0.8"
 toml = "0.7"
 clap = { version = "3", features = ["color"] }
 thiserror = "1"
-anyhow = "1"
+snafu = "0"
+
+# flight-sql
+arrow-flight = { version = "46", features = ["flight-sql-experimental"] }
+tonic = { version = "0", features = ["tls"] }
+prost = "0"
+futures = "0"
+# FIXME: delete this after we fix flightsql test
+once_cell = "*"
+dashmap = "5"
+uuid = "1"
 
 # convergence = "0.13"
 # convergence-arrow = "0.13"
@@ -64,6 +74,11 @@ reqwest = { version = "0.11", default-features = false, features = [
 ] }
 async-process = "1.3.0"
 tokio-postgres = "0.7"
+tower = "*"
+tempfile = "*"
+tokio-stream = { version = "*", features = ["net"] }
+arrow-cast = "*"
+arrow-ipc = "*"  # for flight_sql test
 
 # TODO: uncomment this when we exclude roapi from root workspace
 # [profile.release]

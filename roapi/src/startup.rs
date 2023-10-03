@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use columnq::table::TableSource;
 use log::{error, info};
+use snafu::prelude::*;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time;
 
@@ -11,6 +12,14 @@ use crate::config::Config;
 use crate::context::RawRoapiContext;
 use crate::context::{ConcurrentRoapiContext, RoapiContext};
 use crate::server;
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Failed to build HTTP server: {source}"))]
+    BuildHttpServer { source: server::http::Error },
+    #[snafu(display("Failed to build FlightSQL server: {source}"))]
+    BuildFlightSqlServer { source: server::flight_sql::Error },
+}
 
 pub struct TableReloader {
     reload_interval: Duration,
@@ -42,15 +51,16 @@ pub struct Application {
     http_server: server::http::HttpApiServer,
     table_reloader: Option<TableReloader>,
     postgres_server: Box<dyn server::RunnableServer>,
+    flight_sql_server: Box<dyn server::RunnableServer>,
 }
 
 impl Application {
-    pub async fn build(config: Config) -> anyhow::Result<Self> {
+    pub async fn build(config: Config) -> Result<Self, Error> {
         let default_host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
 
         let handler_ctx = RawRoapiContext::new(&config)
             .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            .expect("Failed to create Roapi context");
 
         let tables = config
             .tables
@@ -76,17 +86,30 @@ impl Application {
                 ctx_ext: ctx_ext.clone(),
             });
 
-            let (http_server, http_addr) = server::http::build_http_server::<ConcurrentRoapiContext>(
-                ctx_ext,
-                tables,
-                &config,
-                default_host,
-            )?;
+            let flight_sql_server = Box::new(
+                server::flight_sql::RoapiFlightSqlServer::new(
+                    ctx_ext.clone(),
+                    &config,
+                    default_host.clone(),
+                )
+                .await
+                .context(BuildFlightSqlServerSnafu)?,
+            );
+
+            let (http_server, http_addr) =
+                server::http::build_http_server::<ConcurrentRoapiContext>(
+                    ctx_ext,
+                    tables,
+                    &config,
+                    default_host,
+                )
+                .context(BuildHttpServerSnafu)?;
 
             Ok(Self {
                 http_addr,
                 http_server,
                 postgres_server,
+                flight_sql_server,
                 table_reloader,
             })
         } else {
@@ -99,17 +122,28 @@ impl Application {
                 )
                 .await,
             );
+            let flight_sql_server = Box::new(
+                server::flight_sql::RoapiFlightSqlServer::new(
+                    ctx_ext.clone(),
+                    &config,
+                    default_host.clone(),
+                )
+                .await
+                .context(BuildFlightSqlServerSnafu)?,
+            );
             let (http_server, http_addr) = server::http::build_http_server::<RawRoapiContext>(
                 ctx_ext,
                 tables,
                 &config,
                 default_host,
-            )?;
+            )
+            .context(BuildHttpServerSnafu)?;
 
             Ok(Self {
                 http_addr,
                 http_server,
                 postgres_server,
+                flight_sql_server,
                 table_reloader: None,
             })
         }
@@ -123,7 +157,13 @@ impl Application {
         self.postgres_server.addr()
     }
 
-    pub async fn run_until_stopped(self) -> anyhow::Result<()> {
+    pub fn flight_sql_addr(&self) -> std::net::SocketAddr {
+        self.flight_sql_server.addr()
+    }
+
+    pub async fn run_until_stopped(self) -> Result<(), Error> {
+        // FIXME: exit from tokio spawn
+
         let postgres_server = self.postgres_server;
         info!(
             "🚀 Listening on {} for Postgres traffic...",
@@ -135,12 +175,28 @@ impl Application {
                 .await
                 .expect("Failed to run postgres server");
         });
+
+        let flight_sql_server = self.flight_sql_server;
+        info!(
+            "🚀 Listening on {} for FlightSQL traffic...",
+            flight_sql_server.addr()
+        );
+        tokio::spawn(async move {
+            flight_sql_server
+                .run()
+                .await
+                .expect("Failed to run FlightSQL server");
+        });
+
         if let Some(table_reloader) = self.table_reloader {
             tokio::spawn(async move {
                 table_reloader.run().await;
             });
         }
+
         info!("🚀 Listening on {} for HTTP traffic...", self.http_addr);
-        Ok(self.http_server.await?)
+        self.http_server.await.expect("Failed to start HTTP server");
+
+        Ok(())
     }
 }

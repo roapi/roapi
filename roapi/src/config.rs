@@ -1,9 +1,7 @@
-use anyhow::Ok;
 use columnq::datafusion::config::ConfigOptions;
 use columnq::SessionConfig;
 use serde_derive::Deserialize;
-
-use anyhow::{bail, Context, Result};
+use snafu::{whatever, Whatever};
 
 use columnq::encoding;
 use columnq::table::parse_table_uri_arg;
@@ -17,6 +15,19 @@ use std::time::Duration;
 pub struct AddrConfig {
     pub http: Option<String>,
     pub postgres: Option<String>,
+    pub flight_sql: Option<String>,
+}
+
+#[derive(Deserialize, Default, Clone)]
+pub struct FlightSqlTlsConfig {
+    pub cert: String,
+    pub key: String,
+    pub client_ca: String,
+}
+
+#[derive(Deserialize, Default, Clone)]
+pub struct FlightSqlConfig {
+    pub tls: Option<FlightSqlTlsConfig>,
 }
 
 #[derive(Deserialize, Default, Clone)]
@@ -32,6 +43,8 @@ pub struct Config {
     pub response_format: encoding::ContentType,
     #[serde(default)]
     pub datafusion: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub flight_sql_config: Option<FlightSqlConfig>,
 }
 
 fn table_arg() -> clap::Arg<'static> {
@@ -64,6 +77,15 @@ fn address_postgres_arg() -> clap::Arg<'static> {
         .value_name("IP:PORT")
         .long("addr-postgres")
         .short('p')
+}
+
+fn address_flight_sql_arg() -> clap::Arg<'static> {
+    clap::Arg::new("addr-flight-sql")
+        .help("FlightSQL endpoint bind address")
+        .required(false)
+        .takes_value(true)
+        .value_name("IP:PORT")
+        .long("addr-flight-sql")
 }
 
 fn read_only_arg() -> clap::Arg<'static> {
@@ -103,7 +125,7 @@ fn config_arg() -> clap::Arg<'static> {
         .short('c')
 }
 
-pub fn get_configuration() -> Result<Config, anyhow::Error> {
+pub fn get_configuration() -> Result<Config, Whatever> {
     let matches = clap::Command::new("roapi")
         .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
@@ -114,6 +136,7 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         .args(&[
             address_http_arg(),
             address_postgres_arg(),
+            address_flight_sql_arg(),
             config_arg(),
             read_only_arg(),
             reload_interval_arg(),
@@ -125,21 +148,32 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
     let mut config: Config = match matches.value_of("config") {
         None => Config::default(),
         Some(config_path) => {
-            let config_content = fs::read_to_string(config_path)
-                .with_context(|| format!("Failed to read config file: {config_path}"))?;
+            let config_content = whatever!(
+                fs::read_to_string(config_path),
+                "Failed to read config file: {config_path}",
+            );
             if config_path.ends_with(".yaml") || config_path.ends_with(".yml") {
-                serde_yaml::from_str(&config_content).context("Failed to parse YAML config")?
+                whatever!(
+                    serde_yaml::from_str(&config_content),
+                    "Failed to parse YAML config",
+                )
             } else if config_path.ends_with(".toml") {
-                toml::from_str(&config_content).context("Failed to parse TOML config")?
+                whatever!(
+                    toml::from_str(&config_content),
+                    "Failed to parse TOML config"
+                )
             } else {
-                bail!("Unsupported config file format: {}", config_path);
+                whatever!("Unsupported config file format: {}", config_path);
             }
         }
     };
 
     if let Some(tables) = matches.values_of("table") {
         for v in tables {
-            config.tables.push(parse_table_uri_arg(v)?);
+            config.tables.push(whatever!(
+                parse_table_uri_arg(v),
+                "Failed to parse table uri: {v}"
+            ));
         }
     }
 
@@ -151,13 +185,17 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
         config.addr.postgres = Some(addr.to_string());
     }
 
+    if let Some(addr) = matches.value_of("addr-flight-sql") {
+        config.addr.flight_sql = Some(addr.to_string());
+    }
+
     if matches.is_present("disable-read-only") {
         config.disable_read_only = true;
     }
 
     if let Some(reload_interval) = matches.value_of("reload-interval") {
         if !config.disable_read_only {
-            bail!("Table reload not supported in read-only mode. Try specify the --disable-read-only option.");
+            whatever!("Table reload not supported in read-only mode. Try specify the --disable-read-only option.");
         }
         config.reload_interval = Some(Duration::from_secs(
             reload_interval.to_string().parse().unwrap(),
@@ -165,19 +203,25 @@ pub fn get_configuration() -> Result<Config, anyhow::Error> {
     }
 
     if let Some(response_format) = matches.value_of("response-format") {
-        config.response_format = serde_yaml::from_str(response_format)?;
+        config.response_format = whatever!(
+            serde_yaml::from_str(response_format),
+            "Failed parse response-format",
+        );
     }
 
     Ok(config)
 }
 
 impl Config {
-    pub fn get_datafusion_config(&self) -> Result<SessionConfig> {
+    pub fn get_datafusion_config(&self) -> Result<SessionConfig, Whatever> {
         match &self.datafusion {
             Some(df_cfg) => {
                 let mut opt = ConfigOptions::default();
                 for (k, v) in df_cfg {
-                    opt.set(format!("datafusion.{}", k).as_str(), v)?;
+                    whatever!(
+                        opt.set(format!("datafusion.{}", k).as_str(), v),
+                        "failed to set datafusion config: {k}={v}"
+                    );
                 }
                 Ok(opt.into())
             }

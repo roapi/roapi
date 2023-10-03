@@ -1,18 +1,16 @@
 mod helpers;
 
-use anyhow::Result;
-
 use tokio_postgres::NoTls;
 
 #[tokio::test]
-async fn test_postgres_count() -> Result<()> {
+async fn test_postgres_count() {
     let json_table = helpers::get_spacex_table();
     let (app, _) = helpers::test_api_app_with_tables(vec![json_table]).await;
     let addr = app.postgres_addr();
     tokio::spawn(app.run_until_stopped());
 
     let conn_str = format!("host={} port={}", addr.ip(), addr.port());
-    let (client, connection) = tokio_postgres::connect(&conn_str, NoTls).await?;
+    let (client, connection) = tokio_postgres::connect(&conn_str, NoTls).await.unwrap();
 
     // The connection object performs the actual communication with the database,
     // so spawn it off to run on its own.
@@ -24,7 +22,8 @@ async fn test_postgres_count() -> Result<()> {
 
     let rows = client
         .simple_query("SELECT COUNT(*) FROM spacex_launches")
-        .await?;
+        .await
+        .unwrap();
 
     match &rows[0] {
         tokio_postgres::SimpleQueryMessage::Row(row) => {
@@ -45,6 +44,4 @@ async fn test_postgres_count() -> Result<()> {
     }
 
     assert_eq!(rows.len(), 2);
-
-    Ok(())
 }

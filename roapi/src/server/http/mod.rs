@@ -5,6 +5,7 @@ use std::sync::Arc;
 use axum::extract::Extension;
 use axum::http::Method;
 use columnq::table::TableSource;
+use snafu::prelude::*;
 use tokio::sync::Mutex;
 
 pub mod layers;
@@ -12,6 +13,12 @@ pub mod layers;
 use crate::api;
 use crate::config::Config;
 use crate::context::RoapiContext;
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("Could bind TCP address: {source}"))]
+    BindTcp { source: std::io::Error },
+}
 
 pub type HttpApiServer =
     axum::Server<hyper::server::conn::AddrIncoming, axum::routing::IntoMakeService<axum::Router>>;
@@ -21,7 +28,7 @@ pub fn build_http_server<H: RoapiContext>(
     tables: Arc<Mutex<HashMap<String, TableSource>>>,
     config: &Config,
     default_host: String,
-) -> anyhow::Result<(HttpApiServer, std::net::SocketAddr)> {
+) -> Result<(HttpApiServer, std::net::SocketAddr), Error> {
     let default_http_port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let default_http_addr = [default_host, default_http_port].join(":");
     let http_addr = config
@@ -45,7 +52,7 @@ pub fn build_http_server<H: RoapiContext>(
         app = app.layer(layers::HttpLoggerLayer::new());
     }
 
-    let listener = TcpListener::bind(http_addr)?;
+    let listener = TcpListener::bind(http_addr).context(BindTcpSnafu)?;
     let addr = listener
         .local_addr()
         .expect("Failed to get address from listener");
