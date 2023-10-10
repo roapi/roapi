@@ -22,7 +22,7 @@ snmalloc-rs = { version = "0.2", optional = true }
 # dependencies related to axum
 tokio = { version = "1", features = ["rt-multi-thread"] }
 hyper = { version = "0", features = ["http1", "server", "stream", "runtime"] }
-axum = { version = "0.5", features = ["default", "http2"] }
+axum = { version = "0.6", features = ["default", "http2"] }
 tower-http = { version = "0", features = ["cors"] }
 tower-layer = "0"
 tracing = "0"
