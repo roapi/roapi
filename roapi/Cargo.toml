@@ -45,7 +45,7 @@ arrow-flight = { version = "46", features = ["flight-sql-experimental"] }
 tonic = { version = "0", features = ["tls"] }
 prost = "0"
 futures = "0"
-# FIXME: delete this after we fix flightsql test
+# TODO: remove once_cell dependency
 once_cell = "*"
 dashmap = "5"
 uuid = "1"

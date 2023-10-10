@@ -263,10 +263,12 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
     ) -> Result<Response<FlightInfo>, Status> {
         self.check_token(&request)?;
 
-        info!("get_flight_info_statement");
-        debug!("got user query: {:#?}", &query);
+        debug!("got flight_info_statement user query: {:#?}", &query);
         let user_query = query.query.as_str();
-        info!("executing query: `{}`", &user_query);
+        info!(
+            "get_flight_info_statement, executing query: `{}`",
+            &user_query
+        );
 
         let ctx = self.get_ctx(&request).await?;
 
@@ -646,8 +648,8 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
             for (table_name, table_schema) in schemas.into_iter() {
                 builder
                     .append(
-                        CATALOG_NAME.to_string(),
-                        SCHEMA_NAME.to_string(),
+                        CATALOG_NAME,
+                        SCHEMA_NAME,
                         table_name,
                         &table_type,
                         table_schema.as_ref(),
@@ -659,8 +661,8 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
             for table_name in self.ctx.table_names().await.into_iter() {
                 builder
                     .append(
-                        CATALOG_NAME.to_string(),
-                        SCHEMA_NAME.to_string(),
+                        CATALOG_NAME,
+                        SCHEMA_NAME,
                         table_name,
                         &table_type,
                         &table_schema,
@@ -954,8 +956,8 @@ impl<H: RoapiContext> RoapiFlightSqlServer<H> {
                         std::fs::read_to_string(&tls_cfg.client_ca).context(ReadTlsFileSnafu)?;
 
                     Ok(ServerTlsConfig::new()
-                        .identity(Identity::from_pem(&cert, &key))
-                        .client_ca_root(Certificate::from_pem(&client_ca)))
+                        .identity(Identity::from_pem(cert, key))
+                        .client_ca_root(Certificate::from_pem(client_ca)))
                 })
             })
             .transpose()?;

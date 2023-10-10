@@ -127,12 +127,7 @@ impl RoapiContext for RawRoapiContext {
 
     #[inline]
     async fn table_names(&self) -> Vec<String> {
-        self.cq
-            .schema_map()
-            .keys()
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect()
+        self.cq.schema_map().keys().map(|s| s.to_string()).collect()
     }
 
     #[inline]
@@ -217,12 +212,7 @@ impl RoapiContext for ConcurrentRoapiContext {
     #[inline]
     async fn table_names(&self) -> Vec<String> {
         let ctx = self.read().await;
-        ctx.cq
-            .schema_map()
-            .keys()
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect()
+        ctx.cq.schema_map().keys().map(|s| s.to_string()).collect()
     }
 
     #[inline]

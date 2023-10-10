@@ -15,7 +15,15 @@ use futures::TryStreamExt;
 use std::time::Duration;
 use tonic::transport::{Channel, Endpoint};
 
-fn endpoint(uri: String) -> Result<Endpoint, ArrowError> {
+fn endpoint(addr: std::net::SocketAddr) -> Result<Endpoint, ArrowError> {
+    let uri = match addr {
+        std::net::SocketAddr::V4(v) => {
+            format!("http://{}:{}", v.ip(), v.port())
+        }
+        std::net::SocketAddr::V6(v) => {
+            format!("http://[{}]:{}", v.ip(), v.port())
+        }
+    };
     let endpoint = Endpoint::new(uri)
         .expect("Cannot create endpoint")
         .connect_timeout(Duration::from_secs(20))
@@ -53,8 +61,7 @@ async fn spawn_server_for_table(tables: Vec<TableSource>) -> std::net::SocketAdd
 }
 
 async fn get_flight_client(addr: std::net::SocketAddr) -> FlightSqlServiceClient<Channel> {
-    let uri = format!("http://{}:{}", addr.ip(), addr.port());
-    let endpoint = endpoint(uri).unwrap();
+    let endpoint = endpoint(addr).unwrap();
     let channel = endpoint.connect().await.unwrap();
     FlightSqlServiceClient::new(channel)
 }
