@@ -21,6 +21,7 @@ pub struct AddrConfig {
 
 #[derive(Deserialize, Default, Clone)]
 pub struct Config {
+    #[serde(default)]
     pub addr: AddrConfig,
     pub tables: Vec<TableSource>,
     pub reload_interval: Option<Duration>,
