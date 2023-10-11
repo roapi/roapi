@@ -2,12 +2,11 @@ mod helpers;
 
 use std::collections::HashMap;
 
-use anyhow::Result;
 use async_process::Command;
 use columnq::arrow::datatypes::Schema;
 
 #[tokio::test]
-async fn test_schema() -> Result<()> {
+async fn test_schema() {
     let json_table = helpers::get_spacex_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![json_table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -15,13 +14,12 @@ async fn test_schema() -> Result<()> {
     let response = helpers::http_get(&format!("{address}/api/schema"), None).await;
 
     assert_eq!(response.status(), 200);
-    let body = response.json::<HashMap<String, Schema>>().await?;
+    let body = response.json::<HashMap<String, Schema>>().await.unwrap();
     assert!(body.contains_key("spacex_launches"));
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_uk_cities_sql_post() -> Result<()> {
+async fn test_uk_cities_sql_post() {
     let table = helpers::get_uk_cities_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -33,7 +31,7 @@ async fn test_uk_cities_sql_post() -> Result<()> {
     .await;
 
     assert_eq!(response.status(), 200);
-    let data = response.json::<serde_json::Value>().await?;
+    let data = response.json::<serde_json::Value>().await.unwrap();
     assert_eq!(
         data,
         serde_json::json!([
@@ -44,11 +42,10 @@ async fn test_uk_cities_sql_post() -> Result<()> {
             {"city": "Frankton, Warwickshire, UK"}
         ])
     );
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_sql_invalid_post() -> Result<()> {
+async fn test_sql_invalid_post() {
     let table = helpers::get_uk_cities_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -56,7 +53,7 @@ async fn test_sql_invalid_post() -> Result<()> {
     let response = helpers::http_post(&format!("{address}/api/sql"), "SELECT city FROM").await;
 
     assert_eq!(response.status(), 400);
-    let data = response.json::<serde_json::Value>().await?;
+    let data = response.json::<serde_json::Value>().await.unwrap();
     assert_eq!(
         data,
         serde_json::json!({
@@ -65,11 +62,10 @@ async fn test_sql_invalid_post() -> Result<()> {
             "message": "Failed to plan execution from SQL query: SQL error: ParserError(\"Expected identifier, found: EOF\")"
         })
     );
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_ubuntu_ami_sql_post() -> Result<()> {
+async fn test_ubuntu_ami_sql_post() {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -85,18 +81,17 @@ async fn test_ubuntu_ami_sql_post() -> Result<()> {
     .await;
 
     assert_eq!(response.status(), 200);
-    let data = response.json::<serde_json::Value>().await?;
+    let data = response.json::<serde_json::Value>().await.unwrap();
     assert_eq!(
         data,
         serde_json::json!([
             {"ami_id":"<a href=\"https://console.aws.amazon.com/ec2/home?region=us-west-2#launchAmi=ami-270f9747\">ami-270f9747</a>"}
         ])
     );
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_rest_get() -> Result<()> {
+async fn test_rest_get() {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -123,7 +118,7 @@ async fn test_rest_get() -> Result<()> {
         .await;
 
         assert_eq!(response.status(), 200);
-        let data = response.json::<serde_json::Value>().await?;
+        let data = response.json::<serde_json::Value>().await.unwrap();
         assert_eq!(
             data,
             serde_json::json!([
@@ -138,11 +133,10 @@ async fn test_rest_get() -> Result<()> {
             ])
         );
     }
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_graphql_post_query_op() -> Result<()> {
+async fn test_graphql_post_query_op() {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -170,7 +164,7 @@ async fn test_graphql_post_query_op() -> Result<()> {
     .await;
 
     assert_eq!(response.status(), 200);
-    let data = response.json::<serde_json::Value>().await?;
+    let data = response.json::<serde_json::Value>().await.unwrap();
     assert_eq!(
         data,
         serde_json::json!([
@@ -184,11 +178,10 @@ async fn test_graphql_post_query_op() -> Result<()> {
             { "release": "20170502", "version": "12.04 LTS", "name": "precise" }
         ])
     );
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_graphql_post_selection() -> Result<()> {
+async fn test_graphql_post_selection() {
     let table = helpers::get_ubuntu_ami_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -214,7 +207,7 @@ async fn test_graphql_post_selection() -> Result<()> {
     .await;
 
     assert_eq!(response.status(), 200);
-    let data = response.json::<serde_json::Value>().await?;
+    let data = response.json::<serde_json::Value>().await.unwrap();
     assert_eq!(
         data,
         serde_json::json!([
@@ -228,11 +221,10 @@ async fn test_graphql_post_selection() -> Result<()> {
             { "version": "12.04 LTS", "name": "precise" }
         ])
     );
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_http2() -> Result<()> {
+async fn test_http2() {
     let table = helpers::get_uk_cities_table();
     let (app, address) = helpers::test_api_app_with_tables(vec![table]).await;
     tokio::spawn(app.run_until_stopped());
@@ -250,7 +242,8 @@ async fn test_http2() -> Result<()> {
         .arg("-w")
         .arg("'%{http_version}\n'")
         .output()
-        .await?
+        .await
+        .unwrap()
         .stdout;
 
     let two = vec!['\'', '2', '\n', '\'']
@@ -259,11 +252,10 @@ async fn test_http2() -> Result<()> {
         .collect::<Vec<_>>();
 
     assert_eq!(http_version, two);
-    Ok(())
 }
 
 #[tokio::test]
-async fn test_kvstore_get() -> Result<()> {
+async fn test_kvstore_get() {
     let store = helpers::get_spacex_launch_name_kvstore();
     let (app, address) = helpers::test_api_app_with_kvstores(vec![store]).await;
     tokio::spawn(app.run_until_stopped());
@@ -275,6 +267,5 @@ async fn test_kvstore_get() -> Result<()> {
     .await;
 
     assert_eq!(response.status(), 200);
-    assert_eq!(response.text().await?, "Starlink-21 (v1.0)");
-    Ok(())
+    assert_eq!(response.text().await.unwrap(), "Starlink-21 (v1.0)");
 }

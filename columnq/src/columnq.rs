@@ -41,6 +41,7 @@ impl ColumnQ {
     }
 
     pub fn new_with_config(config: SessionConfig) -> Self {
+        let config = config.with_default_catalog_and_schema("roapi", "public");
         let rn_config = RuntimeConfig::new();
         let runtime_env = RuntimeEnv::new(rn_config).unwrap();
         let dfctx = SessionContext::with_config_rt(config, Arc::new(runtime_env));

@@ -31,6 +31,7 @@ pub async fn test_api_app(
         addr: AddrConfig {
             http: "localhost:0".to_string().into(),
             postgres: "localhost:0".to_string().into(),
+            flight_sql: "localhost:0".to_string().into(),
         },
         tables,
         reload_interval: Some(Duration::from_secs(1000)),

@@ -13,6 +13,7 @@ use convergence::protocol::{ErrorResponse, FieldDescription, SqlState};
 use convergence::protocol_ext::DataRowBatch;
 use convergence_arrow::table::{record_batch_to_rows, schema_to_field_desc};
 use log::info;
+use snafu::{whatever, Whatever};
 use tokio::net::TcpListener;
 
 use crate::config::Config;
@@ -135,11 +136,14 @@ impl<H: RoapiContext> RunnableServer for PostgresServer<H> {
         self.addr
     }
 
-    async fn run(&self) -> anyhow::Result<()> {
+    async fn run(&self) -> Result<(), Whatever> {
         use convergence::connection::Connection;
 
         loop {
-            let (stream, _) = self.listener.accept().await?;
+            let (stream, _) = whatever!(
+                self.listener.accept().await,
+                "Failed to create postgres TCP listener"
+            );
             let engine = RoapiContextEngine {
                 ctx: self.ctx.clone(),
             };

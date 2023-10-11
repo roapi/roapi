@@ -13,6 +13,7 @@ use std::task::Poll;
 use std::time::Instant;
 use tower_layer::Layer;
 
+#[derive(Clone)]
 pub struct HttpLoggerLayer {}
 
 impl HttpLoggerLayer {
