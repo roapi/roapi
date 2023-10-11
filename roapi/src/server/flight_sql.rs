@@ -177,7 +177,7 @@ impl<H: RoapiContext> RoapiFlightSqlService<H> {
     }
 }
 
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Message)]
 pub struct FetchResults {
     #[prost(string, tag = "1")]
     pub handle: ::prost::alloc::string::String,
