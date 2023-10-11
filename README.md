@@ -2,6 +2,7 @@
 
 ![build](https://github.com/roapi/roapi/workflows/build/badge.svg)
 [![Documentation](https://img.shields.io/badge/-documentation-blue)](https://roapi.github.io/docs/index.html)
+[![discord](https://dcbadge.vercel.app/api/server/t3pjfZkZkZ?compact=true)](https://discord.gg/FchMNYTm7G)
 
 ROAPI automatically spins up read-only APIs for static datasets without
 requiring you to write a single line of code. It builds on top of [Apache
@@ -10,7 +11,7 @@ Arrow](https://github.com/apache/arrow) and
 core of its design can be boiled down to the following:
 
 - [Query frontends](https://roapi.github.io/docs/api/query/index.html) to
-  translate SQL, GraphQL and REST API queries into
+  translate SQL, FlightSQL, GraphQL and REST API queries into
   Datafusion plans.
 - Datafusion for query plan execution.
 - [Data layer](https://roapi.github.io/docs/config/dataset-formats/index.html)
@@ -289,8 +290,8 @@ Query layer:
 - [x] access to nested struct fields by key
 - [ ] column index
 - protocol
-  - [ ] gRPC
   - [x] Postgres
+  - [x] FlightSQL
 - [x] Key value lookup
 
 Response serialization:
@@ -317,7 +318,7 @@ Data layer:
   - [x] JSON
   - [x] NDJSON
   - [x] parquet
-  - [ ] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
+  - [x] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
   - [x] [DeltaLake](https://delta.io/)
 
 Misc:
