@@ -2,7 +2,7 @@
 
 ![build](https://github.com/roapi/roapi/workflows/build/badge.svg)
 [![Documentation](https://img.shields.io/badge/-documentation-blue)](https://roapi.github.io/docs/index.html)
-[![discord](https://dcbadge.vercel.app/api/server/t3pjfZkZkZ?compact=true)](https://discord.gg/FchMNYTm7G)
+[![discord](https://dcbadge.vercel.app/api/server/t3pjfZkZkZ?compact=true&style=flat)](https://discord.gg/FchMNYTm7G)
 
 ROAPI automatically spins up read-only APIs for static datasets without
 requiring you to write a single line of code. It builds on top of [Apache
