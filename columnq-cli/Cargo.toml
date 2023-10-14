@@ -22,7 +22,7 @@ tokio = "1"
 rustyline = { version = "9" }
 env_logger = { version = "0" }
 anyhow = { version = "1" }
-clap = { version = "3", features = ["color"] }
+clap = { version = "4", features = ["color"] }
 dirs = { version = "4" }
 
 [features]

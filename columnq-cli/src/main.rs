@@ -31,13 +31,12 @@ fn config_path() -> anyhow::Result<PathBuf> {
     Ok(home)
 }
 
-fn table_arg() -> clap::Arg<'static> {
+fn table_arg() -> clap::Arg {
     clap::Arg::new("table")
         .long_help("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
-        .takes_value(true)
+        .num_args(1)
         .required(false)
         .number_of_values(1)
-        .multiple_occurrences(true)
         .value_name("[table_name=]uri[,option_key=option_value]")
         .long("table")
         .short('t')
@@ -90,7 +89,7 @@ async fn cmd_console(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let config = SessionConfig::default().with_information_schema(true);
     let mut cq = ColumnQ::new_with_config(config);
 
-    if let Some(tables) = args.values_of("table") {
+    if let Some(tables) = args.get_many::<&str>("table") {
         for v in tables {
             cq.load_table(&parse_table_uri_arg(v)?).await?;
         }
@@ -110,33 +109,33 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let config = SessionConfig::default().with_information_schema(true);
     let mut cq = ColumnQ::new_with_config(config);
 
-    if let Some(tables) = args.values_of("table") {
+    if let Some(tables) = args.get_many::<&str>("table") {
         for v in tables {
             cq.load_table(&parse_table_uri_arg(v)?).await?;
         }
     }
 
-    match args.value_of("SQL") {
+    match args.get_one::<&str>("SQL") {
         Some(query) => match cq.query_sql(query).await {
-            Ok(batches) => match args.value_of("output").unwrap_or("table") {
-                "table" => pretty::print_batches(&batches)?,
-                "json" => {
+            Ok(batches) => match args.get_one::<&str>("output").unwrap_or(&"table") {
+                &"table" => pretty::print_batches(&batches)?,
+                &"json" => {
                     let bytes = encoding::json::record_batches_to_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                "csv" => {
+                &"csv" => {
                     let bytes = encoding::csv::record_batches_to_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                "parquet" => {
+                &"parquet" => {
                     let bytes = encoding::parquet::record_batches_to_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                "arrow" => {
+                &"arrow" => {
                     let bytes = encoding::arrow::record_batches_to_file_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                "arrows" => {
+                &"arrows" => {
                     let bytes = encoding::arrow::record_batches_to_stream_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
@@ -175,18 +174,16 @@ async fn main() -> anyhow::Result<()> {
                         .help("SQL query to execute")
                         .index(1)
                         .required(true)
-                        .takes_value(true)
-                        .number_of_values(1),
+                        .num_args(1),
                     clap::Arg::new("output")
                         .help("Query output format")
                         .long("output")
                         .short('o')
                         .required(false)
-                        .takes_value(true)
-                        .number_of_values(1)
+                        .num_args(1)
                         .default_value("table")
                         // TODO: add yaml
-                        .possible_values(["table", "json", "csv", "parquet", "arrow", "arrows"]),
+                        .value_parser(["table", "json", "csv", "parquet", "arrow", "arrows"]),
                     table_arg(),
                 ]),
         )

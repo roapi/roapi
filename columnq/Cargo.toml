@@ -44,7 +44,7 @@ calamine = "0.19.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
-hyper-rustls = { version = "0.23.2", default-features = false, optional = true }
+hyper-rustls = { version = "0.24.1", default-features = false, optional = true }
 tokio-postgres = { version = "0.7.8", optional = true }
 
 [dependencies.deltalake]
