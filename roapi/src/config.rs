@@ -48,80 +48,80 @@ pub struct Config {
     pub flight_sql_config: Option<FlightSqlConfig>,
 }
 
-fn table_arg() -> clap::Arg<'static> {
+fn table_arg() -> clap::Arg {
     clap::Arg::new("table")
         .help("Table sources to load. Table option can be provided as optional setting as part of the table URI, for example: `blogs=s3://bucket/key,format=delta`. Set table uri to `stdin` if you want to consume table data from stdin as part of a UNIX pipe. If no table_name is provided, a table name will be derived from the filename in URI.")
-        .takes_value(true)
+        .num_args(1)
         .required(false)
         .number_of_values(1)
-        .multiple_occurrences(true)
+        .action(clap::ArgAction::Append)
         .value_name("[table_name=]uri[,option_key=option_value]")
         .long("table")
         .short('t')
 }
 
-fn address_http_arg() -> clap::Arg<'static> {
+fn address_http_arg() -> clap::Arg {
     clap::Arg::new("addr-http")
         .help("HTTP endpoint bind address")
         .required(false)
-        .takes_value(true)
+        .num_args(1)
         .value_name("IP:PORT")
         .long("addr-http")
         .short('a')
 }
 
-fn address_postgres_arg() -> clap::Arg<'static> {
+fn address_postgres_arg() -> clap::Arg {
     clap::Arg::new("addr-postgres")
         .help("Postgres endpoint bind address")
         .required(false)
-        .takes_value(true)
+        .num_args(1)
         .value_name("IP:PORT")
         .long("addr-postgres")
         .short('p')
 }
 
-fn address_flight_sql_arg() -> clap::Arg<'static> {
+fn address_flight_sql_arg() -> clap::Arg {
     clap::Arg::new("addr-flight-sql")
         .help("FlightSQL endpoint bind address")
         .required(false)
-        .takes_value(true)
+        .num_args(1)
         .value_name("IP:PORT")
         .long("addr-flight-sql")
 }
 
-fn read_only_arg() -> clap::Arg<'static> {
+fn read_only_arg() -> clap::Arg {
     clap::Arg::new("disable-read-only")
         .help("Start roapi in read write mode")
         .required(false)
-        .takes_value(false)
+        .num_args(0)
         .long("disable-read-only")
         .short('d')
 }
 
-fn reload_interval_arg() -> clap::Arg<'static> {
+fn reload_interval_arg() -> clap::Arg {
     clap::Arg::new("reload-interval")
         .help("maximum age in seconds before triggering rescan and reload of the tables")
         .required(false)
-        .takes_value(true)
+        .num_args(1)
         .long("reload-interval")
         .short('r')
 }
 
-fn response_format_arg() -> clap::Arg<'static> {
+fn response_format_arg() -> clap::Arg {
     clap::Arg::new("response-format")
         .help("change response serialization: Json (default), Csv, ArrowFile, ArrowStream, Parquet")
         .required(false)
-        .takes_value(true)
+        .num_args(1)
         .value_name("ResponseFormat")
         .long("response-format")
         .short('f')
 }
 
-fn config_arg() -> clap::Arg<'static> {
+fn config_arg() -> clap::Arg {
     clap::Arg::new("config")
         .help("config file path")
         .required(false)
-        .takes_value(true)
+        .num_args(1)
         .long("config")
         .short('c')
 }
@@ -146,7 +146,7 @@ pub fn get_configuration() -> Result<Config, Whatever> {
         ])
         .get_matches();
 
-    let mut config: Config = match matches.value_of("config") {
+    let mut config: Config = match matches.get_one::<String>("config") {
         None => Config::default(),
         Some(config_path) => {
             let config_content = whatever!(
@@ -169,7 +169,7 @@ pub fn get_configuration() -> Result<Config, Whatever> {
         }
     };
 
-    if let Some(tables) = matches.values_of("table") {
+    if let Some(tables) = matches.get_many::<String>("table") {
         for v in tables {
             config.tables.push(whatever!(
                 parse_table_uri_arg(v),
@@ -178,32 +178,30 @@ pub fn get_configuration() -> Result<Config, Whatever> {
         }
     }
 
-    if let Some(addr) = matches.value_of("addr-http") {
-        config.addr.http = Some(addr.to_string());
+    if let Some(addr) = matches.get_one::<String>("addr-http") {
+        config.addr.http = Some(addr.to_owned());
     }
 
-    if let Some(addr) = matches.value_of("addr-postgres") {
-        config.addr.postgres = Some(addr.to_string());
+    if let Some(addr) = matches.get_one::<String>("addr-postgres") {
+        config.addr.postgres = Some(addr.to_owned());
     }
 
-    if let Some(addr) = matches.value_of("addr-flight-sql") {
-        config.addr.flight_sql = Some(addr.to_string());
+    if let Some(addr) = matches.get_one::<String>("addr-flight-sql") {
+        config.addr.flight_sql = Some(addr.to_owned());
     }
 
-    if matches.is_present("disable-read-only") {
+    if matches.contains_id("disable-read-only") {
         config.disable_read_only = true;
     }
 
-    if let Some(reload_interval) = matches.value_of("reload-interval") {
+    if let Some(reload_interval) = matches.get_one::<u64>("reload-interval") {
         if !config.disable_read_only {
             whatever!("Table reload not supported in read-only mode. Try specify the --disable-read-only option.");
         }
-        config.reload_interval = Some(Duration::from_secs(
-            reload_interval.to_string().parse().unwrap(),
-        ));
+        config.reload_interval = Some(Duration::from_secs(reload_interval.to_owned()));
     }
 
-    if let Some(response_format) = matches.value_of("response-format") {
+    if let Some(response_format) = matches.get_one::<String>("response-format") {
         config.response_format = whatever!(
             serde_yaml::from_str(response_format),
             "Failed parse response-format",
