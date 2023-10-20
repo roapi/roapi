@@ -48,7 +48,11 @@ pub async fn to_datafusion_table(
         ListingTableUrl::parse(t.get_uri_str()).with_context(|_| table::ListingTableUriSnafu {
             uri: t.get_uri_str().to_string(),
         })?;
-    let options = ListingOptions::new(Arc::new(CsvFormat::default()));
+    let mut options = ListingOptions::new(Arc::new(CsvFormat::default()));
+    if let Some(partition_cols) = t.datafusion_partition_cols() {
+        options = options.with_table_partition_cols(partition_cols)
+    }
+
     let schemaref = match &t.schema {
         Some(s) => Arc::new(s.into()),
         None => options
@@ -64,6 +68,7 @@ pub async fn to_datafusion_table(
         ListingTable::try_new(table_config).context(table::CreateListingTableSnafu)?,
     ))
 }
+
 pub async fn to_mem_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,

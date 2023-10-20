@@ -188,6 +188,13 @@ impl TableOptionCsv {
         self
     }
 
+    #[inline]
+    #[must_use]
+    pub fn with_use_memory_table(mut self, use_memory: bool) -> Self {
+        self.use_memory_table = use_memory;
+        self
+    }
+
     fn deserialize_delimiter<'de, D>(deserializer: D) -> Result<u8, D::Error>
     where
         D: Deserializer<'de>,
@@ -200,6 +207,7 @@ impl TableOptionCsv {
             )),
         }
     }
+
     #[inline]
     pub fn default_use_memory_table() -> bool {
         true
@@ -393,6 +401,7 @@ pub struct TableSource {
     pub option: Option<TableLoadOption>,
     #[serde(default = "TableSource::default_batch_size")]
     pub batch_size: usize,
+    pub partition_columns: Option<Vec<TableColumn>>,
 }
 
 impl From<KeyValueSource> for TableSource {
@@ -403,6 +412,7 @@ impl From<KeyValueSource> for TableSource {
             schema: kv.schema,
             option: kv.option,
             batch_size: Self::default_batch_size(),
+            partition_columns: None,
         }
     }
 }
@@ -417,7 +427,16 @@ impl TableSource {
             schema: None,
             option,
             batch_size: Self::default_batch_size(),
+            partition_columns: None,
         }
+    }
+
+    pub fn datafusion_partition_cols(&self) -> Option<Vec<(String, arrow::datatypes::DataType)>> {
+        self.partition_columns.as_ref().map(|cols| {
+            cols.iter()
+                .map(|col| (col.name.to_string(), col.data_type.clone()))
+                .collect::<Vec<_>>()
+        })
     }
 
     pub fn new_with_uri(name: impl Into<String>, uri: impl Into<String>) -> Self {
@@ -440,6 +459,13 @@ impl TableSource {
     #[must_use]
     pub fn with_schema(mut self, schema: impl Into<TableSchema>) -> Self {
         self.schema = Some(schema.into());
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn with_partition_columns(mut self, partitions: Vec<TableColumn>) -> Self {
+        self.partition_columns = Some(partitions);
         self
     }
 
