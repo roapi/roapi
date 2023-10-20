@@ -62,7 +62,11 @@ pub async fn to_datafusion_table(
         let table_url = ListingTableUrl::parse(t.get_uri_str())
             .context(ParseUriSnafu)
             .context(table::LoadParquetSnafu)?;
-        let options = ListingOptions::new(Arc::new(ParquetFormat::default()));
+        let mut options = ListingOptions::new(Arc::new(ParquetFormat::default()));
+        if let Some(partition_cols) = t.datafusion_partition_cols() {
+            options = options.with_table_partition_cols(partition_cols)
+        }
+
         let schemaref = match &t.schema {
             Some(s) => Arc::new(s.into()),
             None => options
