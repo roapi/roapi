@@ -8,3 +8,11 @@ split-debuginfo = "unpacked"
 [profile.release]
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+datafusion = { git = "https://github.com/roapi/arrow-datafusion.git", branch = "qp_partition_scan" }
+datafusion-proto = { git = "https://github.com/roapi/arrow-datafusion.git", branch = "qp_partition_scan" }
+datafusion-common = { git = "https://github.com/roapi/arrow-datafusion.git", branch = "qp_partition_scan" }
+datafusion-physical-expr = { git = "https://github.com/roapi/arrow-datafusion.git", branch = "qp_partition_scan" }
+datafusion-optimizer = { git = "https://github.com/roapi/arrow-datafusion.git", branch = "qp_partition_scan" }
+datafusion-expr = { git = "https://github.com/roapi/arrow-datafusion.git", branch = "qp_partition_scan" }
