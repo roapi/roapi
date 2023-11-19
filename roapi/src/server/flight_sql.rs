@@ -240,7 +240,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         info!("getting results for {handle}");
         let result = self.get_result(&handle)?;
         // if we get an empty result, create an empty schema
-        let (schema, batches) = match result.get(0) {
+        let (schema, batches) = match result.first() {
             None => (Arc::new(Schema::empty()), vec![]),
             Some(batch) => (batch.schema(), result.clone()),
         };
@@ -286,7 +286,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
             .map_err(|e| internal_error!("Error executing query", e))?;
 
         // if we get an empty result, create an empty schema
-        let schema = match result.get(0) {
+        let schema = match result.first() {
             None => Schema::empty(),
             Some(batch) => (*batch.schema()).clone(),
         };
@@ -364,7 +364,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
             .map_err(|e| internal_error!("Error executing query", e))?;
 
         // if we get an empty result, create an empty schema
-        let schema = match result.get(0) {
+        let schema = match result.first() {
             None => Schema::empty(),
             Some(batch) => (*batch.schema()).clone(),
         };
@@ -632,7 +632,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         // TODO: ignore SYSTEM TABLE and VIEW
         let table_type = query
             .table_types
-            .get(0)
+            .first()
             .map(|s| s.as_str())
             .unwrap_or_else(|| "table")
             .to_string();

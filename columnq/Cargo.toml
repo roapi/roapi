@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.7.0"
+version = "0.8.0"
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 authors = ["QP Hou <dave2008713@gmail.com>"]
@@ -62,7 +62,7 @@ features = ["default", "dst_arrow"]
 optional = true
 
 [dev-dependencies]
-serde_yaml = "0.8"
+serde_yaml = "0.9"
 toml = "0.7"
 tempfile = "3.3.0"
 pretty_assertions = "*"
