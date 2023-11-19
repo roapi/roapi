@@ -767,6 +767,28 @@ batch_size: 512
     }
 
     #[test]
+    fn deserialize_datetime() {
+        let table_source: TableSource = serde_yaml::from_str(
+            r#"
+name: "ts_table"
+uri: "test_data/a.parquet"
+schema:
+  columns:
+    - name: "ts"
+      data_type: !Timestamp [!Second, null]
+"#,
+        )
+        .unwrap();
+
+        use arrow::datatypes::*;
+
+        assert_eq!(
+            DataType::Timestamp(TimeUnit::Second, None),
+            table_source.schema.unwrap().columns[0].data_type,
+        );
+    }
+
+    #[test]
     fn test_parse_table_uri() {
         let t = parse_table_uri_arg("t=a/b/c").unwrap();
         assert_eq!(TableSource::new("t", "a/b/c"), t);

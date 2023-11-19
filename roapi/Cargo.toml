@@ -1,6 +1,6 @@
 [package]
 name = "roapi"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -34,7 +34,7 @@ log = "0"
 serde = { version = "1", features = ["rc"] }
 serde_json = "1"
 serde_derive = "1"
-serde_yaml = "0.8"
+serde_yaml = "0.9"
 toml = "0.7"
 clap = { version = "4", features = ["color"] }
 thiserror = "1"
