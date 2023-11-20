@@ -7,6 +7,7 @@ use std::sync::Arc;
 use datafusion::datasource::TableProvider;
 
 use datafusion::arrow;
+use datafusion::datasource::listing::{ListingOptions, ListingTableUrl};
 use serde::de::{Deserialize, Deserializer};
 use serde_derive::Deserialize;
 use snafu::prelude::*;
@@ -85,6 +86,10 @@ pub enum Error {
     MissingOption {},
     #[snafu(display("Generic error: {msg}"))]
     Generic { msg: String },
+    #[snafu(display("Failed to infer table schema: {source}"))]
+    InferSchema {
+        source: datafusion::error::DataFusionError,
+    },
 }
 
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -148,14 +153,14 @@ pub struct TableOptionGoogleSpreadsheet {
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TableOptionCsv {
     #[serde(default = "TableOptionCsv::default_has_header")]
-    has_header: bool,
+    pub has_header: bool,
     #[serde(default = "TableOptionCsv::default_delimiter")]
     #[serde(deserialize_with = "TableOptionCsv::deserialize_delimiter")]
-    delimiter: u8,
+    pub delimiter: u8,
     #[serde(default = "TableOptionCsv::default_projection")]
-    projection: Option<Vec<usize>>,
+    pub projection: Option<Vec<usize>>,
     #[serde(default = "TableOptionCsv::default_use_memory_table")]
-    use_memory_table: bool,
+    pub use_memory_table: bool,
 }
 
 impl TableOptionCsv {
@@ -228,7 +233,7 @@ impl Default for TableOptionCsv {
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TableOptionParquet {
     #[serde(default = "TableOptionParquet::default_use_memory_table")]
-    use_memory_table: bool,
+    pub use_memory_table: bool,
 }
 
 impl TableOptionParquet {
@@ -248,13 +253,13 @@ impl Default for TableOptionParquet {
 
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TableOptionXlsx {
-    sheet_name: Option<String>,
+    pub sheet_name: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct TableOptionDelta {
     #[serde(default = "TableOptionDelta::default_use_memory_table")]
-    use_memory_table: bool,
+    pub use_memory_table: bool,
 }
 
 impl TableOptionDelta {
@@ -303,7 +308,7 @@ pub enum TableLoadOption {
 }
 
 impl TableLoadOption {
-    fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreadsheet, Error> {
+    pub fn as_google_spreadsheet(&self) -> Result<&TableOptionGoogleSpreadsheet, Error> {
         match self {
             Self::google_spreadsheet(opt) => Ok(opt),
             _ => Err(Error::ExpectFormatOption {
@@ -312,28 +317,28 @@ impl TableLoadOption {
         }
     }
 
-    fn as_xlsx(&self) -> Result<&TableOptionXlsx, Error> {
+    pub fn as_xlsx(&self) -> Result<&TableOptionXlsx, Error> {
         match self {
             Self::xlsx(opt) => Ok(opt),
             _ => Err(Error::ExpectFormatOption { fmt: "xlsx" }),
         }
     }
 
-    fn as_csv(&self) -> Result<&TableOptionCsv, Error> {
+    pub fn as_csv(&self) -> Result<&TableOptionCsv, Error> {
         match self {
             Self::csv(opt) => Ok(opt),
             _ => Err(Error::ExpectFormatOption { fmt: "csv" }),
         }
     }
 
-    fn as_parquet(&self) -> Result<&TableOptionParquet, Error> {
+    pub fn as_parquet(&self) -> Result<&TableOptionParquet, Error> {
         match self {
             Self::parquet(opt) => Ok(opt),
             _ => Err(Error::ExpectFormatOption { fmt: "parquet" }),
         }
     }
 
-    fn as_delta(&self) -> Result<&TableOptionDelta, Error> {
+    pub fn as_delta(&self) -> Result<&TableOptionDelta, Error> {
         match self {
             Self::delta(opt) => Ok(opt),
             _ => Err(Error::ExpectFormatOption { fmt: "delta" }),
@@ -398,6 +403,7 @@ pub struct TableSource {
     #[serde(flatten)]
     pub io_source: TableIoSource,
     pub schema: Option<TableSchema>,
+    pub schema_from_files: Option<Vec<String>>,
     pub option: Option<TableLoadOption>,
     #[serde(default = "TableSource::default_batch_size")]
     pub batch_size: usize,
@@ -410,6 +416,7 @@ impl From<KeyValueSource> for TableSource {
             name: kv.name,
             io_source: kv.io_source,
             schema: kv.schema,
+            schema_from_files: kv.schema_from_files,
             option: kv.option,
             batch_size: Self::default_batch_size(),
             partition_columns: None,
@@ -425,6 +432,7 @@ impl TableSource {
             name: name.into(),
             io_source,
             schema: None,
+            schema_from_files: None,
             option,
             batch_size: Self::default_batch_size(),
             partition_columns: None,
@@ -466,6 +474,11 @@ impl TableSource {
     #[must_use]
     pub fn with_partition_columns(mut self, partitions: Vec<TableColumn>) -> Self {
         self.partition_columns = Some(partitions);
+        self
+    }
+
+    pub fn with_schema_from_files(mut self, files: Vec<String>) -> Self {
+        self.schema_from_files = Some(files);
         self
     }
 
@@ -554,6 +567,50 @@ impl TableSource {
             }
         })
     }
+}
+
+pub async fn datafusion_get_or_infer_schema(
+    dfctx: &datafusion::execution::context::SessionContext,
+    table_url: &ListingTableUrl,
+    listing_options: &ListingOptions,
+    schema: &Option<TableSchema>,
+    schema_from_files: &Option<Vec<String>>,
+) -> Result<arrow::datatypes::SchemaRef, Error> {
+    Ok(match (schema, schema_from_files) {
+        (Some(s), _) => Arc::new(s.into()),
+        (None, Some(files)) => {
+            if files.is_empty() {
+                return Err(Error::Generic {
+                    msg: "schema_from_files is an empty list".to_string(),
+                });
+            }
+            let mut schemas = vec![];
+            let table_root = Path::new(table_url.as_str());
+            for f in files.iter() {
+                let file_url = ListingTableUrl::parse(
+                    table_root
+                        .join(f.as_str())
+                        .to_str()
+                        .expect("Failed to create file url"),
+                )
+                .context(InferSchemaSnafu)?;
+                schemas.push(
+                    Arc::into_inner(
+                        listing_options
+                            .infer_schema(&dfctx.state(), &file_url)
+                            .await
+                            .context(InferSchemaSnafu)?,
+                    )
+                    .expect("Failed to unwrap schemaref into schema on merge"),
+                );
+            }
+            Arc::new(arrow::datatypes::Schema::try_merge(schemas).context(MergeSchemaSnafu)?)
+        }
+        (None, None) => listing_options
+            .infer_schema(&dfctx.state(), table_url)
+            .await
+            .context(InferSchemaSnafu)?,
+    })
 }
 
 pub async fn load(
@@ -688,6 +745,7 @@ pub struct KeyValueSource {
     #[serde(flatten)]
     pub io_source: TableIoSource,
     pub schema: Option<TableSchema>,
+    pub schema_from_files: Option<Vec<String>>,
     pub option: Option<TableLoadOption>,
 }
 
@@ -704,6 +762,7 @@ impl KeyValueSource {
             value: value.into(),
             io_source: source.into(),
             schema: None,
+            schema_from_files: None,
             option: None,
         }
     }

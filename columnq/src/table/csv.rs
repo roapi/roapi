@@ -11,7 +11,9 @@ use datafusion::datasource::TableProvider;
 use log::debug;
 use snafu::prelude::*;
 
-use crate::table::{self, TableLoadOption, TableOptionCsv, TableSource};
+use crate::table::{
+    self, datafusion_get_or_infer_schema, TableLoadOption, TableOptionCsv, TableSource,
+};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -53,13 +55,14 @@ pub async fn to_datafusion_table(
         options = options.with_table_partition_cols(partition_cols)
     }
 
-    let schemaref = match &t.schema {
-        Some(s) => Arc::new(s.into()),
-        None => options
-            .infer_schema(&dfctx.state(), &table_url)
-            .await
-            .context(table::InferListingTableSchemaSnafu)?,
-    };
+    let schemaref = datafusion_get_or_infer_schema(
+        dfctx,
+        &table_url,
+        &options,
+        &t.schema,
+        &t.schema_from_files,
+    )
+    .await?;
 
     let table_config = ListingTableConfig::new(table_url)
         .with_listing_options(options)
