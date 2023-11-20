@@ -14,7 +14,9 @@ use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use snafu::prelude::*;
 
-use crate::table::{self, TableLoadOption, TableOptionParquet, TableSource};
+use crate::table::{
+    self, datafusion_get_or_infer_schema, TableLoadOption, TableOptionParquet, TableSource,
+};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -36,10 +38,6 @@ pub enum Error {
     EmptyPartition {},
     #[snafu(display("Schema not found"))]
     SchemaNotFound {},
-    #[snafu(display("Failed to infer table schema: {source}"))]
-    InferSchema {
-        source: datafusion::error::DataFusionError,
-    },
     #[snafu(display("Failed to parse table uri: {source}"))]
     ParseUri {
         source: datafusion::error::DataFusionError,
@@ -67,14 +65,14 @@ pub async fn to_datafusion_table(
             options = options.with_table_partition_cols(partition_cols)
         }
 
-        let schemaref = match &t.schema {
-            Some(s) => Arc::new(s.into()),
-            None => options
-                .infer_schema(&dfctx.state(), &table_url)
-                .await
-                .context(InferSchemaSnafu)
-                .context(table::LoadParquetSnafu)?,
-        };
+        let schemaref = datafusion_get_or_infer_schema(
+            dfctx,
+            &table_url,
+            &options,
+            &t.schema,
+            &t.schema_from_files,
+        )
+        .await?;
 
         let table_config = ListingTableConfig::new(table_url)
             .with_listing_options(options)
