@@ -21,11 +21,11 @@ pub mod arrow_ipc_stream;
 pub mod csv;
 pub mod database;
 pub mod delta;
+pub mod excel;
 pub mod google_spreadsheets;
 pub mod json;
 pub mod ndjson;
 pub mod parquet;
-pub mod xlsx;
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -45,8 +45,8 @@ pub enum Error {
     LoadArrowIpcFile { source: arrow_ipc_file::Error },
     #[snafu(display("Failed to load Google Sheet data: {source}"))]
     LoadGoogleSheet { source: google_spreadsheets::Error },
-    #[snafu(display("Failed to load XLSX data: {source}"))]
-    LoadXlsx { source: xlsx::Error },
+    #[snafu(display("Failed to load Excel data: {source}"))]
+    LoadExcel { source: excel::Error },
     #[snafu(display("Failed to load database data: {source}"))]
     LoadDatabase { source: database::Error },
     #[snafu(display("Failed to cast IO source to memory bytes for source: {table_source}"))]
@@ -251,9 +251,14 @@ impl Default for TableOptionParquet {
     }
 }
 
-#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
-pub struct TableOptionXlsx {
+#[derive(Deserialize, Default, Debug, Clone, Eq, PartialEq)]
+pub struct TableOptionExcel {
     pub sheet_name: Option<String>,
+    pub rows_range_start: Option<usize>,
+    pub rows_range_end: Option<usize>,
+    pub columns_range_start: Option<usize>,
+    pub columns_range_end: Option<usize>,
+    pub schema_inference_lines: Option<usize>,
 }
 
 #[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -298,7 +303,10 @@ pub enum TableLoadOption {
     jsonl {},
     parquet(TableOptionParquet),
     google_spreadsheet(TableOptionGoogleSpreadsheet),
-    xlsx(TableOptionXlsx),
+    xls(TableOptionExcel),
+    xlsx(TableOptionExcel),
+    xlsb(TableOptionExcel),
+    ods(TableOptionExcel),
     delta(TableOptionDelta),
     arrow {},
     arrows {},
@@ -317,10 +325,10 @@ impl TableLoadOption {
         }
     }
 
-    pub fn as_xlsx(&self) -> Result<&TableOptionXlsx, Error> {
+    pub fn as_excel(&self) -> Result<&TableOptionExcel, Error> {
         match self {
-            Self::xlsx(opt) => Ok(opt),
-            _ => Err(Error::ExpectFormatOption { fmt: "xlsx" }),
+            Self::xls(opt) | Self::xlsx(opt) | Self::xlsb(opt) | Self::ods(opt) => Ok(opt),
+            _ => Err(Error::ExpectFormatOption { fmt: "excel" }),
         }
     }
 
@@ -353,7 +361,10 @@ impl TableLoadOption {
             Self::csv { .. } => "csv",
             Self::parquet { .. } => "parquet",
             Self::google_spreadsheet(_) | Self::delta { .. } => "",
+            Self::xls { .. } => "xls",
             Self::xlsx { .. } => "xlsx",
+            Self::ods { .. } => "ods",
+            Self::xlsb { .. } => "xlsb",
             Self::arrow { .. } => "arrow",
             Self::arrows { .. } => "arrows",
             Self::mysql { .. } => "mysql",
@@ -537,7 +548,7 @@ impl TableSource {
                 match Path::new(uri).extension().and_then(OsStr::to_str) {
                     Some(ext) => match ext {
                         "csv" | "json" | "ndjson" | "jsonl" | "parquet" | "arrow" | "arrows"
-                        | "xlsx" => ext,
+                        | "xls" | "xlsx" | "xlsb" | "ods" => ext,
                         "sqlite" | "sqlite3" | "db" => "sqlite",
                         _ => {
                             return Err(Error::Extension {
@@ -628,7 +639,10 @@ pub async fn load(
             TableLoadOption::google_spreadsheet(_) => {
                 Arc::new(google_spreadsheets::to_mem_table(t).await?)
             }
-            TableLoadOption::xlsx { .. } => Arc::new(xlsx::to_mem_table(t).await?),
+            TableLoadOption::xlsx { .. }
+            | TableLoadOption::xls { .. }
+            | TableLoadOption::xlsb { .. }
+            | TableLoadOption::ods { .. } => Arc::new(excel::to_mem_table(t).await?),
             TableLoadOption::delta { .. } => delta::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::arrow { .. } => {
                 Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?)
@@ -652,6 +666,7 @@ pub async fn load(
             "json" => Arc::new(json::to_mem_table(t, dfctx).await?),
             "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t, dfctx).await?),
             "parquet" => parquet::to_datafusion_table(t, dfctx).await?,
+            "xls" | "xlsx" | "xlsb" | "ods" => Arc::new(excel::to_mem_table(t).await?),
             "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?),
             "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t, dfctx).await?),
             "mysql" => Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?),

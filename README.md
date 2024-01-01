@@ -318,7 +318,7 @@ Data layer:
   - [x] JSON
   - [x] NDJSON
   - [x] parquet
-  - [x] xls, xlsx, xlsm, ods: https://github.com/tafia/calamine
+  - [x] xls, xlsx, xlsb, ods: https://github.com/tafia/calamine
   - [x] [DeltaLake](https://delta.io/)
 
 Misc:
