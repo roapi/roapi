@@ -39,8 +39,8 @@ pub enum ColumnQError {
     #[error("Error loading Delta table: {0}")]
     LoadDelta(String),
 
-    #[error("Error loading Xlsx table: {0}")]
-    LoadXlsx(String),
+    #[error("Error loading Excel table: {0}")]
+    LoadExcel(String),
 
     #[error("Error loading data from HTTP store: {0}")]
     HttpStore(String),
