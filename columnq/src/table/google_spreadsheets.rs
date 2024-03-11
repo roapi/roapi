@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::convert::TryFrom;
 use std::sync::Arc;
 
 use datafusion::arrow::array::{ArrayRef, BooleanArray, PrimitiveArray, StringArray};

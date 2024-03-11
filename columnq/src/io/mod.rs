@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use snafu::prelude::*;
 
 pub mod fs;

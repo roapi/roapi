@@ -23,12 +23,15 @@ snmalloc-rs = { version = "0.2", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 hyper = { version = "0", features = ["http1", "server", "stream", "runtime"] }
 axum = { version = "0.6", features = ["default", "http2"] }
-tower-http = { version = "0", features = ["cors"] }
+tower = { version = "0" }  # introduced only for tower::layer::util::Stack
+tower-http = { version = "0", features = ["cors", "trace"] }
 tower-layer = "0"
 tracing = "0"
 pin-project-lite = "0"
 async-trait = "0"
 
+constant_time_eq = "0"
+base64 = "0.22"
 env_logger = "0"
 log = "0"
 serde = { version = "1", features = ["rc"] }

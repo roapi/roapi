@@ -4,13 +4,11 @@ use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use snafu::prelude::*;
-use std::convert::{TryFrom, TryInto};
 use std::io::Read;
 use std::sync::Arc;
 
 use crate::io::{self, BlobStoreType};
 use crate::table::{self, TableLoadOption, TableOptionDelta, TableSource};
-use deltalake;
 
 #[derive(Debug, Snafu)]
 pub enum Error {

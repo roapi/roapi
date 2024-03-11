@@ -26,8 +26,16 @@ pub struct FlightSqlTlsConfig {
 }
 
 #[derive(Deserialize, Default, Clone)]
+pub struct BasicAuth {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Deserialize, Default, Clone)]
 pub struct FlightSqlConfig {
     pub tls: Option<FlightSqlTlsConfig>,
+    pub auth_token: Option<String>,
+    pub auth_basic: Option<BasicAuth>,
 }
 
 #[derive(Deserialize, Default, Clone)]

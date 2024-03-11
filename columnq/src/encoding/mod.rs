@@ -1,5 +1,4 @@
 use serde_derive::Deserialize;
-use std::convert::TryFrom;
 
 #[derive(Deserialize, Default, Clone, Copy)]
 pub enum ContentType {

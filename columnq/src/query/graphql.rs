@@ -1,5 +1,3 @@
-use std::convert::TryFrom;
-
 use datafusion::arrow;
 use datafusion::logical_expr::Operator;
 use datafusion::prelude::{binary_expr, Column, Expr};
