@@ -2,7 +2,6 @@ use crate::table::TableSource;
 use futures::TryStreamExt;
 use log::debug;
 use object_store::ObjectStore;
-use percent_encoding;
 use snafu::prelude::*;
 use std::str::FromStr;
 use std::sync::Arc;

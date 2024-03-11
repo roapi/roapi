@@ -22,11 +22,13 @@ use arrow_flight::{
     FlightInfo, HandshakeRequest, HandshakeResponse, IpcMessage, SchemaAsIpc, Ticket,
 };
 use async_trait::async_trait;
+use base64::prelude::*;
 use columnq::arrow_schema::Schema;
 use columnq::datafusion::arrow::ipc::writer::IpcWriteOptions;
 use columnq::datafusion::arrow::record_batch::RecordBatch;
 use columnq::datafusion::logical_expr::LogicalPlan;
 use columnq::datafusion::prelude::{DataFrame, SessionContext};
+use constant_time_eq::constant_time_eq;
 use dashmap::DashMap;
 use futures::{Stream, StreamExt, TryStreamExt};
 use log::{debug, info};
@@ -41,7 +43,7 @@ use tonic::transport::{Certificate, Identity, ServerTlsConfig};
 use tonic::{Request, Response, Status, Streaming};
 use uuid::Uuid;
 
-use crate::config::Config;
+use crate::config::{BasicAuth, Config};
 use crate::context::RoapiContext;
 use crate::server::RunnableServer;
 
@@ -59,8 +61,9 @@ macro_rules! internal_error {
 // see: https://docs.rs/datafusion/latest/datafusion/execution/context/struct.SessionState.html#method.resolve_table_references
 const CATALOG_NAME: &str = "roapi";
 const SCHEMA_NAME: &str = "public";
-const FAKE_TOKEN: &str = "uuid_token";
 const FAKE_UPDATE_RESULT: i64 = 1;
+const AUTH_HEADER: &str = "authorization";
+const BEARER_PREFIX: &str = "Bearer ";
 
 static INSTANCE_SQL_DATA: Lazy<SqlInfoData> = Lazy::new(|| {
     let mut builder = SqlInfoDataBuilder::new();
@@ -108,14 +111,20 @@ pub struct RoapiFlightSqlService<H: RoapiContext> {
     ctx: Arc<H>,
     statements: Arc<DashMap<String, LogicalPlan>>,
     results: Arc<DashMap<String, Vec<RecordBatch>>>,
+    auth_token: Option<String>,
+    auth_basic_encoded: Option<String>,
 }
 
 impl<H: RoapiContext> RoapiFlightSqlService<H> {
-    fn new(ctx: Arc<H>) -> Self {
+    fn new(ctx: Arc<H>, auth_token: Option<String>, auth_basic: Option<BasicAuth>) -> Self {
         Self {
             ctx,
             statements: Arc::new(DashMap::new()),
             results: Arc::new(DashMap::new()),
+            auth_token,
+            auth_basic_encoded: auth_basic.map(|auth| {
+                BASE64_STANDARD_NO_PAD.encode(format!("{}:{}", auth.username, auth.password))
+            }),
         }
     }
 
@@ -125,9 +134,9 @@ impl<H: RoapiContext> RoapiFlightSqlService<H> {
         Ok(self.ctx.get_dfctx().await)
     }
 
-    fn get_result(&self, handle: &str) -> Result<Vec<RecordBatch>, Status> {
-        if let Some(result) = self.results.get(handle) {
-            Ok(result.clone())
+    fn pop_result(&self, handle: &str) -> Result<Vec<RecordBatch>, Status> {
+        if let Some((_, result)) = self.results.remove(handle) {
+            Ok(result)
         } else {
             Err(Status::internal(format!(
                 "Request handle not found: {handle}"
@@ -154,25 +163,26 @@ impl<H: RoapiContext> RoapiFlightSqlService<H> {
     }
 
     fn check_token<T>(&self, req: &Request<T>) -> Result<(), Status> {
-        let metadata = req.metadata();
-        if let Some(auth) = metadata.get("authorization") {
-            let s = auth
+        if let Some(token) = &self.auth_token {
+            let metadata = req.metadata();
+            let auth_header = metadata
+                .get(AUTH_HEADER)
+                .ok_or_else(|| Status::unauthenticated("token not found"))?;
+            let auth_header = auth_header
                 .to_str()
                 .map_err(|e| Status::internal(format!("Error parsing header: {e}")))?;
 
-            let authorization = s.to_string();
-            let bearer = "Bearer ";
-            if !authorization.starts_with(bearer) {
-                Err(Status::internal("Invalid auth header!"))?;
+            if !auth_header.starts_with(BEARER_PREFIX) {
+                Err(Status::internal("invalid auth type"))?;
             }
-            let token = authorization[bearer.len()..].to_string();
-            if token == FAKE_TOKEN {
-                return Ok(());
-            } else {
-                return Err(Status::unauthenticated("invalid token "));
+            if auth_header.len() <= BEARER_PREFIX.len() {
+                return Err(Status::unauthenticated("invalid token"));
+            }
+            let user_token = &auth_header[BEARER_PREFIX.len()..];
+            if !constant_time_eq(token.as_bytes(), user_token.as_bytes()) {
+                return Err(Status::unauthenticated("invalid token"));
             }
         }
-
         Ok(())
     }
 }
@@ -202,18 +212,69 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
 
     async fn do_handshake(
         &self,
-        _request: Request<Streaming<HandshakeRequest>>,
+        request: Request<Streaming<HandshakeRequest>>,
     ) -> Result<
         Response<Pin<Box<dyn Stream<Item = Result<HandshakeResponse, Status>> + Send>>>,
         Status,
     > {
+        let auth_basic_encoded = self
+            .auth_basic_encoded
+            .as_ref()
+            .ok_or_else(|| Status::unauthenticated("no basic auth cred configured"))?;
+
+        let auth = request
+            .metadata()
+            .get(AUTH_HEADER)
+            .ok_or_else(|| Status::unauthenticated("missing authorization header"))?;
+
+        let (auth_type, auth_value) = auth
+            .to_str()
+            .map_err(|_| Status::internal("Failed to parse authorization header"))?
+            .split_once(' ')
+            .ok_or_else(|| Status::invalid_argument("Invalid authorization header"))?;
+
+        if auth_type.to_lowercase() != "basic" {
+            return Err(Status::invalid_argument(
+                "Invalid authorization type, basic auth is the only supported type",
+            ));
+        }
+
+        // auth_value could contain `==` base64 paddings, while auth_basic_encoded doesn't
+        if auth_basic_encoded.len() > auth_value.len()
+            || !constant_time_eq(
+                auth_basic_encoded.as_bytes(),
+                auth_value[..auth_basic_encoded.len()].as_bytes(),
+            )
+        {
+            return Err(Status::unauthenticated("unauthorized"));
+        }
+
+        let token = self
+            .auth_token
+            .as_ref()
+            .ok_or_else(|| Status::internal("token not found"))?;
+        let auth_header = format!("{}{}", BEARER_PREFIX, &token);
         let result = HandshakeResponse {
             protocol_version: 0,
-            payload: FAKE_TOKEN.into(),
+            payload: token.clone().into(),
         };
         let result = Ok(result);
         let output = futures::stream::iter(vec![result]);
-        return Ok(Response::new(Box::pin(output)));
+
+        let mut resp: Response<
+            Pin<Box<dyn Stream<Item = Result<HandshakeResponse, Status>> + Send>>,
+        > = Response::new(Box::pin(output));
+        // Reference implementation returns token in auth header instead of payload, see:
+        // https://github.com/apache/arrow/blob/6a7a6ee308b69c12f46f874cb3d52892e172d7b7/go/arrow/flight/client.go#L335
+        // https://github.com/apache/arrow/blob/6a7a6ee308b69c12f46f874cb3d52892e172d7b7/cpp/src/arrow/flight/transport/grpc/grpc_client.cc#L449C54-L449C65
+        resp.metadata_mut().insert(
+            AUTH_HEADER,
+            auth_header
+                .parse()
+                .map_err(|_| Status::internal("failed to encode auth header"))?,
+        );
+
+        Ok(resp)
     }
 
     async fn do_get_fallback(
@@ -238,7 +299,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         let handle = fr.handle;
 
         info!("getting results for {handle}");
-        let result = self.get_result(&handle)?;
+        let result = self.pop_result(&handle)?;
         // if we get an empty result, create an empty schema
         let (schema, batches) = match result.first() {
             None => (Arc::new(Schema::empty()), vec![]),
@@ -908,19 +969,26 @@ pub struct RoapiFlightSqlServer<H: RoapiContext> {
     pub ctx: Arc<H>,
     pub addr: std::net::SocketAddr,
     pub tls_config: Option<ServerTlsConfig>,
+    pub auth_token: Option<String>,
+    pub auth_basic: Option<BasicAuth>,
 }
+
+type RoapiFlightSqlTonicServer = tonic::transport::server::Router<
+    tower::layer::util::Stack<
+        tower_http::trace::TraceLayer<
+            tower_http::classify::SharedClassifier<tower_http::classify::GrpcErrorsAsFailures>,
+        >,
+        tower_layer::Identity,
+    >,
+>;
 
 fn tonic_server_builder<H: RoapiContext>(
     ctx: Arc<H>,
     tls_config: &Option<ServerTlsConfig>,
-) -> Result<tonic::transport::server::Router<tower_layer::Identity>, Whatever> {
-    let svc = FlightServiceServer::with_interceptor(
-        RoapiFlightSqlService::new(ctx),
-        |req: Request<()>| -> Result<Request<()>, Status> {
-            info!("FlightSQL req: {:?}", &req);
-            Ok(req)
-        },
-    );
+    auth_token: Option<String>,
+    auth_basic: Option<BasicAuth>,
+) -> Result<RoapiFlightSqlTonicServer, Whatever> {
+    let svc = FlightServiceServer::new(RoapiFlightSqlService::new(ctx, auth_token, auth_basic));
     let mut builder = tonic::transport::Server::builder();
     if let Some(cfg) = tls_config {
         builder = whatever!(
@@ -928,8 +996,9 @@ fn tonic_server_builder<H: RoapiContext>(
             "Failed to build TLS config"
         );
     }
-
-    Ok(builder.add_service(svc))
+    Ok(builder
+        .layer(tower_http::trace::TraceLayer::new_for_grpc())
+        .add_service(svc))
 }
 
 impl<H: RoapiContext> RoapiFlightSqlServer<H> {
@@ -962,12 +1031,40 @@ impl<H: RoapiContext> RoapiFlightSqlServer<H> {
             })
             .transpose()?;
 
+        let auth_basic = config
+            .flight_sql_config
+            .as_ref()
+            .and_then(|c| c.auth_basic.as_ref())
+            .cloned();
+        let auth_token = match (
+            config
+                .flight_sql_config
+                .as_ref()
+                .and_then(|c| c.auth_token.as_ref())
+                .cloned(),
+            &auth_basic,
+        ) {
+            (Some(token), None) => Some(token),
+            // when both basic auth and token auth are specified, handshake will return the
+            // specified token
+            (Some(token), Some(_)) => Some(token),
+            // when only basic auth is specified, handshake will return encoded basic auth
+            // value as token to keep it constant
+            (None, Some(BasicAuth { username, password })) => {
+                let token = BASE64_STANDARD_NO_PAD.encode(format!("{}:{}", username, password));
+                Some(token)
+            }
+            (None, None) => None,
+        };
+
         Ok(Self {
             ctx,
             addr: listener
                 .local_addr()
                 .expect("Failed to get address from listener"),
             tls_config,
+            auth_token,
+            auth_basic,
         })
     }
 }
@@ -979,7 +1076,12 @@ impl<H: RoapiContext> RunnableServer for RoapiFlightSqlServer<H> {
     }
 
     async fn run(&self) -> Result<(), Whatever> {
-        let router = tonic_server_builder(self.ctx.clone(), &self.tls_config)?;
+        let router = tonic_server_builder(
+            self.ctx.clone(),
+            &self.tls_config,
+            self.auth_token.clone(),
+            self.auth_basic.clone(),
+        )?;
         let listener = whatever!(
             TcpListener::bind(self.addr).await,
             "Failed to bind address for FlightSQL server",

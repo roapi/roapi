@@ -341,6 +341,10 @@ produced by `columnq` into different formats based on client request.
 
 Building ROAPI with `simd` optimization requires nightly rust toolchain.
 
+### Debug
+
+To log all FlightSQL requests in console, set `RUST_LOG=tower_http=trace`.
+
 ### Build Docker image
 
 ```bash
