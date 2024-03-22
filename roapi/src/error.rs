@@ -134,8 +134,12 @@ impl fmt::Display for ApiErrResp {
 
 impl axum::response::IntoResponse for ApiErrResp {
     fn into_response(self) -> axum::response::Response {
-        let payload = serde_json::to_string(&self).unwrap();
+        let payload = serde_json::to_string(&self).expect("failed to serialize json into string");
         let body = axum::body::boxed(axum::body::Full::from(payload));
+
+        // NOTE: uncomment for axum 0.7 upgrade
+        // let payload = serde_json::to_string(&self).expect("failed to serialize json into string");
+        // let body = axum::body::Body::from(payload);
 
         Response::builder().status(self.code).body(body).unwrap()
     }

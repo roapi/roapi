@@ -10,8 +10,6 @@ pub enum DatabaseLoader {
     feature = "database-postgres"
 ))]
 mod imp {
-    use std::convert::TryFrom;
-
     use crate::table::{self, TableSource};
     use connectorx::prelude::*;
     use log::debug;

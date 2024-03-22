@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.8.0"
+version = "0.8.1"
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 authors = ["QP Hou <dave2008713@gmail.com>"]
@@ -13,10 +13,10 @@ path = "src/lib.rs"
 [dependencies]
 # pulling arrow-schema manually to enable the serde feature.
 # TODO: add serde feature in datafusion to avoid this workaround
-arrow-schema = { version = "46.0.0", features = ["serde"] }
+arrow-schema = { version = "50.0.0", features = ["serde"] }
 
-datafusion = "31"
-object_store = { version = "0.7", features = ["aws", "gcp", "azure"] }
+datafusion = "35"
+object_store = { version = "0", features = ["aws", "gcp", "azure"] }
 percent-encoding = "2.2.0"
 url = "2.2"
 
@@ -24,7 +24,7 @@ log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.37" # version need to be in sync with convergence and datafusion
+sqlparser = "0.41" # version need to be in sync with convergence and datafusion
 yup-oauth2 = { version = "6.2", default-features = false, features = [
     "service_account",
 ] }
@@ -48,15 +48,15 @@ hyper-rustls = { version = "0.24.1", default-features = false, optional = true }
 tokio-postgres = { version = "0.7.8", optional = true }
 
 [dependencies.deltalake]
-version = "0.15"
-git = "https://github.com/delta-io/delta-rs.git"
-rev = "63c14b3716428ff65e01404c6f7e62f341c98f05"
+version = "0.17"
+# git = "https://github.com/delta-io/delta-rs.git"
+# rev = "63c14b3716428ff65e01404c6f7e62f341c98f05"
 features = ["datafusion"]
 default-features = false
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
-rev = "1e642af502d3076476ab4bc8c7e40807059a42fe"
+rev = "7cfe911133afd56a5fa69b24d11f8b5f7283796c"
 version = "0.3.3-alpha.1"
 features = ["default", "dst_arrow"]
 optional = true
@@ -92,7 +92,6 @@ native-tls = [
     "deltalake/azure",
     "yup-oauth2/hyper-tls",
 ]
-simd = ["datafusion/simd"]
 database-sqlite = ["connectorx/src_sqlite"]
 database-mysql = ["connectorx/src_mysql"]
 database-postgres = ["connectorx/src_postgres", "dep:tokio-postgres"]

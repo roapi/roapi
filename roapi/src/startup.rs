@@ -103,6 +103,7 @@ impl Application {
                     &config,
                     default_host,
                 )
+                .await
                 .context(BuildHttpServerSnafu)?;
 
             Ok(Self {
@@ -137,6 +138,7 @@ impl Application {
                 &config,
                 default_host,
             )
+            .await
             .context(BuildHttpServerSnafu)?;
 
             Ok(Self {

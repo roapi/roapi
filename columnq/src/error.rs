@@ -95,6 +95,12 @@ pub enum ColumnQError {
 
     #[error("Invalid URI: {0}")]
     InvalidUri(String),
+
+    #[error("Invalid URL: {source}")]
+    InvalidUrl {
+        #[from]
+        source: url::ParseError,
+    },
 }
 
 impl ColumnQError {

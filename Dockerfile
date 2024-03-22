@@ -1,6 +1,6 @@
-ARG RUST_VER=nightly-bullseye-2023-09-15
+ARG RUST_VER=nightly-bullseye-2024-03-01
 ARG RUSTFLAGS='-C target-cpu=skylake'
-ARG FEATURES="simd,database"
+ARG FEATURES="database"
 
 # Step 0: Install cargo-chef
 FROM instrumentisto/rust:${RUST_VER} AS chef

@@ -116,14 +116,10 @@ where
             let paths = client
                 .clone()
                 .list(Some(&path))
-                .await
-                .context(ListObjectSnafu {
-                    path: path.to_owned(),
-                })?
                 .map_ok(|meta| meta.location)
                 .try_collect::<Vec<object_store::path::Path>>()
                 .await
-                .unwrap();
+                .context(ListObjectSnafu { path })?;
             for f in paths {
                 let reader = partition_key_to_reader(client.clone(), &f).await?;
                 partitions.push(partition_reader(reader).context(TableSnafu)?);

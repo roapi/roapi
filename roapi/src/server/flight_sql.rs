@@ -4,6 +4,7 @@ use arrow_flight::flight_service_server::FlightServiceServer;
 use arrow_flight::sql::metadata::{
     SqlInfoData, SqlInfoDataBuilder, XdbcTypeInfo, XdbcTypeInfoData, XdbcTypeInfoDataBuilder,
 };
+use arrow_flight::sql::server::PeekableFlightDataStream;
 use arrow_flight::sql::{
     server::FlightSqlService, ActionBeginSavepointRequest, ActionBeginSavepointResult,
     ActionBeginTransactionRequest, ActionBeginTransactionResult, ActionCancelQueryRequest,
@@ -18,8 +19,8 @@ use arrow_flight::sql::{
     SqlInfo, TicketStatementQuery, XdbcDataType,
 };
 use arrow_flight::{
-    flight_service_server::FlightService, Action, FlightData, FlightDescriptor, FlightEndpoint,
-    FlightInfo, HandshakeRequest, HandshakeResponse, IpcMessage, SchemaAsIpc, Ticket,
+    flight_service_server::FlightService, Action, FlightDescriptor, FlightEndpoint, FlightInfo,
+    HandshakeRequest, HandshakeResponse, IpcMessage, SchemaAsIpc, Ticket,
 };
 use async_trait::async_trait;
 use base64::prelude::*;
@@ -46,10 +47,6 @@ use uuid::Uuid;
 use crate::config::{BasicAuth, Config};
 use crate::context::RoapiContext;
 use crate::server::RunnableServer;
-
-// FIXME: uncomment for arrow 0.47 upgrade
-// use arrow_flight::sql::server::PeekableFlightDataStream;
-type PeekableFlightDataStream = Streaming<FlightData>;
 
 macro_rules! internal_error {
     ($desc:expr, $err:expr) => {
@@ -973,34 +970,6 @@ pub struct RoapiFlightSqlServer<H: RoapiContext> {
     pub auth_basic: Option<BasicAuth>,
 }
 
-type RoapiFlightSqlTonicServer = tonic::transport::server::Router<
-    tower::layer::util::Stack<
-        tower_http::trace::TraceLayer<
-            tower_http::classify::SharedClassifier<tower_http::classify::GrpcErrorsAsFailures>,
-        >,
-        tower_layer::Identity,
-    >,
->;
-
-fn tonic_server_builder<H: RoapiContext>(
-    ctx: Arc<H>,
-    tls_config: &Option<ServerTlsConfig>,
-    auth_token: Option<String>,
-    auth_basic: Option<BasicAuth>,
-) -> Result<RoapiFlightSqlTonicServer, Whatever> {
-    let svc = FlightServiceServer::new(RoapiFlightSqlService::new(ctx, auth_token, auth_basic));
-    let mut builder = tonic::transport::Server::builder();
-    if let Some(cfg) = tls_config {
-        builder = whatever!(
-            builder.tls_config(cfg.clone()),
-            "Failed to build TLS config"
-        );
-    }
-    Ok(builder
-        .layer(tower_http::trace::TraceLayer::new_for_grpc())
-        .add_service(svc))
-}
-
 impl<H: RoapiContext> RoapiFlightSqlServer<H> {
     pub async fn new(ctx: Arc<H>, config: &Config, default_host: String) -> Result<Self, Error> {
         let default_addr = format!("{default_host}:32010");
@@ -1076,24 +1045,31 @@ impl<H: RoapiContext> RunnableServer for RoapiFlightSqlServer<H> {
     }
 
     async fn run(&self) -> Result<(), Whatever> {
-        let router = tonic_server_builder(
+        let svc = FlightServiceServer::new(RoapiFlightSqlService::new(
             self.ctx.clone(),
-            &self.tls_config,
             self.auth_token.clone(),
             self.auth_basic.clone(),
-        )?;
-        let listener = whatever!(
-            TcpListener::bind(self.addr).await,
-            "Failed to bind address for FlightSQL server",
-        );
+        ));
 
-        let incoming = tonic::transport::server::TcpIncoming::from_listener(listener, true, None)
-            .expect("Failed to create incoming TCP Router");
+        let mut builder = tonic::transport::Server::builder();
+        if let Some(cfg) = &self.tls_config {
+            builder = whatever!(
+                builder.tls_config(cfg.clone()),
+                "Failed to build TLS config"
+            );
+        }
 
-        whatever!(
-            router.serve_with_incoming(incoming).await,
-            "Failed to start FlightSQL server on."
-        );
+        let layer = tower::ServiceBuilder::new()
+            .layer(tower_http::trace::TraceLayer::new_for_grpc())
+            .into_inner();
+
+        let router = builder.layer(layer).add_service(svc);
+
+        router
+            .serve(self.addr)
+            .await
+            .expect("Failed to bind address for FlightSQL server");
+
         Ok(())
     }
 }

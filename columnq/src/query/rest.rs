@@ -172,7 +172,6 @@ mod tests {
     use super::*;
 
     use datafusion::arrow::array::*;
-    use datafusion::execution::context::SessionContext;
     use datafusion::prelude::*;
 
     use crate::test_util::*;

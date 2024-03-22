@@ -1,6 +1,6 @@
 [package]
 name = "roapi"
-version = "0.11.0"
+version = "0.11.1"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -21,11 +21,12 @@ snmalloc-rs = { version = "0.2", optional = true }
 
 # dependencies related to axum
 tokio = { version = "1", features = ["rt-multi-thread"] }
-hyper = { version = "0", features = ["http1", "server", "stream", "runtime"] }
+hyper = { version = "0", features = ["http1", "server"] }
 axum = { version = "0.6", features = ["default", "http2"] }
 tower = { version = "0" }  # introduced only for tower::layer::util::Stack
-tower-http = { version = "0", features = ["cors", "trace"] }
+tower-http = { version = "0.4.4", features = ["cors", "trace"] }
 tower-layer = "0"
+tower-service = "0"
 tracing = "0"
 pin-project-lite = "0"
 async-trait = "0"
@@ -44,8 +45,8 @@ thiserror = "1"
 snafu = "0"
 
 # flight-sql
-arrow-flight = { version = "46", features = ["flight-sql-experimental"] }
-tonic = { version = "0", features = ["tls"] }
+arrow-flight = { version = "50", features = ["flight-sql-experimental"] }
+tonic = { version = "0.10", features = ["tls"] }
 prost = "0"
 futures = "0"
 # TODO: remove once_cell dependency
@@ -53,25 +54,28 @@ once_cell = "*"
 dashmap = "5"
 uuid = "1"
 
-# convergence = "0.13"
-# convergence-arrow = "0.13"
-# patch for datafusion 31
-convergence = { git = "https://github.com/roapi/convergence", rev = "95fe472e429d02f18016a0d03c884a78fa62861e" }
-convergence-arrow = { git = "https://github.com/roapi/convergence", rev = "95fe472e429d02f18016a0d03c884a78fa62861e" }
+[dependencies.convergence]
+version = "0"
+git = "https://github.com/returnString/convergence.git"
+rev = "3d61a5b9bbf9848b075f5b3ae791c90e5380e5e3"
+
+[dependencies.convergence-arrow]
+version = "0"
+git = "https://github.com/returnString/convergence.git"
+rev = "3d61a5b9bbf9848b075f5b3ae791c90e5380e5e3"
 
 [features]
 default = ["rustls", "snmalloc"]
 rustls = ["columnq/rustls"]
 native-tls-vendored = ["columnq/native-tls-vendored"]
 native-tls = ["columnq/native-tls"]
-simd = ["columnq/simd"]
 snmalloc = ["snmalloc-rs"]
 database = ["columnq/database"]
 database-sqlite = ["columnq/database-sqlite"]
 database-mysql = ["columnq/database-mysql"]
 
 [dev-dependencies]
-reqwest = { version = "0.11", default-features = false, features = [
+reqwest = { version = "0", default-features = false, features = [
     "json",
     "rustls-tls",
 ] }
@@ -80,8 +84,8 @@ tokio-postgres = "0.7"
 tower = "*"
 tempfile = "*"
 tokio-stream = { version = "*", features = ["net"] }
-arrow-cast = "*"
-arrow-ipc = "*"  # for flight_sql test
+arrow-cast = "50"
+arrow-ipc = "50"  # for flight_sql test
 
 # TODO: uncomment this when we exclude roapi from root workspace
 # [profile.release]

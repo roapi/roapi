@@ -29,9 +29,10 @@ pub enum Error {
 
 fn json_schema_from_reader<R: Read>(r: R) -> Result<Schema, table::Error> {
     let mut reader = BufReader::new(r);
-    infer_json_schema(&mut reader, None)
+    let (schema, _) = infer_json_schema(&mut reader, None)
         .context(InferSchemaSnafu)
-        .context(table::LoadNdJsonSnafu)
+        .context(table::LoadNdJsonSnafu)?;
+    Ok(schema)
 }
 
 fn decode_json_from_reader<R: Read>(
@@ -93,7 +94,7 @@ mod tests {
     use datafusion::{datasource::TableProvider, prelude::SessionContext};
 
     use super::*;
-    use crate::{table::TableSource, test_util::test_data_path};
+    use crate::test_util::test_data_path;
 
     #[tokio::test]
     async fn load_simple_ndjson_file() {

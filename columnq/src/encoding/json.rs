@@ -25,7 +25,6 @@ mod tests {
 
     use datafusion::arrow::array::*;
     use datafusion::arrow::datatypes::*;
-    use datafusion::arrow::record_batch::*;
     use pretty_assertions::assert_eq;
 
     #[test]

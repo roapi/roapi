@@ -75,6 +75,7 @@ pub async fn to_mem_table(
 mod tests {
     use super::*;
 
+    use datafusion::common::stats::Precision;
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
     use std::fs;
@@ -112,8 +113,9 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(37 * 3));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(37 * 3));
     }
 
     #[tokio::test]
@@ -129,7 +131,8 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(37));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(37));
     }
 }

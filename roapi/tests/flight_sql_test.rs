@@ -2,8 +2,6 @@ mod helpers;
 
 use arrow_cast::pretty::pretty_format_batches;
 use arrow_flight::sql::client::FlightSqlServiceClient;
-use arrow_flight::utils::flight_data_to_batches;
-use arrow_flight::FlightData;
 use arrow_flight::FlightInfo;
 use arrow_ipc::convert::try_schema_from_ipc_buffer;
 use columnq::arrow::datatypes::{DataType, Field};
@@ -42,10 +40,8 @@ async fn flight_info_to_batches(
     flight_info: FlightInfo,
 ) -> Vec<RecordBatch> {
     let ticket = flight_info.endpoint[0].ticket.as_ref().unwrap().clone();
-    let flight_data = client.do_get(ticket).await.unwrap();
-    let flight_data: Vec<FlightData> = flight_data.try_collect().await.unwrap();
-
-    flight_data_to_batches(&flight_data).unwrap()
+    let response = client.do_get(ticket).await.unwrap();
+    response.try_collect().await.unwrap()
 }
 
 async fn spawn_server_for_table(tables: Vec<TableSource>) -> std::net::SocketAddr {

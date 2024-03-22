@@ -7,10 +7,10 @@ use std::sync::Arc;
 
 use columnq::datafusion::dataframe::DataFrame;
 use columnq::datafusion::error::DataFusionError;
-use columnq::sqlparser::ast::Statement;
 use convergence::engine::{Engine, Portal};
 use convergence::protocol::{ErrorResponse, FieldDescription, SqlState};
 use convergence::protocol_ext::DataRowBatch;
+use convergence::sqlparser::ast::Statement;
 use convergence_arrow::table::{record_batch_to_rows, schema_to_field_desc};
 use log::info;
 use snafu::{whatever, Whatever};

@@ -43,7 +43,11 @@ pub async fn to_datafusion_table(
         .option
         .clone()
         .unwrap_or_else(|| TableLoadOption::csv(TableOptionCsv::default()));
-    if opt.as_csv().unwrap().use_memory_table {
+    if opt
+        .as_csv()
+        .expect("Invalid table format option, expect csv")
+        .use_memory_table
+    {
         return to_mem_table(t, dfctx).await;
     }
     let table_url =
@@ -128,7 +132,7 @@ pub async fn to_mem_table(
         t,
         |r| -> Result<Vec<RecordBatch>, table::Error> {
             let mut builder = arrow::csv::reader::ReaderBuilder::new(schema_ref.clone())
-                .has_header(has_header)
+                .with_header(has_header)
                 .with_delimiter(delimiter)
                 .with_batch_size(batch_size);
             if let Some(p) = projection {
@@ -159,11 +163,12 @@ pub async fn to_mem_table(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use datafusion::common::stats::Precision;
     use datafusion::prelude::SessionContext;
     use std::fs;
     use tempfile::Builder;
 
-    use crate::table::{TableIoSource, TableLoadOption};
+    use crate::table::TableIoSource;
     use crate::test_util::*;
 
     #[tokio::test]
@@ -197,8 +202,9 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(37 * 3));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(37 * 3));
     }
 
     #[tokio::test]
@@ -222,7 +228,8 @@ c1,c2,c3
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(3));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(3));
     }
 }
