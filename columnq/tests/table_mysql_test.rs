@@ -20,8 +20,9 @@ mod mysql {
                 .scan(&ctx.state(), None, &[], None)
                 .await
                 .unwrap()
-                .statistics();
-            assert!(stats.num_rows.is_some());
+                .statistics()
+                .unwrap();
+            assert!(stats.num_rows.get_value().is_some());
         }
     }
 }

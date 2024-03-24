@@ -888,6 +888,8 @@ schema:
     #[cfg(feature = "database-sqlite")]
     #[tokio::test]
     async fn test_load_sqlite_table() {
+        use datafusion::common::stats::Precision;
+
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite/sample.db");
         let ctx = datafusion::prelude::SessionContext::new();
         let table = load(&t, &ctx).await.unwrap();
@@ -895,13 +897,16 @@ schema:
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(37));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(37));
     }
 
     #[cfg(feature = "database-sqlite")]
     #[tokio::test]
     async fn test_load_sqlite_table_with_config() {
+        use datafusion::common::stats::Precision;
+
         for ext in vec!["db", "sqlite", "sqlite3"] {
             let t: TableSource = serde_yaml::from_str(&format!(
                 r#"
@@ -917,8 +922,9 @@ uri: "sqlite://../test_data/sqlite/sample.{}"
                 .scan(&ctx.state(), None, &[], None)
                 .await
                 .unwrap()
-                .statistics();
-            assert_eq!(stats.num_rows, Some(37));
+                .statistics()
+                .unwrap();
+            assert_eq!(stats.num_rows, Precision::Exact(37));
         }
     }
 }

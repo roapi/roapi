@@ -42,6 +42,10 @@ pub enum Error {
     OpenTable {
         source: deltalake::errors::DeltaTableError,
     },
+    #[snafu(display("Failed to load table: {source}"))]
+    LoadTable {
+        source: deltalake::errors::DeltaTableError,
+    },
 }
 
 pub async fn to_datafusion_table(
@@ -118,7 +122,12 @@ pub async fn to_mem_table(
     batch_size: usize,
     dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
-    if delta_table.get_files().is_empty() {
+    let paths = delta_table
+        .get_file_uris()
+        .context(LoadTableSnafu)
+        .context(table::LoadDeltaSnafu)?
+        .collect::<Vec<String>>();
+    if paths.is_empty() {
         return Err(Error::EmptyTable {}).context(table::LoadDeltaSnafu);
     }
 
@@ -127,7 +136,6 @@ pub async fn to_mem_table(
         .context(GetSchemaSnafu)
         .context(table::LoadDeltaSnafu)?;
 
-    let paths = delta_table.get_file_uris().collect::<Vec<String>>();
     let path_iter = paths.iter().map(|s| s.as_ref());
 
     let partitions: Vec<Vec<RecordBatch>> = match blob_type {
@@ -175,6 +183,7 @@ pub async fn to_mem_table(
 mod tests {
 
     use super::*;
+    use datafusion::common::stats::Precision;
     use datafusion::datasource::MemTable;
     use datafusion::physical_plan::Statistics;
     use datafusion::prelude::SessionContext;
@@ -201,7 +210,8 @@ mod tests {
             t.scan(&ctx.state(), None, &[], None)
                 .await
                 .unwrap()
-                .statistics(),
+                .statistics()
+                .unwrap(),
         );
 
         if t.as_any().downcast_ref::<MemTable>().is_none() {
@@ -232,10 +242,10 @@ mod tests {
     }
 
     fn validate_statistics(stats: Statistics) {
-        assert_eq!(stats.num_rows, Some(500));
-        let column_stats = stats.column_statistics.unwrap();
-        assert_eq!(column_stats[0].null_count, Some(245));
-        assert_eq!(column_stats[1].null_count, Some(373));
-        assert_eq!(column_stats[2].null_count, Some(237));
+        assert_eq!(stats.num_rows, Precision::Exact(500));
+        let column_stats = stats.column_statistics;
+        assert_eq!(column_stats[0].null_count, Precision::Exact(245));
+        assert_eq!(column_stats[1].null_count, Precision::Exact(373));
+        assert_eq!(column_stats[2].null_count, Precision::Exact(237));
     }
 }

@@ -157,8 +157,8 @@ mod tests {
     use std::fs;
     use tempfile::Builder;
 
-    use crate::table::TableLoadOption;
     use crate::test_util::*;
+    use datafusion::common::stats::Precision;
     use datafusion::prelude::SessionContext;
 
     #[tokio::test]
@@ -181,12 +181,13 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(500));
-        let stats = stats.column_statistics.unwrap();
-        assert_eq!(stats[0].null_count, Some(245));
-        assert_eq!(stats[1].null_count, Some(373));
-        assert_eq!(stats[2].null_count, Some(237));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(500));
+        let stats = stats.column_statistics;
+        assert_eq!(stats[0].null_count, Precision::Exact(245));
+        assert_eq!(stats[1].null_count, Precision::Exact(373));
+        assert_eq!(stats[2].null_count, Precision::Exact(237));
 
         match t.as_any().downcast_ref::<ListingTable>() {
             Some(_) => {}
@@ -208,8 +209,9 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(500));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(500));
     }
 
     #[tokio::test]
@@ -238,7 +240,8 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(1500));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(1500));
     }
 }

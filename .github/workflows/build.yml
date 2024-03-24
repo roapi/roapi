@@ -8,7 +8,7 @@ on:
 
 env:
   # NOTE: the version is also defined in roapi_http_release.yml, columnq_cli_release.yml and Dockerfile
-  RUST_TC_NIGHTLY_VER: "2023-09-15"
+  RUST_TC_NIGHTLY_VER: "2024-03-01"
 
 jobs:
   build:
@@ -17,6 +17,7 @@ jobs:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v2
+    - uses: rui314/setup-mold@v1
     - uses: actions/cache@v2
       with:
         path: |
@@ -40,43 +41,9 @@ jobs:
     - name: Format
       run: cargo fmt --check
     - name: Build
-      run: cargo build
+      run: mold -run cargo build
     - name: Run tests
-      run: |
-        cargo test
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
-
-  simd_test:
-    runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-C target-cpu=skylake"
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: simd-3-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          simd-3-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          simd-3-${{ runner.os }}-cargo-
-    - name: Install nightly rust
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: default
-        # toolchain: nightly
-        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
-        override: true
-    - name: Run tests
-      run: |
-        cargo test --features simd
+      run: mold -run cargo test
     - name: Trim cache
       run: |
         which cargo-cache || cargo install cargo-cache
@@ -87,36 +54,36 @@ jobs:
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          restore-keys: |
-            database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-            database-1-${{ runner.os }}-cargo-
-      - name: Install nightly rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: default
-          toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
-          override: true
-      - name: Check
-        run: cargo clippy --features database
-      - name: Build
-        run: cargo build --features database
-      - name: Run tests
-        run: |
-          cargo test --features database
-      - name: Trim cache
-        run: |
-          which cargo-cache || cargo install cargo-cache
-          cargo cache trim -l 1G
+    - uses: actions/checkout@v2
+    - uses: rui314/setup-mold@v1
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+        restore-keys: |
+          database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          database-1-${{ runner.os }}-cargo-
+    - name: Install nightly rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: default
+        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        override: true
+    - name: Check
+      run: cargo clippy --features database
+    - name: Build
+      run: mold -run cargo build --features database
+    - name: Run tests
+      run: mold -run cargo test --features database
+    - name: Trim cache
+      run: |
+        which cargo-cache || cargo install cargo-cache
+        cargo cache trim -l 1G
 
   object_store_memory_test:
     runs-on: ubuntu-latest
@@ -124,6 +91,7 @@ jobs:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v2
+    - uses: rui314/setup-mold@v1
     - uses: actions/cache@v2
       with:
         path: |
@@ -171,8 +139,8 @@ jobs:
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
         command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
-        build: cargo build
-        start: cargo run --bin roapi -- -c test_end_to_end/test_object_store_memory.yml
+        build: mold -run cargo build
+        start: mold -run cargo run --bin roapi -- -c test_end_to_end/test_object_store_memory.yml
         wait-on: "http://127.0.0.1:8000/api/schema"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
         # 10 minutes = 600 seconds
@@ -184,6 +152,7 @@ jobs:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v2
+    - uses: rui314/setup-mold@v1
     - uses: actions/cache@v2
       with:
         path: |
@@ -231,8 +200,8 @@ jobs:
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
         command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
-        build: cargo build
-        start: cargo run --bin roapi -- -c test_end_to_end/test_object_store_direct.yml
+        build: mold -run cargo build
+        start: mold -run cargo run --bin roapi -- -c test_end_to_end/test_object_store_direct.yml
         wait-on: "http://127.0.0.1:8000/api/schema"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
         # 10 minutes = 600 seconds

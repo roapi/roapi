@@ -383,9 +383,10 @@ pub async fn to_mem_table(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arrow::array::{BooleanArray, Float64Array, Int64Array, StringArray};
+    use crate::arrow::array::{Float64Array, Int64Array};
     use crate::table::{TableColumn, TableIoSource};
     use crate::test_util::*;
+    use datafusion::common::stats::Precision;
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
 
@@ -630,8 +631,9 @@ sheet_name = "uk_cities_with_headers"
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(37));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(37));
     }
 
     #[tokio::test]
@@ -655,8 +657,9 @@ option:
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.num_rows, Some(37));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.num_rows, Precision::Exact(37));
     }
 
     #[tokio::test]
@@ -684,9 +687,10 @@ option:
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics();
-        assert_eq!(stats.column_statistics.unwrap().len(), 6);
-        assert_eq!(stats.num_rows, Some(3));
+            .statistics()
+            .unwrap();
+        assert_eq!(stats.column_statistics.len(), 6);
+        assert_eq!(stats.num_rows, Precision::Exact(3));
     }
 
     #[test]

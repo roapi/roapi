@@ -5,6 +5,9 @@ resolver = "2"
 [profile.dev]
 split-debuginfo = "unpacked"
 
+[profile.test]
+split-debuginfo = "unpacked"
+
 [profile.release]
 lto = true
 codegen-units = 1

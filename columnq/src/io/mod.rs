@@ -63,7 +63,6 @@ impl TryFrom<&str> for BlobStoreType {
 #[cfg(test)]
 mod tests {
     use crate::io::BlobStoreType;
-    use std::convert::TryFrom;
     use uriparse::*;
 
     #[test]

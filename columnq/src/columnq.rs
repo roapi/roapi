@@ -40,10 +40,17 @@ impl ColumnQ {
     }
 
     pub fn new_with_config(config: SessionConfig) -> Self {
-        let config = config.with_default_catalog_and_schema("roapi", "public");
+        let config = config
+            .with_default_catalog_and_schema("roapi", "public")
+            // TODO: fix bug in datafusion to support partitioned table when
+            // listing_table_ignore_subdirectory is set to false
+            .set_bool(
+                "datafusion.execution.listing_table_ignore_subdirectory",
+                false,
+            );
         let rn_config = RuntimeConfig::new();
         let runtime_env = RuntimeEnv::new(rn_config).unwrap();
-        let dfctx = SessionContext::with_config_rt(config, Arc::new(runtime_env));
+        let dfctx = SessionContext::new_with_config_rt(config, Arc::new(runtime_env));
 
         let schema_map = HashMap::<String, arrow::datatypes::SchemaRef>::new();
         Self {
@@ -56,8 +63,31 @@ impl ColumnQ {
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
         match &t.io_source {
             TableIoSource::Uri(uri_str) => {
-                if let Ok(url) = Url::parse(uri_str) {
-                    let _ = self.register_object_storage(&url);
+                match Url::parse(uri_str) {
+                    Err(url::ParseError::RelativeUrlWithoutBase) => {
+                        // assume file path for relative url without scheme or base
+                        // no need to register object store in this case
+                    }
+                    Ok(url) => {
+                        match self.register_object_storage(&url) {
+                            Ok(_)
+                            | Err(ColumnQError::IoError {
+                                source: crate::io::Error::InvalidUriScheme { .. },
+                            }) => {
+                                // invalid Uri scheme can be caused by non objectstore related
+                                // uris, for example sqlite://, so safe to ignore for now.
+                                //
+                                // TODO: ideally, we still propagate error if it's an invalid
+                                // objectstore uri
+                            }
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        return Err(ColumnQError::from(e));
+                    }
                 }
             }
             TableIoSource::Memory(_) => {}

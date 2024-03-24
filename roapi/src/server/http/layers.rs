@@ -2,7 +2,6 @@ use axum::http::uri::Uri;
 use axum::http::Method;
 use axum::http::Request;
 use axum::http::Response;
-use hyper::service::Service;
 use log::error;
 use log::info;
 use pin_project_lite::pin_project;
@@ -12,6 +11,7 @@ use std::task::Context;
 use std::task::Poll;
 use std::time::Instant;
 use tower_layer::Layer;
+use tower_service::Service;
 
 #[derive(Clone)]
 pub struct HttpLoggerLayer {}

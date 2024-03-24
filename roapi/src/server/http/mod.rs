@@ -20,14 +20,18 @@ pub enum Error {
     BindTcp { source: std::io::Error },
 }
 
+// NOTE: uncomment for axum 0.7 upgrade
+// pub type HttpApiServe = axum::serve::Serve<axum::Router, axum::Router>;
 pub type HttpApiServer =
     axum::Server<hyper::server::conn::AddrIncoming, axum::routing::IntoMakeService<axum::Router>>;
 
-pub fn build_http_server<H: RoapiContext>(
+pub async fn build_http_server<H: RoapiContext>(
     ctx_ext: Arc<H>,
     tables: Arc<Mutex<HashMap<String, TableSource>>>,
     config: &Config,
     default_host: String,
+    // NOTE: uncomment for axum 0.7 upgrade
+    // ) -> Result<(HttpApiServe, std::net::SocketAddr), Error> {
 ) -> Result<(HttpApiServer, std::net::SocketAddr), Error> {
     let default_http_port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let default_http_addr = [default_host, default_http_port].join(":");
@@ -41,6 +45,8 @@ pub fn build_http_server<H: RoapiContext>(
     let mut app = routes.layer(Extension(ctx_ext));
 
     let cors = tower_http::cors::CorsLayer::new()
+        // NOTE: uncomment for axum 0.7 upgrade
+        // .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
         .allow_origin(tower_http::cors::Any)
         .allow_credentials(false);
@@ -52,12 +58,19 @@ pub fn build_http_server<H: RoapiContext>(
         app = app.layer(layers::HttpLoggerLayer::new());
     }
 
+    // NOTE: uncomment for axum 0.7 upgrade
+    // let listener = tokio::net::TcpListener::bind(http_addr)
+    //     .await
+    //     .context(BindTcpSnafu)?;
     let listener = TcpListener::bind(http_addr).context(BindTcpSnafu)?;
     let addr = listener
         .local_addr()
         .expect("Failed to get address from listener");
+
+    // NOTE: uncomment for axum 0.7 upgrade
+    // let serve = axum::serve(listener, app);
+    // Ok((serve, addr))
     let http_server = axum::Server::from_tcp(listener).unwrap();
     let http_server = http_server.serve(app.into_make_service());
-
     Ok((http_server, addr))
 }

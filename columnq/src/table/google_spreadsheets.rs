@@ -371,7 +371,7 @@ pub async fn to_mem_table(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use datafusion::arrow::array::{BooleanArray, Int64Array};
+    use datafusion::arrow::array::Int64Array;
 
     fn row(raw: &[&str]) -> Vec<String> {
         raw.iter().map(|s| s.to_string()).collect()
