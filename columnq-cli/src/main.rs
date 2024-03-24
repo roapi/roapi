@@ -37,6 +37,7 @@ fn table_arg() -> clap::Arg {
         .num_args(1)
         .required(false)
         .number_of_values(1)
+        .action(clap::ArgAction::Append)
         .value_name("[table_name=]uri[,option_key=option_value]")
         .long("table")
         .short('t')
