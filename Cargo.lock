@@ -1065,7 +1065,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "columnq"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "arrow-schema",
  "bytes",
@@ -1090,7 +1090,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
- "snafu 0.8.2",
+ "snafu",
  "sqlparser 0.41.0",
  "tempfile",
  "thiserror",
@@ -1405,8 +1405,7 @@ dependencies = [
 [[package]]
 name = "datafusion"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4328f5467f76d890fe3f924362dbc3a838c6a733f762b32d87f9e0b7bef5fb49"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -1453,8 +1452,7 @@ dependencies = [
 [[package]]
 name = "datafusion-common"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d29a7752143b446db4a2cccd9a6517293c6b97e8c39e520ca43ccd07135a4f7e"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -1473,8 +1471,7 @@ dependencies = [
 [[package]]
 name = "datafusion-execution"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d447650af16e138c31237f53ddaef6dd4f92f0e2d3f2f35d190e16c214ca496"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "arrow",
  "chrono",
@@ -1494,8 +1491,7 @@ dependencies = [
 [[package]]
 name = "datafusion-expr"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8d19598e48a498850fb79f97a9719b1f95e7deb64a7a06f93f313e8fa1d524b"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -1510,8 +1506,7 @@ dependencies = [
 [[package]]
 name = "datafusion-optimizer"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b7feb0391f1fc75575acb95b74bfd276903dc37a5409fcebe160bc7ddff2010"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "arrow",
  "async-trait",
@@ -1528,8 +1523,7 @@ dependencies = [
 [[package]]
 name = "datafusion-physical-expr"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e911bca609c89a54e8f014777449d8290327414d3e10c57a3e3c2122e38878d0"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -1562,8 +1556,7 @@ dependencies = [
 [[package]]
 name = "datafusion-physical-plan"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e96b546b8a02e9c2ab35ac6420d511f12a4701950c1eb2e568c122b4fefb0be3"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "ahash 0.8.11",
  "arrow",
@@ -1593,8 +1586,7 @@ dependencies = [
 [[package]]
 name = "datafusion-proto"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5742f993d1812d6bb3cdc4ce2a0aa99e10f6dc0daa11dd69b0ff57f2d8e7518c"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "arrow",
  "chrono",
@@ -1608,8 +1600,7 @@ dependencies = [
 [[package]]
 name = "datafusion-sql"
 version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d18d36f260bbbd63aafdb55339213a23d540d3419810575850ef0a798a6b768"
+source = "git+https://github.com/roapi/arrow-datafusion.git?rev=3873cc92cec9e0653362f1777035cd18a2e738b3#3873cc92cec9e0653362f1777035cd18a2e738b3"
 dependencies = [
  "arrow",
  "arrow-schema",
@@ -3235,7 +3226,7 @@ dependencies = [
  "rustls-pemfile 2.1.1",
  "serde",
  "serde_json",
- "snafu 0.7.5",
+ "snafu",
  "tokio",
  "tracing",
  "url",
@@ -4026,7 +4017,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "arrow-cast",
  "arrow-flight",
@@ -4053,7 +4044,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
- "snafu 0.8.2",
+ "snafu",
  "snmalloc-rs",
  "tempfile",
  "thiserror",
@@ -4668,16 +4659,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4de37ad025c587a29e8f3f5605c00f70b98715ef90b9061a815b9e59e9042d6"
 dependencies = [
  "doc-comment",
- "snafu-derive 0.7.5",
-]
-
-[[package]]
-name = "snafu"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75976f4748ab44f6e5332102be424e7c2dc18daeaf7e725f2040c3ebb133512e"
-dependencies = [
- "snafu-derive 0.8.2",
+ "snafu-derive",
 ]
 
 [[package]]
@@ -4690,18 +4672,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "snafu-derive"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4b19911debfb8c2fb1107bc6cb2d61868aaf53a988449213959bb1b5b1ed95f"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.53",
 ]
 
 [[package]]
