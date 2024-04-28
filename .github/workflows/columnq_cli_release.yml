@@ -52,7 +52,6 @@ jobs:
       - name: Build wheels - x86_64
         run: |
           maturin build -m columnq-cli/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --cargo-extra-args="--features=database-sqlite"
-          pip install columnq-cli --no-index --find-links dist --force-reinstall
       - name: Build wheels - universal2
         env:
           DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
