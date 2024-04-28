@@ -1065,7 +1065,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "columnq"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "arrow-schema",
  "bytes",
@@ -1090,7 +1090,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
- "snafu 0.8.2",
+ "snafu",
  "sqlparser 0.41.0",
  "tempfile",
  "thiserror",
@@ -3226,7 +3226,7 @@ dependencies = [
  "rustls-pemfile 2.1.1",
  "serde",
  "serde_json",
- "snafu 0.7.5",
+ "snafu",
  "tokio",
  "tracing",
  "url",
@@ -4017,7 +4017,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "arrow-cast",
  "arrow-flight",
@@ -4044,7 +4044,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
- "snafu 0.8.2",
+ "snafu",
  "snmalloc-rs",
  "tempfile",
  "thiserror",
@@ -4659,16 +4659,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4de37ad025c587a29e8f3f5605c00f70b98715ef90b9061a815b9e59e9042d6"
 dependencies = [
  "doc-comment",
- "snafu-derive 0.7.5",
-]
-
-[[package]]
-name = "snafu"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75976f4748ab44f6e5332102be424e7c2dc18daeaf7e725f2040c3ebb133512e"
-dependencies = [
- "snafu-derive 0.8.2",
+ "snafu-derive",
 ]
 
 [[package]]
@@ -4681,18 +4672,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "snafu-derive"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4b19911debfb8c2fb1107bc6cb2d61868aaf53a988449213959bb1b5b1ed95f"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.53",
 ]
 
 [[package]]
