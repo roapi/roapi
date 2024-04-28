@@ -43,10 +43,10 @@ jobs:
         with:
           python-version: "3.10"
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
-          target: aarch64-apple-darwin
+          target: aarch64-apple-darwin,x86_64-apple-darwin
           profile: minimal
           default: true
       - name: Install maturin
@@ -98,7 +98,7 @@ jobs:
           python-version: "3.10"
           architecture: ${{ matrix.platform.python-architecture }}
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
           target: ${{ matrix.platform.target }}
