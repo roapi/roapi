@@ -3,7 +3,7 @@ name: roapi release
 on:
   push:
     paths:
-      - '.github/workflows/roapi_http_release.yml'
+      - '.github/workflows/roapi_release.yml'
       - 'columnq/**'
       - 'roapi/**'
       - 'Cargo.lock'
