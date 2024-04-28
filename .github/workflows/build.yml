@@ -31,7 +31,7 @@ jobs:
           ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           ${{ runner.os }}-cargo-
     - name: Install minimal stable with clippy and rustfmt
-      uses: actions-rs/toolchain@v1
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
         toolchain: stable
@@ -69,10 +69,11 @@ jobs:
           database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           database-1-${{ runner.os }}-cargo-
     - name: Install nightly rust
-      uses: actions-rs/toolchain@v1
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        components: clippy
         override: true
     - name: Check
       run: cargo clippy --features database
@@ -105,7 +106,7 @@ jobs:
           s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           s3-1-${{ runner.os }}-cargo-
     - name: Install nightly rust
-      uses: actions-rs/toolchain@v1
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
         # toolchain: nightly
@@ -166,7 +167,7 @@ jobs:
           s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           s3-1-${{ runner.os }}-cargo-
     - name: Install nightly rust
-      uses: actions-rs/toolchain@v1
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
         # toolchain: nightly
@@ -213,7 +214,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install minimal stable with clippy and rustfmt
-      uses: actions-rs/toolchain@v1
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
         toolchain: stable
@@ -244,7 +245,7 @@ jobs:
           mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           mac-1-${{ runner.os }}-cargo-
     - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
         target: aarch64-apple-darwin
