@@ -37,9 +37,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.6
+          python-version: 3.10
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -92,9 +92,9 @@ jobs:
             features: "database-sqlite"
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.6
+          python-version: 3.10
           architecture: ${{ matrix.platform.python-architecture }}
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -231,9 +231,9 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: wheels
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: 3.10
       - name: Publish to PyPi
         env:
           TWINE_USERNAME: __token__
