@@ -1065,7 +1065,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "columnq"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "arrow-schema",
  "bytes",
@@ -1104,7 +1104,7 @@ dependencies = [
 
 [[package]]
 name = "columnq-cli"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -4016,7 +4016,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "arrow-cast",
  "arrow-flight",
