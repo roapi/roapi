@@ -23,4 +23,4 @@ datafusion-expr = { git = "https://github.com/roapi/arrow-datafusion.git", rev =
 datafusion-physical-expr = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "4c4a77fb604bd1d74093da41b8b40f49549e8f84" }
 datafusion-physical-plan = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "4c4a77fb604bd1d74093da41b8b40f49549e8f84" }
 datafusion-sql = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "4c4a77fb604bd1d74093da41b8b40f49549e8f84" }
-# object_store = { path = "/home/houqp/Documents/code/delta/arrow-rs/object_store" }
+object_store = { git = "https://github.com/roapi/arrow-rs.git", rev = "ad6ff7796bf0b0c0a8cade48dfcad06faf35080c" }
