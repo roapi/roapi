@@ -8,6 +8,7 @@ use crate::context::RoapiContext;
 
 pub fn register_app_routes<H: RoapiContext>() -> Router {
     let mut router = Router::new()
+        .route("/health", get(api::health::health))
         .route("/api/tables/:table_name", get(api::rest::get_table::<H>))
         .route("/api/sql", post(api::sql::post::<H>))
         .route("/api/kv/:kv_name/:key", get(api::kv::get::<H>))
