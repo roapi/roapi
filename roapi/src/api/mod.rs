@@ -57,6 +57,7 @@ pub fn encode_record_batches(
 }
 
 pub mod graphql;
+pub mod health;
 pub mod kv;
 pub mod register;
 pub mod rest;

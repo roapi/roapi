@@ -203,7 +203,7 @@ jobs:
         command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
         build: mold -run cargo build
         start: mold -run cargo run --bin roapi -- -c test_end_to_end/test_object_store_direct.yml
-        wait-on: "http://127.0.0.1:8000/api/schema"
+        wait-on: "http://127.0.0.1:8000/health"
         # By default, wait-on will retry for 60 seconds. You can pass a custom timeout in seconds using wait-on-timeout.
         # 10 minutes = 600 seconds
         wait-on-timeout: 600
