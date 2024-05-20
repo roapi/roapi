@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 columnq = { path = "../columnq", version = "0", default-features = false }
 # for datafusion optimization
-snmalloc-rs = { version = "0.2", optional = true }
+snmalloc-rs = { version = "0.3", optional = true }
 
 serde_json = "*"
 log = "0"
