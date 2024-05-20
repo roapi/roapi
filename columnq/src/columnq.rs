@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::Once;
 
 use datafusion::arrow;
 use datafusion::arrow::array::as_string_array;
@@ -24,6 +25,8 @@ use crate::query;
 use crate::table::TableIoSource;
 use crate::table::{self, KeyValueSource, TableSource};
 
+static START: Once = Once::new();
+
 pub struct ColumnQ {
     pub dfctx: SessionContext,
     schema_map: HashMap<String, arrow::datatypes::SchemaRef>,
@@ -40,6 +43,12 @@ impl ColumnQ {
     }
 
     pub fn new_with_config(config: SessionConfig) -> Self {
+        START.call_once(|| {
+            deltalake::aws::register_handlers(None);
+            deltalake::azure::register_handlers(None);
+            deltalake::gcp::register_handlers(None);
+        });
+
         let config = config
             .with_default_catalog_and_schema("roapi", "public")
             // TODO: fix bug in datafusion to support partitioned table when
