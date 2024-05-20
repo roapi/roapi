@@ -4,7 +4,7 @@ use roapi::config::get_configuration;
 use roapi::startup::Application;
 use snafu::{whatever, Whatever};
 
-#[cfg(snmalloc)]
+#[cfg(feature = "snmalloc")]
 #[global_allocator]
 static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
 
