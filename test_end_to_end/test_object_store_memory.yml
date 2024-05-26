@@ -19,6 +19,21 @@ tables:
     option:
       format: "parquet"
       use_memory_table: true
+  - name: "s3_partitioned"
+    uri: "s3://test-data/partitioned_blogs/"
+    partition_columns:
+      - name: year
+        data_type: UInt16
+      - name: month
+        data_type: UInt8
+    option:
+      format: "parquet"
+      use_memory_table: true
+  - name: "s3_delta"
+    uri: "s3://test-data/blogs-delta"
+    option:
+      format: "delta"
+      use_memory_table: true
   - name: "gcs_blogs"
     uri: "gs://test-data/blogs.parquet"
     option:
