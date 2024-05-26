@@ -60,9 +60,13 @@ pub async fn to_datafusion_table(
     let TableOptionDelta { use_memory_table } = opt.as_delta()?;
 
     let uri_str = t.get_uri_str();
-    let delta_table = deltalake::open_table(uri_str)
-        .await
+    let delta_table = deltalake::DeltaTableBuilder::from_valid_uri(uri_str)
         .context(OpenTableSnafu)
+        .context(table::LoadDeltaSnafu)?
+        .with_allow_http(true)
+        .load()
+        .await
+        .context(LoadTableSnafu)
         .context(table::LoadDeltaSnafu)?;
     let parsed_uri = t.parsed_uri()?;
     let url_scheme = parsed_uri.scheme();

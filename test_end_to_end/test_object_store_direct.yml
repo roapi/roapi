@@ -21,6 +21,21 @@ tables:
       format: "parquet"
       # following line is different from test_end_to_end/test_s3_memory.yml
       use_memory_table: false
+  - name: "s3_partitioned"
+    uri: "s3://test-data/partitioned_blogs/"
+    partition_columns:
+      - name: year
+        data_type: UInt16
+      - name: month
+        data_type: UInt8
+    option:
+      format: "parquet"
+      use_memory_table: false
+  - name: "s3_delta"
+    uri: "s3://test-data/blogs-delta"
+    option:
+      format: "delta"
+      use_memory_table: false
   - name: "gcs_blogs"
     uri: "gs://test-data/blogs.parquet"
     option:

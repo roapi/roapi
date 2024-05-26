@@ -15,17 +15,25 @@ function check_status() {
 
 SQL_ENDPOINT="127.0.0.1:8000/api/sql"
 
+echo "Test s3 blogs..."
 http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(1) from s3_blogs" "${SQL_ENDPOINT}")
 check_status ${http_status}
 
+echo "Test s3 blogs space encoded..."
 http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(1) from s3_blogs_space_encode" "${SQL_ENDPOINT}")
 check_status ${http_status}
 
+echo "Test s3 blogs in a directory..."
 http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(1) from s3_blogs_dir" "${SQL_ENDPOINT}")
 check_status ${http_status}
 
+http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(*) from s3_delta WHERE reply_id is null" "${SQL_ENDPOINT}")
+check_status ${http_status}
+
+echo "Test gcs blogs..."
 http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(1) from gcs_blogs" "${SQL_ENDPOINT}")
 check_status ${http_status}
 
+echo "Test azure blogs..."
 http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(1) from azure_blogs" "${SQL_ENDPOINT}")
 check_status ${http_status}
