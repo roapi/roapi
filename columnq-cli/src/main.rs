@@ -9,7 +9,7 @@ use columnq::datafusion::arrow::util::pretty;
 use columnq::table::parse_table_uri_arg;
 use columnq::{encoding, ColumnQ, SessionConfig};
 
-#[cfg(snmalloc)]
+#[cfg(feature = "snmalloc")]
 #[global_allocator]
 static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
 

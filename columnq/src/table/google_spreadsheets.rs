@@ -33,6 +33,8 @@ pub enum Error {
     BuildAuthenticator { source: std::io::Error },
     #[snafu(display("Failed to obtain Oauth2 token: {source}"))]
     ObtainToken { source: yup_oauth2::Error },
+    #[snafu(display("Oauth2 token not found"))]
+    EmptyToken {},
     #[snafu(display("Failed to resolve sheet title: {source}"))]
     ResolveTitle { source: reqwest::Error },
     #[snafu(display("Failed to parse API response: {source}"))]
@@ -333,7 +335,10 @@ pub async fn to_mem_table(
     let token = fetch_auth_token(opt)
         .await
         .context(table::LoadGoogleSheetSnafu)?;
-    let token_str = token.as_str();
+    let token_str = token
+        .token()
+        .ok_or(Error::EmptyToken {})
+        .context(table::LoadGoogleSheetSnafu)?;
 
     let sheet_title = match &opt.sheet_title {
         Some(t) => t.clone(),

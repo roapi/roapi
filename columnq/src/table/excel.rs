@@ -321,7 +321,7 @@ fn excel_range_to_record_batch(
                     rows.map(|r| {
                         r.get(i).and_then(|v| {
                             v.as_datetime()
-                                .map(|v| v.timestamp_millis())
+                                .map(|v| v.and_utc().timestamp_millis())
                                 .or_else(|| empty_or_panic(v, field_name))
                         })
                     })
@@ -331,7 +331,7 @@ fn excel_range_to_record_batch(
                     rows.map(|r| {
                         r.get(i).and_then(|v| {
                             v.as_datetime()
-                                .map(|v| (v.timestamp() / 86400) as i32)
+                                .map(|v| (v.and_utc().timestamp() / 86400) as i32)
                                 .or_else(|| empty_or_panic(v, field_name))
                         })
                     })

@@ -27,6 +27,14 @@ echo "Test s3 blogs in a directory..."
 http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(1) from s3_blogs_dir" "${SQL_ENDPOINT}")
 check_status ${http_status}
 
+# in memory table doesn't yet support populating partitions from object path, so we skip the partition query here if we are not testing direct tables.
+if "${DIRECT_TABLE:=false}" = "true"; then
+    echo "Test s3 blogs as a partitioned table..."
+    curl -X POST -d "SELECT year, month from s3_partitioned" "${SQL_ENDPOINT}"
+    http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT year, month from s3_partitioned" "${SQL_ENDPOINT}")
+    check_status ${http_status}
+fi
+
 http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT count(*) from s3_delta WHERE reply_id is null" "${SQL_ENDPOINT}")
 check_status ${http_status}
 
