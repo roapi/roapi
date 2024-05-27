@@ -339,8 +339,6 @@ The [roapi](https://github.com/roapi/roapi/tree/main/roapi) crate wraps
 `columnq` with a multi-protocol query layer. It serializes Arrow record batches
 produced by `columnq` into different formats based on client request.
 
-Building ROAPI with `simd` optimization requires nightly rust toolchain.
-
 ### Debug
 
 To log all FlightSQL requests in console, set `RUST_LOG=tower_http=trace`.

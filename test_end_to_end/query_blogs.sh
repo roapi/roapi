@@ -30,7 +30,6 @@ check_status ${http_status}
 # in memory table doesn't yet support populating partitions from object path, so we skip the partition query here if we are not testing direct tables.
 if "${DIRECT_TABLE:=false}" = "true"; then
     echo "Test s3 blogs as a partitioned table..."
-    curl -X POST -d "SELECT year, month from s3_partitioned" "${SQL_ENDPOINT}"
     http_status=$(curl -o /dev/null -s -w "%{http_code}" -X POST -d "SELECT year, month from s3_partitioned" "${SQL_ENDPOINT}")
     check_status ${http_status}
 fi
