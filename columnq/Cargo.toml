@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.8.3"
+version = "0.9.0"
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 authors = ["QP Hou <dave2008713@gmail.com>"]
@@ -13,9 +13,9 @@ path = "src/lib.rs"
 [dependencies]
 # pulling arrow-schema manually to enable the serde feature.
 # TODO: add serde feature in datafusion to avoid this workaround
-arrow-schema = { version = "50.0.0", features = ["serde"] }
+arrow-schema = { version = "51", features = ["serde"] }
 
-datafusion = "35"
+datafusion = "37"
 object_store = { version = "0", features = ["aws", "gcp", "azure"] }
 percent-encoding = "2.2.0"
 url = "2.2"
@@ -24,8 +24,8 @@ log = "0"
 regex = "1"
 lazy_static = "1"
 graphql-parser = "0"
-sqlparser = "0.41" # version need to be in sync with convergence and datafusion
-yup-oauth2 = { version = "6.2", default-features = false, features = [
+sqlparser = "0.44" # version need to be in sync with convergence and datafusion
+yup-oauth2 = { version = "9", default-features = false, features = [
     "service_account",
 ] }
 thiserror = "1"
@@ -44,11 +44,11 @@ calamine = {version = "0.23.1", features = ["dates"]}
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 hyper-tls = { version = "0.5.0", default-features = false, optional = true }
-hyper-rustls = { version = "0.24.1", default-features = false, optional = true }
+hyper-rustls = { version = "0.25", default-features = false, optional = true }
 tokio-postgres = { version = "0.7.8", optional = true }
 
 [dependencies.deltalake]
-version = "0.17"
+version = "0.17.3"
 # git = "https://github.com/delta-io/delta-rs.git"
 # rev = "63c14b3716428ff65e01404c6f7e62f341c98f05"
 features = ["datafusion", "s3", "gcs", "azure"]
@@ -56,7 +56,7 @@ default-features = false
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
-rev = "7cfe911133afd56a5fa69b24d11f8b5f7283796c"
+rev = "0732ad7efb08fdb4c08793f8942ed2a76406f92a"
 version = "0.3.3-alpha.1"
 features = ["default", "dst_arrow"]
 optional = true

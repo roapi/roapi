@@ -1,6 +1,6 @@
 [package]
 name = "roapi"
-version = "0.11.4"
+version = "0.12.0"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -45,8 +45,8 @@ thiserror = "1"
 snafu = "0"
 
 # flight-sql
-arrow-flight = { version = "50", features = ["flight-sql-experimental"] }
-tonic = { version = "0.10", features = ["tls"] }
+arrow-flight = { version = "51", features = ["flight-sql-experimental"] }
+tonic = { version = "0.11", features = ["tls"] }
 prost = "0"
 futures = "0"
 # TODO: remove once_cell dependency
@@ -57,12 +57,12 @@ uuid = "1"
 [dependencies.convergence]
 version = "0"
 git = "https://github.com/returnString/convergence.git"
-rev = "3d61a5b9bbf9848b075f5b3ae791c90e5380e5e3"
+rev = "8360bb4f6ee3778f4a4951026a2e1a3cdb6f4df7"
 
 [dependencies.convergence-arrow]
 version = "0"
 git = "https://github.com/returnString/convergence.git"
-rev = "3d61a5b9bbf9848b075f5b3ae791c90e5380e5e3"
+rev = "8360bb4f6ee3778f4a4951026a2e1a3cdb6f4df7"
 
 [features]
 default = ["rustls", "snmalloc"]
@@ -75,7 +75,7 @@ database-sqlite = ["columnq/database-sqlite"]
 database-mysql = ["columnq/database-mysql"]
 
 [dev-dependencies]
-reqwest = { version = "0", default-features = false, features = [
+reqwest = { version = "0.11", default-features = false, features = [
     "json",
     "rustls-tls",
 ] }
@@ -84,8 +84,8 @@ tokio-postgres = "0.7"
 tower = "*"
 tempfile = "*"
 tokio-stream = { version = "*", features = ["net"] }
-arrow-cast = "50"
-arrow-ipc = "50"  # for flight_sql test
+arrow-cast = "*"
+arrow-ipc = "*"  # for flight_sql test
 
 # TODO: uncomment this when we exclude roapi from root workspace
 # [profile.release]

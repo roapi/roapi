@@ -355,37 +355,18 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         let fetch = FetchResults { handle };
         let buf = fetch.as_any().encode_to_vec().into();
         let ticket = Ticket { ticket: buf };
-        let endpoint = FlightEndpoint {
-            ticket: Some(ticket),
-            // if we had multiple endpoints to connect to, we could use this Location
-            // but in the case of standalone DataFusion, we don't
-            // let loc = arrow_flight::Location {
-            //     uri: "grpc+tcp://127.0.0.1:50051".to_string(),
-            // };
-            location: vec![],
-        };
-        let endpoints = vec![endpoint];
-
-        let message = SchemaAsIpc::new(&schema, &IpcWriteOptions::default())
-            .try_into()
-            .map_err(|e| internal_error!("Unable to serialize schema", e))?;
-        let IpcMessage(schema_bytes) = message;
+        let endpoint = FlightEndpoint::new().with_ticket(ticket);
 
         let flight_desc = FlightDescriptor {
             r#type: DescriptorType::Cmd.into(),
             cmd: Default::default(),
             path: vec![],
         };
-        // send -1 for total_records and total_bytes instead of iterating over all the
-        // batches to get num_rows() and total byte size.
-        let info = FlightInfo {
-            schema: schema_bytes,
-            flight_descriptor: Some(flight_desc),
-            endpoint: endpoints,
-            total_records: -1_i64,
-            total_bytes: -1_i64,
-            ordered: false,
-        };
+        let info = FlightInfo::new()
+            .try_with_schema(&schema)
+            .map_err(|e| internal_error!("Unable to serialize schema", e))?
+            .with_endpoint(endpoint)
+            .with_descriptor(flight_desc);
         let resp = Response::new(info);
         Ok(resp)
     }
@@ -434,37 +415,18 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         };
         let buf = fetch.as_any().encode_to_vec().into();
         let ticket = Ticket { ticket: buf };
-        let endpoint = FlightEndpoint {
-            ticket: Some(ticket),
-            // if we had multiple endpoints to connect to, we could use this Location
-            // but in the case of standalone DataFusion, we don't
-            // let loc = arrow_flight::Location {
-            //     uri: "grpc+tcp://127.0.0.1:50051".to_string(),
-            // };
-            location: vec![],
-        };
-        let endpoints = vec![endpoint];
-
-        let message = SchemaAsIpc::new(&schema, &IpcWriteOptions::default())
-            .try_into()
-            .map_err(|e| internal_error!("Unable to serialize schema", e))?;
-        let IpcMessage(schema_bytes) = message;
+        let endpoint = FlightEndpoint::new().with_ticket(ticket);
 
         let flight_desc = FlightDescriptor {
             r#type: DescriptorType::Cmd.into(),
             cmd: Default::default(),
             path: vec![],
         };
-        // send -1 for total_records and total_bytes instead of iterating over all the
-        // batches to get num_rows() and total byte size.
-        let info = FlightInfo {
-            schema: schema_bytes,
-            flight_descriptor: Some(flight_desc),
-            endpoint: endpoints,
-            total_records: -1_i64,
-            total_bytes: -1_i64,
-            ordered: false,
-        };
+        let info = FlightInfo::new()
+            .try_with_schema(&schema)
+            .map_err(|e| internal_error!("Unable to serialize schema", e))?
+            .with_endpoint(endpoint)
+            .with_descriptor(flight_desc);
         let resp = Response::new(info);
         Ok(resp)
     }

@@ -198,6 +198,7 @@ jobs:
         # https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=visual-studio#http-connection-strings
         AZURE_STORAGE_ACCOUNT_NAME: "devstoreaccount1"
         AZURE_STORAGE_ACCOUNT_KEY: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+        DIRECT_TABLE: "true"
       uses: BerniWittmann/background-server-action@v1.0.4
       with:
         command: /home/runner/work/roapi/roapi/test_end_to_end/query_blogs.sh
