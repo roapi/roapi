@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  # NOTE: the version is also defined in roapi_release.yml, columnq_cli_release.yml and Dockerfile
-  RUST_TC_NIGHTLY_VER: "2024-03-01"
+  # NOTE: the version is also defined in roapi_release.yml and Dockerfile
+  RUST_TC_VER: "1.78.0"
 
 jobs:
   build:
@@ -68,11 +68,11 @@ jobs:
         restore-keys: |
           database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           database-1-${{ runner.os }}-cargo-
-    - name: Install nightly rust
+    - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
-        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        toolchain: ${{ env.RUST_TC_VER }}
         components: clippy
         override: true
     - name: Check
@@ -105,12 +105,11 @@ jobs:
         restore-keys: |
           s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           s3-1-${{ runner.os }}-cargo-
-    - name: Install nightly rust
+    - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
-        # toolchain: nightly
-        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        toolchain: ${{ env.RUST_TC_VER }}
         override: true
     - name: Setup minio server (S3)
       run: |
@@ -166,12 +165,11 @@ jobs:
         restore-keys: |
           s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
           s3-1-${{ runner.os }}-cargo-
-    - name: Install nightly rust
+    - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         profile: default
-        # toolchain: nightly
-        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        toolchain: ${{ env.RUST_TC_VER }}
         override: true
     - name: Setup minio server (S3)
       run: |
@@ -248,7 +246,7 @@ jobs:
     - name: Install Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: nightly-${{ env.RUST_TC_NIGHTLY_VER }}
+        toolchain: ${{ env.RUST_TC_VER }}
         target: aarch64-apple-darwin
         profile: minimal
         default: true
