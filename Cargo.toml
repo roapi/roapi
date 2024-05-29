@@ -11,3 +11,12 @@ split-debuginfo = "unpacked"
 [profile.release]
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+datafusion = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "cbefda6a85e9e42d79e0333d7e5058151660d0a7" }
+datafusion-common = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "cbefda6a85e9e42d79e0333d7e5058151660d0a7" }
+datafusion-proto = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "cbefda6a85e9e42d79e0333d7e5058151660d0a7" }
+datafusion-expr = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "cbefda6a85e9e42d79e0333d7e5058151660d0a7" }
+datafusion-physical-expr = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "cbefda6a85e9e42d79e0333d7e5058151660d0a7" }
+datafusion-physical-plan = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "cbefda6a85e9e42d79e0333d7e5058151660d0a7" }
+datafusion-sql = { git = "https://github.com/roapi/arrow-datafusion.git", rev = "cbefda6a85e9e42d79e0333d7e5058151660d0a7" }
