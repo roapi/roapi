@@ -110,7 +110,7 @@ fn reload_interval_arg() -> clap::Arg {
     clap::Arg::new("reload-interval")
         .help("maximum age in seconds before triggering rescan and reload of the tables")
         .required(false)
-        .num_args(1)
+        .value_parser(clap::value_parser!(u64))
         .long("reload-interval")
         .short('r')
 }
@@ -206,7 +206,7 @@ pub fn get_configuration() -> Result<Config, Whatever> {
         if !config.disable_read_only {
             whatever!("Table reload not supported in read-only mode. Try specify the --disable-read-only option.");
         }
-        config.reload_interval = Some(Duration::from_secs(reload_interval.to_owned()));
+        config.reload_interval = Some(Duration::from_secs(*reload_interval));
     }
 
     if let Some(response_format) = matches.get_one::<String>("response-format") {
