@@ -15,8 +15,8 @@ use arrow_flight::sql::{
     CommandGetDbSchemas, CommandGetExportedKeys, CommandGetImportedKeys, CommandGetPrimaryKeys,
     CommandGetSqlInfo, CommandGetTableTypes, CommandGetTables, CommandGetXdbcTypeInfo,
     CommandPreparedStatementQuery, CommandPreparedStatementUpdate, CommandStatementQuery,
-    CommandStatementSubstraitPlan, CommandStatementUpdate, Nullable, ProstMessageExt, Searchable,
-    SqlInfo, TicketStatementQuery, XdbcDataType,
+    CommandStatementSubstraitPlan, CommandStatementUpdate, DoPutPreparedStatementResult, Nullable,
+    ProstMessageExt, Searchable, SqlInfo, TicketStatementQuery, XdbcDataType,
 };
 use arrow_flight::{
     flight_service_server::FlightService, Action, FlightDescriptor, FlightEndpoint, FlightInfo,
@@ -800,7 +800,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         &self,
         _query: CommandPreparedStatementQuery,
         _request: Request<PeekableFlightDataStream>,
-    ) -> Result<Response<<Self as FlightService>::DoPutStream>, Status> {
+    ) -> Result<DoPutPreparedStatementResult, Status> {
         Err(Status::unimplemented(
             "do_put_prepared_statement_query not implemented",
         ))

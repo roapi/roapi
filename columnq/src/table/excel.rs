@@ -586,7 +586,7 @@ mod tests {
             infer_schema(&range, &TableOptionExcel::default(), &Some(table_schema)).unwrap();
 
         assert_eq!(
-            schema.all_fields(),
+            schema.flattened_fields(),
             vec![
                 &Field::new("float_column", DataType::Float64, true),
                 &Field::new("integer_column", DataType::Int64, true),
@@ -727,7 +727,7 @@ option:
         let rb = excel_range_to_record_batch(range, &TableOptionExcel::default(), shema).unwrap();
 
         assert_eq!(
-            rb.schema().all_fields(),
+            rb.schema().flattened_fields(),
             vec![
                 &Field::new("float_column", DataType::Float64, true),
                 &Field::new("integer_column", DataType::Int64, true),
