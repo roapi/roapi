@@ -195,7 +195,7 @@ async fn test_flight_sql_get_tables() {
     let schema_bytes = schema_arr.value(0);
     let schema = try_schema_from_ipc_buffer(schema_bytes).expect("Invalid schema data");
     assert_eq!(
-        schema.all_fields(),
+        schema.flattened_fields(),
         vec![
             &Field::new("city", DataType::Utf8, true),
             &Field::new("lat", DataType::Float64, true),

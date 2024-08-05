@@ -3,10 +3,10 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
-use datafusion::datasource::TableProvider;
-
 use datafusion::arrow;
+use datafusion::datasource::file_format::csv::CsvFormat;
 use datafusion::datasource::listing::{ListingOptions, ListingTableUrl};
+use datafusion::datasource::TableProvider;
 use serde::de::{Deserialize, Deserializer};
 use serde_derive::Deserialize;
 use snafu::prelude::*;
@@ -215,6 +215,18 @@ impl TableOptionCsv {
     #[inline]
     pub fn default_use_memory_table() -> bool {
         true
+    }
+
+    pub fn as_arrow_csv_format(&self) -> arrow::csv::reader::Format {
+        arrow::csv::reader::Format::default()
+            .with_delimiter(self.delimiter)
+            .with_header(self.has_header)
+    }
+
+    pub fn as_df_csv_format(&self) -> CsvFormat {
+        CsvFormat::default()
+            .with_has_header(self.has_header)
+            .with_delimiter(self.delimiter)
     }
 }
 
@@ -604,14 +616,13 @@ pub async fn datafusion_get_or_infer_schema(
                         .expect("Failed to create file url"),
                 )
                 .context(InferSchemaSnafu)?;
+                let inferred_schema = listing_options
+                    .infer_schema(&dfctx.state(), &file_url)
+                    .await
+                    .context(InferSchemaSnafu)?;
                 schemas.push(
-                    Arc::into_inner(
-                        listing_options
-                            .infer_schema(&dfctx.state(), &file_url)
-                            .await
-                            .context(InferSchemaSnafu)?,
-                    )
-                    .expect("Failed to unwrap schemaref into schema on merge"),
+                    Arc::into_inner(inferred_schema)
+                        .expect("Failed to unwrap schemaref into schema on merge"),
                 );
             }
             Arc::new(arrow::datatypes::Schema::try_merge(schemas).context(MergeSchemaSnafu)?)

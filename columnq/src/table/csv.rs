@@ -3,7 +3,6 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
-use datafusion::datasource::file_format::csv::CsvFormat;
 use datafusion::datasource::listing::{
     ListingOptions, ListingTable, ListingTableConfig, ListingTableUrl,
 };
@@ -43,18 +42,17 @@ pub async fn to_datafusion_table(
         .option
         .clone()
         .unwrap_or_else(|| TableLoadOption::csv(TableOptionCsv::default()));
-    if opt
+    let opt = opt
         .as_csv()
-        .expect("Invalid table format option, expect csv")
-        .use_memory_table
-    {
+        .expect("Invalid table format option, expect csv");
+    if opt.use_memory_table {
         return to_mem_table(t, dfctx).await;
     }
     let table_url =
         ListingTableUrl::parse(t.get_uri_str()).with_context(|_| table::ListingTableUriSnafu {
             uri: t.get_uri_str().to_string(),
         })?;
-    let mut options = ListingOptions::new(Arc::new(CsvFormat::default()));
+    let mut options = ListingOptions::new(Arc::new(opt.as_df_csv_format()));
     if let Some(partition_cols) = t.datafusion_partition_cols() {
         options = options.with_table_partition_cols(partition_cols)
     }
@@ -96,12 +94,10 @@ pub async fn to_mem_table(
     let schema_ref: arrow::datatypes::SchemaRef = match &t.schema {
         Some(s) => Arc::new(s.into()),
         None => {
+            let fmt = opt.as_arrow_csv_format();
             let schemas = partitions_from_table_source!(
                 t,
                 |r| {
-                    let fmt = arrow::csv::reader::Format::default()
-                        .with_delimiter(delimiter)
-                        .with_header(has_header);
                     let (schema, record_count) = fmt
                         .infer_schema(r, None)
                         .context(InferSchemaSnafu)

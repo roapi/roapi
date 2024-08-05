@@ -26,6 +26,13 @@ async fn test_postgres_count() {
         .unwrap();
 
     match &rows[0] {
+        tokio_postgres::SimpleQueryMessage::RowDescription(_) => {}
+        _ => {
+            panic!("expect row description from query result.");
+        }
+    }
+
+    match &rows[1] {
         tokio_postgres::SimpleQueryMessage::Row(row) => {
             assert_eq!(row.get(0).unwrap(), "132");
         }
@@ -34,7 +41,7 @@ async fn test_postgres_count() {
         }
     }
 
-    match &rows[1] {
+    match &rows[2] {
         tokio_postgres::SimpleQueryMessage::CommandComplete(modified) => {
             assert_eq!(modified, &1);
         }
@@ -43,5 +50,5 @@ async fn test_postgres_count() {
         }
     }
 
-    assert_eq!(rows.len(), 2);
+    assert_eq!(rows.len(), 3);
 }

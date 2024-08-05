@@ -109,6 +109,7 @@ impl ColumnQ {
 
         Ok(())
     }
+
     pub fn register_object_storage(
         &mut self,
         url: &Url,
