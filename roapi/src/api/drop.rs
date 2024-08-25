@@ -25,7 +25,7 @@ pub async fn drop_table<H: RoapiContext>(
     for config in body {
         if let Some(t) = tables.get(&config.table_name) {
             info!("dropping table `{}`", t.name);
-            ctx.drop_table(&t)
+            ctx.drop_table(t)
                 .await
                 .map_err(ColumnQError::from)
                 .map_err(ApiErrResp::drop_table)?;
