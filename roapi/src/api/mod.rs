@@ -56,6 +56,7 @@ pub fn encode_record_batches(
     Ok(bytes_to_resp(payload, content_type.to_str()))
 }
 
+pub mod drop;
 pub mod graphql;
 pub mod health;
 pub mod kv;

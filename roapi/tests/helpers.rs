@@ -35,6 +35,7 @@ pub async fn test_api_app(
         },
         tables,
         reload_interval: Some(Duration::from_secs(1000)),
+        disable_read_only: true,
         kvstores,
         ..Default::default()
     };
@@ -62,6 +63,17 @@ pub async fn http_get(url: &str, accept: Option<&str>) -> reqwest::Response {
 pub async fn http_post(url: &str, payload: impl Into<reqwest::Body>) -> reqwest::Response {
     reqwest::Client::new()
         .post(url)
+        .body(payload)
+        .send()
+        .await
+        .expect("Unable to execute POST request")
+}
+
+#[allow(dead_code)]
+pub async fn http_post_json(url: &str, payload: impl Into<reqwest::Body>) -> reqwest::Response {
+    reqwest::Client::new()
+        .post(url)
+        .header("Content-Type", "application/json")
         .body(payload)
         .send()
         .await

@@ -97,6 +97,14 @@ impl ApiErrResp {
         }
     }
 
+    pub fn drop_table(error: ColumnQError) -> Self {
+        Self {
+            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+            error: "drop_table".to_string(),
+            message: error.to_string(),
+        }
+    }
+
     pub fn load_table(error: ColumnQError) -> Self {
         Self {
             code: http::StatusCode::INTERNAL_SERVER_ERROR,
