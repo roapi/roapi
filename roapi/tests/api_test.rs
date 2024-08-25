@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use async_process::Command;
 use columnq::arrow::datatypes::Schema;
+use serde_json::json;
 
 #[tokio::test]
 async fn test_schema() {
@@ -16,6 +17,26 @@ async fn test_schema() {
     assert_eq!(response.status(), 200);
     let body = response.json::<HashMap<String, Schema>>().await.unwrap();
     assert!(body.contains_key("spacex_launches"));
+}
+
+#[tokio::test]
+async fn test_drop_table() {
+    let json_table = helpers::get_spacex_table();
+    let (app, address) = helpers::test_api_app_with_tables(vec![json_table]).await;
+    tokio::spawn(app.run_until_stopped());
+
+    let get_response =
+        helpers::http_get(&format!("{address}/api/tables/spacex_launches"), None).await;
+    assert_eq!(get_response.status(), 200);
+    let drop_response = helpers::http_post_json(
+        &format!("{address}/api/tables/drop"),
+        json!([{"tableName": "spacex_launches"}]).to_string(),
+    )
+    .await;
+    assert_eq!(drop_response.status(), 200);
+    let failed_get_response =
+        helpers::http_get(&format!("{address}/api/tables/spaces_launches"), None).await;
+    assert_eq!(failed_get_response.status(), 400);
 }
 
 #[tokio::test]

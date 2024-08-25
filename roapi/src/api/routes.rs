@@ -20,9 +20,13 @@ pub fn register_app_routes<H: RoapiContext>() -> Router {
         );
 
     if H::read_only_mode() {
-        router = router.route("/api/table", post(api::register::register_table_read_only));
+        router = router
+            .route("/api/table", post(api::register::register_table_read_only))
+            .route("/api/tables/drop", post(api::drop::drop_table_read_only));
     } else {
-        router = router.route("/api/table", post(api::register::register_table::<H>));
+        router = router
+            .route("/api/table", post(api::register::register_table::<H>))
+            .route("/api/tables/drop", post(api::drop::drop_table::<H>));
     }
 
     router

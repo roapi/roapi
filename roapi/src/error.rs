@@ -89,6 +89,14 @@ impl ApiErrResp {
         }
     }
 
+    pub fn drop_table(error: String) -> Self {
+        Self {
+            code: http::StatusCode::INTERNAL_SERVER_ERROR,
+            error: "drop_table".to_string(),
+            message: error,
+        }
+    }
+
     pub fn read_only_mode() -> Self {
         Self {
             code: http::StatusCode::FORBIDDEN,
