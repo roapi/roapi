@@ -110,6 +110,12 @@ impl ColumnQ {
         Ok(())
     }
 
+    pub async fn drop_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
+        self.schema_map.remove(&t.name);
+        self.dfctx.deregister_table(t.name.as_str())?;
+        Ok(())
+    }
+
     pub fn register_object_storage(
         &mut self,
         url: &Url,

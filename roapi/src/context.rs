@@ -62,6 +62,8 @@ pub trait RoapiContext: Send + Sync + 'static {
 
     async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError>;
 
+    async fn drop_table(&self, table: &TableSource) -> Result<(), ColumnQError>;
+
     async fn schemas(&self) -> Result<Vec<(String, arrow::datatypes::SchemaRef)>, ApiErrResp>;
 
     async fn schemas_json_bytes(&self) -> Result<Vec<u8>, ApiErrResp>;
@@ -103,6 +105,13 @@ impl RoapiContext for RawRoapiContext {
 
     #[inline]
     async fn load_table(&self, _table: &TableSource) -> Result<(), ColumnQError> {
+        Err(ColumnQError::Generic(
+            "Table update not supported in read only mode".to_string(),
+        ))
+    }
+
+    #[inline]
+    async fn drop_table(&self, _table: &TableSource) -> Result<(), ColumnQError> {
         Err(ColumnQError::Generic(
             "Table update not supported in read only mode".to_string(),
         ))
@@ -207,6 +216,12 @@ impl RoapiContext for ConcurrentRoapiContext {
     async fn load_table(&self, table: &TableSource) -> Result<(), ColumnQError> {
         let mut ctx = self.write().await;
         ctx.cq.load_table(table).await
+    }
+
+    #[inline]
+    async fn drop_table(&self, table: &TableSource) -> Result<(), ColumnQError> {
+        let mut ctx = self.write().await;
+        ctx.cq.drop_table(table).await
     }
 
     #[inline]
