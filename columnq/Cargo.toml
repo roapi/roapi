@@ -11,48 +11,52 @@ name = "columnq"
 path = "src/lib.rs"
 
 [dependencies]
-# pulling arrow-schema manually to enable the serde feature.
-# TODO: add serde feature in datafusion to avoid this workaround
-arrow-schema = { version = "52", features = ["serde"] }
-
-datafusion = "39"
-object_store = { version = "0", features = ["aws", "gcp", "azure"] }
-percent-encoding = "2.2.0"
-url = "2.2"
-
-log = "0"
+url = "2.5"
+log = "0.4"
 regex = "1"
-lazy_static = "1"
-graphql-parser = "0"
-sqlparser = "0.44" # version need to be in sync with convergence and datafusion
-yup-oauth2 = { version = "9", default-features = false, features = [
-    "service_account",
-] }
+lazy_static = "1.5"
 thiserror = "1"
-snafu = "0"
+snafu = "0.8"
 serde_json = { version = "1" }
 serde_derive = "1"
 serde = "1"
 uriparse = "0"
 bytes = { version = "1" }
-reqwest = { version = "0.11", default-features = false, features = [
+percent-encoding = "2.3"
+
+# datafusion
+datafusion = { version = "42", features = ["serde"] }
+
+# spreadsheets reader
+calamine = { version = "0.23.1", features = ["dates"] }
+
+# graphql
+graphql-parser = "0.4"
+
+# async
+tokio = { version = "1", features = ["rt-multi-thread"] }
+futures = "0.3"
+
+# net
+reqwest = { version = "0.12", default-features = false, features = [
     "blocking",
     "json",
 ] }
-calamine = {version = "0.23.1", features = ["dates"]}
+hyper-tls = { version = "0.6.0", default-features = false, optional = true }
+hyper-rustls = { version = "0.27", default-features = false, optional = true }
 
-tokio = { version = "1", features = ["rt-multi-thread"] }
-futures = "0.3"
-hyper-tls = { version = "0.5.0", default-features = false, optional = true }
-hyper-rustls = { version = "0.25", default-features = false, optional = true }
-tokio-postgres = { version = "0.7.8", optional = true }
-
-[dependencies.deltalake]
-version = "0.18.1"
-# git = "https://github.com/delta-io/delta-rs.git"
-# rev = "63c14b3716428ff65e01404c6f7e62f341c98f05"
-features = ["datafusion", "s3", "gcs", "azure"]
-default-features = false
+object_store = { version = "0.11", features = ["aws", "gcp", "azure"] }
+tokio-postgres = { version = "0.7.12", optional = true }
+deltalake = { version = "0.20", features = [
+    "datafusion",
+    "datafusion-ext",
+    "s3",
+    "gcs",
+    "azure",
+] }
+yup-oauth2 = { version = "10", default-features = false, features = [
+    "service_account",
+] }
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
@@ -95,8 +99,4 @@ native-tls = [
 database-sqlite = ["connectorx/src_sqlite"]
 database-mysql = ["connectorx/src_mysql"]
 database-postgres = ["connectorx/src_postgres", "dep:tokio-postgres"]
-database = [
-    "database-sqlite",
-    "database-mysql",
-    "database-postgres"
-]
+database = ["database-sqlite", "database-mysql", "database-postgres"]

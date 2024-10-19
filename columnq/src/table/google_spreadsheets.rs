@@ -311,7 +311,7 @@ async fn resolve_sheet_title<'a, 'b, 'c, 'd>(
 pub async fn to_mem_table(
     t: &TableSource,
 ) -> Result<datafusion::datasource::MemTable, table::Error> {
-    lazy_static! {
+    lazy_static::lazy_static! {
         static ref RE_GOOGLE_SHEET: Regex =
             Regex::new(r"https://docs.google.com/spreadsheets/d/(.+)").unwrap();
     }

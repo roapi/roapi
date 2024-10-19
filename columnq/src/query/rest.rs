@@ -6,8 +6,11 @@ use datafusion::prelude::{binary_expr, Column, Expr};
 use datafusion::scalar::ScalarValue;
 use regex::Regex;
 
-use crate::error::QueryError;
-use crate::query::{column_sort_expr_asc, column_sort_expr_desc};
+use crate::{
+    error::QueryError,
+    query::{column_sort_expr_asc, column_sort_expr_desc},
+    sqlparser,
+};
 
 fn err_rest_query_value(error: sqlparser::tokenizer::TokenizerError) -> QueryError {
     QueryError {
@@ -58,7 +61,7 @@ pub async fn table_query_to_df(
     table_name: &str,
     params: &HashMap<String, String>,
 ) -> Result<datafusion::dataframe::DataFrame, QueryError> {
-    lazy_static! {
+    lazy_static::lazy_static! {
         static ref RE_REST_FILTER: Regex =
             Regex::new(r"filter\[(?P<column>.+)\](?P<op>.+)?").unwrap();
     }
