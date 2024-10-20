@@ -60,7 +60,7 @@ yup-oauth2 = { version = "10", default-features = false, features = [
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
-rev = "f7ba1c38130e554cdb7dc4e04d7a166e3286d4e7"
+rev = "0134b4852521d636250409823d21fb4a79a7d346"
 version = "0.3.3-alpha.1"
 features = ["default", "dst_arrow"]
 optional = true
