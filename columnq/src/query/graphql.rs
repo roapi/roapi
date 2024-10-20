@@ -145,7 +145,9 @@ fn to_datafusion_predicates(col: &str, filter: &Value<String>) -> Result<Vec<Exp
     }
 }
 
-fn parse_field(query: &str) -> Result<graphql_parser::query::Field<'_, String>, QueryError> {
+pub fn parse_query_to_field(
+    query: &str,
+) -> Result<graphql_parser::query::Field<'_, String>, QueryError> {
     let doc = parse_query::<String>(query)?;
 
     let def = match doc.definitions.len() {
@@ -345,7 +347,7 @@ pub fn apply_query(
     df: datafusion::dataframe::DataFrame,
     query: &str,
 ) -> Result<datafusion::dataframe::DataFrame, QueryError> {
-    let field = parse_field(query)?;
+    let field = parse_query_to_field(query)?;
     apply_field_to_df(df, field)
 }
 
@@ -354,7 +356,7 @@ pub async fn query_to_df(
     dfctx: &datafusion::execution::context::SessionContext,
     query: &str,
 ) -> Result<datafusion::dataframe::DataFrame, QueryError> {
-    let field = parse_field(query)?;
+    let field = parse_query_to_field(query)?;
     let df = dfctx
         .table(field.name.as_str())
         .await
