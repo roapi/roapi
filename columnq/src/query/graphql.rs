@@ -379,7 +379,7 @@ pub async fn exec_query(
 
 /// Executes a GraphQL query using the provided DataFrame.
 pub async fn exec_query_with_df(
-    df: &datafusion::dataframe::DataFrame,
+    df: datafusion::dataframe::DataFrame,
     query: &str,
 ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
     apply_query(df.clone(), query)?
