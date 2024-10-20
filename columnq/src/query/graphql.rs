@@ -145,11 +145,8 @@ fn to_datafusion_predicates(col: &str, filter: &Value<String>) -> Result<Vec<Exp
     }
 }
 
-pub async fn query_to_df(
-    dfctx: &datafusion::execution::context::SessionContext,
-    q: &str,
-) -> Result<datafusion::dataframe::DataFrame, QueryError> {
-    let doc = parse_query::<String>(q)?;
+fn parse_field(query: &str) -> Result<graphql_parser::query::Field<'_, String>, QueryError> {
+    let doc = parse_query::<String>(query)?;
 
     let def = match doc.definitions.len() {
         1 => match &doc.definitions[0] {
@@ -219,11 +216,13 @@ pub async fn query_to_df(
 
     let field = field.ok_or_else(|| invalid_query("field not found in selection".to_string()))?;
 
-    let mut df = dfctx
-        .table(field.name.as_str())
-        .await
-        .map_err(|e| QueryError::invalid_table(e, field.name.as_str()))?;
+    Ok(field.clone())
+}
 
+fn apply_field_to_df(
+    mut df: datafusion::dataframe::DataFrame,
+    field: graphql_parser::query::Field<'_, String>,
+) -> Result<datafusion::dataframe::DataFrame, QueryError> {
     let mut filter = None;
     let mut sort = None;
     let mut limit = None;
@@ -341,6 +340,30 @@ pub async fn query_to_df(
     Ok(df)
 }
 
+/// Applies a GraphQL query to the provided DataFrame.
+pub fn apply_query(
+    df: datafusion::dataframe::DataFrame,
+    query: &str,
+) -> Result<datafusion::dataframe::DataFrame, QueryError> {
+    let field = parse_field(query)?;
+    apply_field_to_df(df, field)
+}
+
+/// GraphQL query to a DataFrame using the given SessionContext.
+pub async fn query_to_df(
+    dfctx: &datafusion::execution::context::SessionContext,
+    query: &str,
+) -> Result<datafusion::dataframe::DataFrame, QueryError> {
+    let field = parse_field(query)?;
+    let df = dfctx
+        .table(field.name.as_str())
+        .await
+        .map_err(|e| QueryError::invalid_table(e, field.name.as_str()))?;
+
+    apply_field_to_df(df, field)
+}
+
+/// Executes a GraphQL query using the provided SessionContext.
 pub async fn exec_query(
     dfctx: &datafusion::execution::context::SessionContext,
     q: &str,
@@ -352,11 +375,22 @@ pub async fn exec_query(
         .map_err(QueryError::query_exec)
 }
 
+/// Executes a GraphQL query using the provided DataFrame.
+pub async fn exec_query_with_df(
+    df: &datafusion::dataframe::DataFrame,
+    query: &str,
+) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
+    apply_query(df.clone(), query)?
+        .collect()
+        .await
+        .map_err(QueryError::query_exec)
+}
+
 #[cfg(test)]
 mod tests {
     use datafusion::arrow::array::*;
     use datafusion::execution::context::SessionContext;
-    use datafusion::logical_expr::{col, lit};
+    use datafusion::logical_expr::{col, ident, lit};
 
     use super::*;
     use crate::test_util::*;
@@ -393,6 +427,47 @@ mod tests {
             .filter(col("bed").gt(lit(3i64)))
             .unwrap()
             .select(vec![col("address"), col("bed"), col("bath")])
+            .unwrap();
+
+        assert_eq_df(df.into(), expected_df.into());
+    }
+
+    #[tokio::test]
+    async fn simple_query_planning_with_column_aliases() {
+        let mut dfctx = SessionContext::new();
+        register_table_properties(&mut dfctx);
+        let modified_df = dfctx
+            .table("properties")
+            .await
+            .unwrap()
+            .select(vec![
+                col("address").alias("Address"),
+                col("bed").alias("Bed"),
+                col("bath").alias("Bath"),
+            ])
+            .unwrap();
+
+        let df = apply_query(
+            modified_df.clone(),
+            r#"{
+                properties(
+                    filter: {
+                        Bed: { gt: 3 }
+                        Bath: { gteq: 2 }
+                    }
+                ) {
+                    Address 
+                    Bed
+                    Bath 
+                }
+            }"#,
+        )
+        .unwrap();
+
+        let expected_df = modified_df
+            .filter(ident("Bath").gt_eq(lit(2i64)))
+            .unwrap()
+            .filter(ident("Bed").gt(lit(3i64)))
             .unwrap();
 
         assert_eq_df(df.into(), expected_df.into());
