@@ -254,7 +254,7 @@ impl ColumnQ {
         table_name: &str,
         params: &HashMap<String, String>,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
-        query::rest::query_table(&self.dfctx, table_name, params).await
+        query::rest::exec_table_query(&self.dfctx, table_name, params).await
     }
 
     pub fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<&String>, QueryError> {
