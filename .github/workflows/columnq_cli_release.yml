@@ -63,7 +63,7 @@ jobs:
           pip install columnq-cli --no-index --find-links dist --force-reinstall
           columnq --help
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -110,7 +110,7 @@ jobs:
           pip install columnq-cli --no-index --find-links dist --force-reinstall
           columnq --help
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -203,7 +203,7 @@ jobs:
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
             --cargo-extra-args="--no-default-features --features=${{ matrix.platform.features }}"
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: "matrix.platform.upload == 'true'"
         with:
           name: wheels

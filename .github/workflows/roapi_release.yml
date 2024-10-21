@@ -64,7 +64,7 @@ jobs:
           maturin build -m roapi/Cargo.toml -b bin --release --universal2 --out dist --no-sdist --cargo-extra-args="--features=database-sqlite"
           pip install roapi --no-index --find-links dist --force-reinstall
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -111,7 +111,7 @@ jobs:
           pip install roapi --no-index --find-links dist --force-reinstall
           roapi --help
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist
@@ -205,7 +205,7 @@ jobs:
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
             --cargo-extra-args="--no-default-features --features=${{ matrix.platform.features }}"
       - name: Upload wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: "matrix.platform.upload == 'true'"
         with:
           name: wheels
