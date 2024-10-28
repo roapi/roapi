@@ -1,8 +1,5 @@
 #![deny(warnings)]
 
-#[macro_use]
-extern crate lazy_static;
-
 pub mod error;
 
 macro_rules! partitions_from_table_source {
@@ -37,11 +34,7 @@ pub mod table;
 
 pub use crate::columnq::*;
 
-pub use arrow_schema;
-/// export datafusion and arrow so downstream won't need to declare dependencies on these libraries
-pub use datafusion;
-pub use datafusion::arrow;
-pub use sqlparser;
+pub use datafusion::{self, arrow, sql::sqlparser};
 
 #[cfg(test)]
 pub mod test_util;

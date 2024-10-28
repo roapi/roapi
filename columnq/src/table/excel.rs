@@ -1,12 +1,11 @@
 use crate::table::{self, TableOptionExcel, TableSchema, TableSource};
-use arrow_schema::TimeUnit;
 use calamine::{open_workbook_auto, DataType as ExcelDataType, Range, Reader, Sheets};
 use datafusion::arrow::array::{
     ArrayRef, BooleanArray, DurationSecondArray, NullArray, PrimitiveArray, StringArray,
     TimestampSecondArray,
 };
 use datafusion::arrow::datatypes::{
-    DataType, Date32Type, Date64Type, Field, Float64Type, Int64Type, Schema,
+    DataType, Date32Type, Date64Type, Field, Float64Type, Int64Type, Schema, TimeUnit,
 };
 use datafusion::arrow::record_batch::RecordBatch;
 use snafu::prelude::*;

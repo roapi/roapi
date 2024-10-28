@@ -1,5 +1,5 @@
 use datafusion::arrow;
-use datafusion::logical_expr::Operator;
+use datafusion::logical_expr::{expr::Sort, Operator};
 use datafusion::prelude::{binary_expr, Column, Expr};
 use datafusion::scalar::ScalarValue;
 use graphql_parser::query::{parse_query, Definition, OperationDefinition, Selection, Value};
@@ -37,7 +37,7 @@ fn invalid_query(message: String) -> QueryError {
 // convert order list from graphql argument to datafusion sort columns
 //
 // sort order matters, thus it's modeled as a list
-fn to_datafusion_sort_columns(sort_columns: &[Value<String>]) -> Result<Vec<Expr>, QueryError> {
+fn to_datafusion_sort_columns(sort_columns: &[Value<String>]) -> Result<Vec<Sort>, QueryError> {
     sort_columns
         .iter()
         .map(|optval| match optval {
