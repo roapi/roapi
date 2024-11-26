@@ -52,5 +52,8 @@ async fn infer_csv_schema_by_selected_files() {
     builder.push(Field::new("ts", DataType::Int64, true));
     builder.push(Field::new("value", DataType::Float64, true));
 
-    assert_eq!(t.schema(), Arc::new(Schema::new(builder.finish().fields)));
+    assert_eq!(
+        t.table.schema(),
+        Arc::new(Schema::new(builder.finish().fields))
+    );
 }

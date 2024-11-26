@@ -1,6 +1,8 @@
 use std::ffi::OsStr;
+use std::future::Future;
 use std::io::Read;
 use std::path::Path;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use datafusion::arrow;
@@ -430,6 +432,8 @@ pub struct TableSource {
     #[serde(default = "TableSource::default_batch_size")]
     pub batch_size: usize,
     pub partition_columns: Option<Vec<TableColumn>>,
+    #[serde(default = "TableSource::default_refresh_interval")]
+    pub refresh_interval: Option<std::time::Duration>,
 }
 
 impl From<KeyValueSource> for TableSource {
@@ -442,6 +446,7 @@ impl From<KeyValueSource> for TableSource {
             option: kv.option,
             batch_size: Self::default_batch_size(),
             partition_columns: None,
+            refresh_interval: None,
         }
     }
 }
@@ -458,6 +463,7 @@ impl TableSource {
             option,
             batch_size: Self::default_batch_size(),
             partition_columns: None,
+            refresh_interval: Self::default_refresh_interval(),
         }
     }
 
@@ -476,6 +482,11 @@ impl TableSource {
     #[inline]
     pub fn default_batch_size() -> usize {
         8192
+    }
+
+    #[inline]
+    pub fn default_refresh_interval() -> Option<std::time::Duration> {
+        Some(std::time::Duration::from_secs(60))
     }
 
     #[inline]
@@ -501,6 +512,11 @@ impl TableSource {
 
     pub fn with_schema_from_files(mut self, files: Vec<String>) -> Self {
         self.schema_from_files = Some(files);
+        self
+    }
+
+    pub fn with_refresh_interval(mut self, interval: std::time::Duration) -> Self {
+        self.refresh_interval = Some(interval);
         self
     }
 
@@ -634,65 +650,98 @@ pub async fn datafusion_get_or_infer_schema(
     })
 }
 
+// pub type TableRefresher = Arc<
+//     tokio::sync::Mutex<
+//         dyn FnMut() -> Pin<Box<dyn Future<Output = Result<Arc<dyn TableProvider>, Error>> + Send>>
+//             + Send,
+//     >,
+// >;
+//
+pub type TableRefresher = Box<
+    dyn FnMut() -> Pin<Box<dyn Future<Output = Result<Arc<dyn TableProvider>, Error>> + Send>>
+        + Send,
+>;
+
+pub struct LoadedTable {
+    pub table: Arc<dyn TableProvider>,
+    pub refresher: Option<TableRefresher>,
+}
+
+impl LoadedTable {
+    pub fn new(table: Arc<dyn TableProvider>, refresher: TableRefresher) -> Self {
+        Self {
+            table,
+            refresher: Some(refresher),
+        }
+    }
+
+    pub fn new_from_table(table: Arc<dyn TableProvider>) -> Self {
+        Self {
+            table,
+            refresher: None,
+        }
+    }
+}
+
 pub async fn load(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
-) -> Result<Arc<dyn TableProvider>, Error> {
+) -> Result<LoadedTable, Error> {
     if let Some(opt) = &t.option {
         Ok(match opt {
-            TableLoadOption::json { .. } => Arc::new(json::to_mem_table(t, dfctx).await?),
+            TableLoadOption::json { .. } => json::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::ndjson { .. } | TableLoadOption::jsonl { .. } => {
-                Arc::new(ndjson::to_mem_table(t, dfctx).await?)
+                ndjson::to_datafusion_table(t, dfctx).await?
             }
             TableLoadOption::csv { .. } => csv::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::google_spreadsheet(_) => {
-                Arc::new(google_spreadsheets::to_mem_table(t).await?)
+                LoadedTable::new_from_table(Arc::new(google_spreadsheets::to_mem_table(t).await?))
             }
             TableLoadOption::xlsx { .. }
             | TableLoadOption::xls { .. }
             | TableLoadOption::xlsb { .. }
-            | TableLoadOption::ods { .. } => Arc::new(excel::to_mem_table(t).await?),
+            | TableLoadOption::ods { .. } => excel::to_datafusion_table(t).await?,
             TableLoadOption::delta { .. } => delta::to_datafusion_table(t, dfctx).await?,
-            TableLoadOption::arrow { .. } => {
-                Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?)
-            }
+            TableLoadOption::arrow { .. } => arrow_ipc_file::to_datafusion_table(t, dfctx).await?,
             TableLoadOption::arrows { .. } => {
-                Arc::new(arrow_ipc_stream::to_mem_table(t, dfctx).await?)
+                arrow_ipc_stream::to_datafusion_table(t, dfctx).await?
             }
-            TableLoadOption::mysql { .. } => {
-                Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?)
-            }
-            TableLoadOption::sqlite { .. } => {
-                Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?)
-            }
-            TableLoadOption::postgres { .. } => {
-                Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?)
-            }
+            TableLoadOption::mysql { .. } => LoadedTable::new_from_table(Arc::new(
+                database::DatabaseLoader::MySQL.to_mem_table(t)?,
+            )),
+            TableLoadOption::sqlite { .. } => LoadedTable::new_from_table(Arc::new(
+                database::DatabaseLoader::SQLite.to_mem_table(t)?,
+            )),
+            TableLoadOption::postgres { .. } => LoadedTable::new_from_table(Arc::new(
+                database::DatabaseLoader::Postgres.to_mem_table(t)?,
+            )),
         })
     } else {
-        let t: Arc<dyn TableProvider> = match t.extension()? {
-            "csv" => csv::to_datafusion_table(t, dfctx).await?,
-            "json" => Arc::new(json::to_mem_table(t, dfctx).await?),
-            "ndjson" | "jsonl" => Arc::new(ndjson::to_mem_table(t, dfctx).await?),
-            "parquet" => parquet::to_datafusion_table(t, dfctx).await?,
-            "xls" | "xlsx" | "xlsb" | "ods" => Arc::new(excel::to_mem_table(t).await?),
-            "arrow" => Arc::new(arrow_ipc_file::to_mem_table(t, dfctx).await?),
-            "arrows" => Arc::new(arrow_ipc_stream::to_mem_table(t, dfctx).await?),
-            "mysql" => Arc::new(database::DatabaseLoader::MySQL.to_mem_table(t)?),
-            "sqlite" => Arc::new(database::DatabaseLoader::SQLite.to_mem_table(t)?),
-            "postgresql" => Arc::new(database::DatabaseLoader::Postgres.to_mem_table(t)?),
-            ext => {
-                return Err(Error::InvalidUri {
-                    msg: format!(
-                        "failed to register `{}` as table `{}`, unsupported table format `{}`",
-                        t.io_source, t.name, ext,
-                    ),
-                });
-            }
-        };
-
-        Ok(t)
+        match t.extension()? {
+            "csv" => csv::to_datafusion_table(t, dfctx).await,
+            "json" => json::to_datafusion_table(t, dfctx).await,
+            "ndjson" | "jsonl" => ndjson::to_datafusion_table(t, dfctx).await,
+            "parquet" => parquet::to_datafusion_table(t, dfctx).await,
+            "xls" | "xlsx" | "xlsb" | "ods" => excel::to_datafusion_table(t).await,
+            "arrow" => arrow_ipc_file::to_datafusion_table(t, dfctx).await,
+            "arrows" => arrow_ipc_stream::to_datafusion_table(t, dfctx).await,
+            "mysql" => Ok(LoadedTable::new_from_table(Arc::new(
+                database::DatabaseLoader::MySQL.to_mem_table(t)?,
+            ))),
+            "sqlite" => Ok(LoadedTable::new_from_table(Arc::new(
+                database::DatabaseLoader::SQLite.to_mem_table(t)?,
+            ))),
+            "postgresql" => Ok(LoadedTable::new_from_table(Arc::new(
+                database::DatabaseLoader::Postgres.to_mem_table(t)?,
+            ))),
+            ext => Err(Error::InvalidUri {
+                msg: format!(
+                    "failed to register `{}` as table `{}`, unsupported table format `{}`",
+                    t.io_source, t.name, ext,
+                ),
+            }),
+        }
     }
 }
 
@@ -903,8 +952,9 @@ schema:
 
         let t = TableSource::new("uk_cities", "sqlite://../test_data/sqlite/sample.db");
         let ctx = datafusion::prelude::SessionContext::new();
-        let table = load(&t, &ctx).await.unwrap();
-        let stats = table
+        let t = load(&t, &ctx).await.unwrap();
+        let stats = t
+            .table
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
@@ -928,8 +978,9 @@ uri: "sqlite://../test_data/sqlite/sample.{}"
             ))
             .unwrap();
             let ctx = datafusion::prelude::SessionContext::new();
-            let table = load(&t, &ctx).await.unwrap();
-            let stats = table
+            let t = load(&t, &ctx).await.unwrap();
+            let stats = t
+                .table
                 .scan(&ctx.state(), None, &[], None)
                 .await
                 .unwrap()

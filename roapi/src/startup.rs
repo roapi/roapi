@@ -21,6 +21,7 @@ pub enum Error {
     BuildFlightSqlServer { source: server::flight_sql::Error },
 }
 
+// TODO: replace table reloader with the new concurrent refresh infra
 pub struct TableReloader {
     reload_interval: Duration,
     ctx_ext: Arc<RwLock<RawRoapiContext>>,
@@ -58,7 +59,7 @@ impl Application {
     pub async fn build(config: Config) -> Result<Self, Error> {
         let default_host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
 
-        let handler_ctx = RawRoapiContext::new(&config)
+        let handler_ctx = RawRoapiContext::new(&config, !config.disable_read_only)
             .await
             .expect("Failed to create Roapi context");
 
@@ -70,7 +71,7 @@ impl Application {
         let tables = Arc::new(Mutex::new(tables));
 
         if config.disable_read_only {
-            let ctx_ext = Arc::new(RwLock::new(handler_ctx));
+            let ctx_ext: Arc<ConcurrentRoapiContext> = Arc::new(RwLock::new(handler_ctx));
             let postgres_server = Box::new(
                 server::postgres::PostgresServer::new(
                     ctx_ext.clone(),
@@ -97,14 +98,18 @@ impl Application {
             );
 
             let (http_server, http_addr) =
-                server::http::build_http_server::<ConcurrentRoapiContext>(
-                    ctx_ext,
-                    tables,
-                    &config,
-                    default_host,
-                )
-                .await
-                .context(BuildHttpServerSnafu)?;
+                server::http::build_http_server(ctx_ext.clone(), tables, &config, default_host)
+                    .await
+                    .context(BuildHttpServerSnafu)?;
+
+            let _handle = tokio::task::spawn(async move {
+                loop {
+                    if let Err(e) = ctx_ext.refresh_tables().await {
+                        error!("Failed to refresh table: {:?}", e);
+                    }
+                    time::sleep(Duration::from_millis(1000)).await;
+                }
+            });
 
             Ok(Self {
                 http_addr,
@@ -164,8 +169,6 @@ impl Application {
     }
 
     pub async fn run_until_stopped(self) -> Result<(), Error> {
-        // FIXME: exit from tokio spawn
-
         let postgres_server = self.postgres_server;
         info!(
             "🚀 Listening on {} for Postgres traffic...",

@@ -1,14 +1,15 @@
+use snafu::prelude::*;
+use std::io::Read;
+use std::sync::Arc;
+
 use datafusion::arrow;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
-use snafu::prelude::*;
-use std::io::Read;
-use std::sync::Arc;
 
 use crate::io::{self, BlobStoreType};
-use crate::table::{self, TableLoadOption, TableOptionDelta, TableSource};
+use crate::table::{self, LoadedTable, TableLoadOption, TableOptionDelta, TableSource};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -46,12 +47,28 @@ pub enum Error {
     LoadTable {
         source: deltalake::errors::DeltaTableError,
     },
+    #[snafu(display("Failed to update table: {source}"))]
+    UpdateTable {
+        source: deltalake::errors::DeltaTableError,
+    },
+}
+
+async fn update_table(
+    mut t: deltalake::DeltaTable,
+) -> Result<Arc<dyn TableProvider>, table::Error> {
+    t
+        // TODO: find a way to not do a full table update?
+        .update()
+        .await
+        .context(UpdateTableSnafu)
+        .context(table::LoadDeltaSnafu)?;
+    Ok(Arc::new(t) as Arc<dyn TableProvider>)
 }
 
 pub async fn to_datafusion_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
-) -> Result<Arc<dyn TableProvider>, table::Error> {
+) -> Result<LoadedTable, table::Error> {
     let opt = t
         .option
         .clone()
@@ -74,13 +91,23 @@ pub async fn to_datafusion_table(
     let batch_size = t.batch_size;
 
     if *use_memory_table {
-        to_mem_table(delta_table, blob_type, batch_size, dfctx).await
+        Ok(LoadedTable::new_from_table(
+            to_mem_table(delta_table, blob_type, batch_size, dfctx).await?,
+        ))
     } else {
-        to_delta_table(delta_table, blob_type).await
+        let curr_table = delta_table.clone();
+        let df_table = cast_datafusion_table(delta_table, blob_type)?;
+        Ok(LoadedTable::new(
+            df_table,
+            Box::new(move || {
+                let next_table = curr_table.clone();
+                Box::pin(update_table(next_table))
+            }),
+        ))
     }
 }
 
-pub async fn to_delta_table(
+fn cast_datafusion_table(
     delta_table: deltalake::DeltaTable,
     blob_type: io::BlobStoreType,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
@@ -208,7 +235,8 @@ mod tests {
             &ctx,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .table;
 
         validate_statistics(
             t.scan(&ctx.state(), None, &[], None)
@@ -235,7 +263,8 @@ mod tests {
             &ctx,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .table;
 
         match t.as_any().downcast_ref::<DeltaTable>() {
             Some(delta_table) => {

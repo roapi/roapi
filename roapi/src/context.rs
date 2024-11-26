@@ -25,10 +25,10 @@ pub struct RawRoapiContext {
 }
 
 impl RawRoapiContext {
-    pub async fn new(config: &Config) -> Result<Self, Whatever> {
+    pub async fn new(config: &Config, read_only: bool) -> Result<Self, Whatever> {
         let mut cq = match config.get_datafusion_config() {
-            Ok(df_cfg) => ColumnQ::new_with_config(df_cfg),
-            _ => ColumnQ::new(),
+            Ok(df_cfg) => ColumnQ::new_with_config(df_cfg, read_only),
+            _ => ColumnQ::new_with_read_only(read_only),
         };
 
         if config.tables.is_empty() && config.kvstores.is_empty() {
@@ -94,6 +94,8 @@ pub trait RoapiContext: Send + Sync + 'static {
     async fn get_response_format(&self) -> encoding::ContentType;
 
     async fn get_dfctx(&self) -> SessionContext;
+
+    async fn refresh_tables(&self) -> Result<(), ColumnQError>;
 }
 
 #[async_trait]
@@ -202,6 +204,13 @@ impl RoapiContext for RawRoapiContext {
     #[inline]
     async fn get_dfctx(&self) -> SessionContext {
         self.cq.dfctx.clone()
+    }
+
+    #[inline]
+    async fn refresh_tables(&self) -> Result<(), ColumnQError> {
+        Err(ColumnQError::Generic(
+            "Table refresh not supported in read only mode".to_string(),
+        ))
     }
 }
 
@@ -321,5 +330,11 @@ impl RoapiContext for ConcurrentRoapiContext {
     async fn get_dfctx(&self) -> SessionContext {
         let ctx = self.read().await;
         ctx.cq.dfctx.clone()
+    }
+
+    #[inline]
+    async fn refresh_tables(&self) -> Result<(), ColumnQError> {
+        let mut ctx = self.write().await;
+        ctx.cq.refresh_tables().await
     }
 }
