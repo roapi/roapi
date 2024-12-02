@@ -45,7 +45,7 @@ impl<'a> ExcelSubrange<'a> {
         rows_range_end: Option<usize>,
         columns_range_start: Option<usize>,
         columns_range_end: Option<usize>,
-    ) -> ExcelSubrange {
+    ) -> ExcelSubrange<'a> {
         let rows_range_start = rows_range_start.unwrap_or(usize::MIN);
         let rows_range_end = rows_range_end
             .or(range.end().map(|v| v.0 as usize))
