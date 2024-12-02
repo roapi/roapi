@@ -1,4 +1,3 @@
-use crate::table::{self, TableOptionExcel, TableSchema, TableSource};
 use arrow_schema::TimeUnit;
 use calamine::{open_workbook_auto, DataType as ExcelDataType, Range, Reader, Sheets};
 use datafusion::arrow::array::{
@@ -13,6 +12,8 @@ use snafu::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::vec;
+
+use crate::table::{self, LoadedTable, TableOptionExcel, TableSchema, TableSource};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -378,6 +379,12 @@ pub async fn to_mem_table(
         })
         .context(table::LoadExcelSnafu)
     }
+}
+
+pub async fn to_datafusion_table(t: &TableSource) -> Result<LoadedTable, table::Error> {
+    Ok(LoadedTable::new_from_table(Arc::new(
+        to_mem_table(t).await?,
+    )))
 }
 
 #[cfg(test)]

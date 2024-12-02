@@ -99,7 +99,7 @@ fn address_flight_sql_arg() -> clap::Arg {
 
 fn read_only_arg() -> clap::Arg {
     clap::Arg::new("disable-read-only")
-        .help("Start roapi in read write mode")
+        .help("Start roapi in read write mode, allowing tables to be updated at runtime")
         .required(false)
         .num_args(0)
         .long("disable-read-only")
