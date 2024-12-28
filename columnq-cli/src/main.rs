@@ -118,7 +118,11 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
 
     match args.get_one::<String>("SQL") {
         Some(query) => match cq.query_sql(query).await {
-            Ok(batches) => match args.get_one::<String>("output").unwrap_or(&String::from("table")).as_str() {
+            Ok(batches) => match args
+                .get_one::<String>("output")
+                .unwrap_or(&String::from("table"))
+                .as_str()
+            {
                 "table" => pretty::print_batches(&batches)?,
                 "json" => {
                     let bytes = encoding::json::record_batches_to_bytes(&batches)?;
