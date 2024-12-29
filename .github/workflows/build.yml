@@ -18,18 +18,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          ${{ runner.os }}-cargo-
     - name: Install minimal stable with clippy and rustfmt
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
@@ -52,18 +40,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          database-1-${{ runner.os }}-cargo-
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
@@ -85,18 +61,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          s3-1-${{ runner.os }}-cargo-
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
@@ -145,18 +109,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          s3-1-${{ runner.os }}-cargo-
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
@@ -219,18 +171,6 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          mac-1-${{ runner.os }}-cargo-
     - name: Install Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
