@@ -45,8 +45,6 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TC_VER }}
           target: aarch64-apple-darwin,x86_64-apple-darwin
-          profile: minimal
-          default: true
       - name: Install maturin
         run: pip3 install 'maturin<0.12'
       - name: Build wheels - x86_64
@@ -100,8 +98,6 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TC_VER }}
           target: ${{ matrix.platform.target }}
-          profile: minimal
-          default: true
       - name: Install maturin
         run: pip3 install 'maturin<0.12'
       - name: Build wheels
