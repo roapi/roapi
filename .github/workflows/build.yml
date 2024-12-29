@@ -21,7 +21,6 @@ jobs:
     - name: Install minimal stable with clippy and rustfmt
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: stable
         override: true
     - name: Check
@@ -43,7 +42,6 @@ jobs:
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: ${{ env.RUST_TC_VER }}
         components: clippy
         override: true
@@ -64,7 +62,6 @@ jobs:
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: ${{ env.RUST_TC_VER }}
         override: true
     - name: Setup minio server (S3)
@@ -112,7 +109,6 @@ jobs:
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: ${{ env.RUST_TC_VER }}
         override: true
     - name: Setup minio server (S3)
@@ -159,7 +155,6 @@ jobs:
     - name: Install minimal stable with clippy and rustfmt
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: stable
         override: true
     - name: Check
@@ -176,8 +171,6 @@ jobs:
       with:
         toolchain: ${{ env.RUST_TC_VER }}
         target: aarch64-apple-darwin
-        profile: minimal
-        default: true
     - name: Build binary - universal2
       env:
         DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
