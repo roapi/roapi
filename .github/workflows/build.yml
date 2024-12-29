@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/bin/
@@ -44,10 +44,6 @@ jobs:
       run: mold -run cargo build
     - name: Run tests
       run: mold -run cargo test
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   database_test:
     runs-on: ubuntu-latest
@@ -56,7 +52,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/bin/
@@ -81,10 +77,6 @@ jobs:
       run: mold -run cargo build --features database
     - name: Run tests
       run: mold -run cargo test --features database
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   object_store_memory_test:
     runs-on: ubuntu-latest
@@ -93,7 +85,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/bin/
@@ -153,7 +145,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/bin/
@@ -220,10 +212,6 @@ jobs:
         override: true
     - name: Check
       run: cargo clippy --no-default-features --features=native-tls
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   # cross compile from x86 mac to arm64, this is to make sure universal2
   # release will build without error
@@ -231,7 +219,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v2
+    - uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/bin/
@@ -259,10 +247,6 @@ jobs:
         export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
         cd roapi && \
           cargo build --bin roapi --features database-sqlite,database-mysql  --target aarch64-apple-darwin
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   docker_build:
     name: Docker Image Build
