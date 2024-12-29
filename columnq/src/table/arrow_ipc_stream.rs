@@ -3,6 +3,7 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::TableProvider;
 use log::debug;
 use snafu::prelude::*;
 
@@ -71,13 +72,18 @@ pub async fn to_mem_table(
     .context(table::CreateMemTableSnafu)
 }
 
-pub async fn to_datafusion_table(
-    t: &TableSource,
-    dfctx: &datafusion::execution::context::SessionContext,
+async fn to_datafusion_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, table::Error> {
+    Ok(Arc::new(to_mem_table(&t, &dfctx).await?))
+}
+
+pub async fn to_loaded_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
 ) -> Result<LoadedTable, table::Error> {
-    Ok(LoadedTable::new_from_table(Arc::new(
-        to_mem_table(t, dfctx).await?,
-    )))
+    LoadedTable::new_from_df_table_cb(move || to_datafusion_table(t.clone(), dfctx.clone())).await
 }
 
 #[cfg(test)]
@@ -85,7 +91,6 @@ mod tests {
     use super::*;
 
     use datafusion::common::stats::Precision;
-    use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
     use std::fs;
     use tempfile::Builder;

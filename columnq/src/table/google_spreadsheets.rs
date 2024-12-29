@@ -5,13 +5,14 @@ use datafusion::arrow::array::{ArrayRef, BooleanArray, PrimitiveArray, StringArr
 use datafusion::arrow::datatypes::{DataType, Field, Schema};
 use datafusion::arrow::datatypes::{Float64Type, Int64Type};
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::TableProvider;
 use regex::Regex;
 use reqwest::Client;
 use serde_derive::Deserialize;
 use snafu::prelude::*;
 use uriparse::URIReference;
 
-use crate::table::{self, TableOptionGoogleSpreadsheet, TableSource};
+use crate::table::{self, LoadedTable, TableOptionGoogleSpreadsheet, TableSource};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -308,9 +309,13 @@ async fn resolve_sheet_title<'a, 'b, 'c, 'd>(
     Ok(sheet.properties.title.clone())
 }
 
-pub async fn to_mem_table(
-    t: &TableSource,
-) -> Result<datafusion::datasource::MemTable, table::Error> {
+#[derive(Clone)]
+struct GetReqContext {
+    token: yup_oauth2::AccessToken,
+    url: String,
+}
+
+async fn gs_get_req_contex(t: &TableSource) -> Result<GetReqContext, table::Error> {
     lazy_static! {
         static ref RE_GOOGLE_SHEET: Regex =
             Regex::new(r"https://docs.google.com/spreadsheets/d/(.+)").unwrap();
@@ -347,17 +352,28 @@ pub async fn to_mem_table(
             .context(table::LoadGoogleSheetSnafu)?,
     };
 
-    let resp = gs_api_get(
-        token_str,
-        &format!(
-            "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{sheet_title}",
+    Ok(GetReqContext {
+        token,
+        url: format!(
+            "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{sheet_title}"
         ),
-    )
-    .await
-    .context(table::LoadGoogleSheetSnafu)?
-    .error_for_status()
-    .context(HttpStatusSnafu)
-    .context(table::LoadGoogleSheetSnafu)?;
+    })
+}
+
+async fn to_mem_table(
+    ctx: GetReqContext,
+) -> Result<datafusion::datasource::MemTable, table::Error> {
+    let token_str = ctx
+        .token
+        .token()
+        .ok_or(Error::EmptyToken {})
+        .context(table::LoadGoogleSheetSnafu)?;
+    let resp = gs_api_get(token_str, &ctx.url)
+        .await
+        .context(table::LoadGoogleSheetSnafu)?
+        .error_for_status()
+        .context(HttpStatusSnafu)
+        .context(table::LoadGoogleSheetSnafu)?;
 
     let sheet = resp
         .json::<SpreadsheetValues>()
@@ -371,6 +387,15 @@ pub async fn to_mem_table(
 
     datafusion::datasource::MemTable::try_new(schema_ref, partitions)
         .context(table::CreateMemTableSnafu)
+}
+
+pub async fn to_loaded_table(t: &TableSource) -> Result<LoadedTable, table::Error> {
+    let ctx = gs_get_req_contex(t).await?;
+    let to_datafusion_table = move || {
+        let ctx = ctx.clone();
+        async { Ok(Arc::new(to_mem_table(ctx).await?) as Arc<dyn TableProvider>) }
+    };
+    LoadedTable::new_from_df_table_cb(to_datafusion_table).await
 }
 
 #[cfg(test)]

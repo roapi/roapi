@@ -65,7 +65,7 @@ async fn update_table(
     Ok(Arc::new(t) as Arc<dyn TableProvider>)
 }
 
-pub async fn to_datafusion_table(
+pub async fn to_loaded_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<LoadedTable, table::Error> {
@@ -91,9 +91,16 @@ pub async fn to_datafusion_table(
     let batch_size = t.batch_size;
 
     if *use_memory_table {
-        Ok(LoadedTable::new_from_table(
-            to_mem_table(delta_table, blob_type, batch_size, dfctx).await?,
-        ))
+        let dfctx = dfctx.clone();
+        let to_datafusion_table = move || {
+            to_mem_table(
+                delta_table.clone(),
+                blob_type.clone(),
+                batch_size,
+                dfctx.clone(),
+            )
+        };
+        LoadedTable::new_from_df_table_cb(to_datafusion_table).await
     } else {
         let curr_table = delta_table.clone();
         let df_table = cast_datafusion_table(delta_table, blob_type)?;
@@ -151,7 +158,7 @@ pub async fn to_mem_table(
     delta_table: deltalake::DeltaTable,
     blob_type: io::BlobStoreType,
     batch_size: usize,
-    dfctx: &datafusion::execution::context::SessionContext,
+    dfctx: datafusion::execution::context::SessionContext,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
     let paths = delta_table
         .get_file_uris()
@@ -183,7 +190,7 @@ pub async fn to_mem_table(
                 |r| -> Result<Vec<RecordBatch>, table::Error> {
                     read_partition::<std::io::Cursor<Vec<u8>>>(r, batch_size)
                 },
-                dfctx,
+                &dfctx,
             )
             .await
             .context(table::IoSnafu)?
@@ -226,7 +233,7 @@ mod tests {
     #[tokio::test]
     async fn load_delta_as_memtable() {
         let ctx = SessionContext::new();
-        let t = to_datafusion_table(
+        let t = to_loaded_table(
             &TableSource::new("blogs".to_string(), test_data_path("blogs-delta")).with_option(
                 TableLoadOption::delta(TableOptionDelta {
                     use_memory_table: true,
@@ -254,7 +261,7 @@ mod tests {
     #[tokio::test]
     async fn load_delta_as_delta_source() {
         let ctx = SessionContext::new();
-        let t = to_datafusion_table(
+        let t = to_loaded_table(
             &TableSource::new("blogs".to_string(), test_data_path("blogs-delta")).with_option(
                 TableLoadOption::delta(TableOptionDelta {
                     use_memory_table: false,

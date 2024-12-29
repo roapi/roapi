@@ -8,6 +8,7 @@ use datafusion::arrow::datatypes::{
     DataType, Date32Type, Date64Type, Field, Float64Type, Int64Type, Schema,
 };
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::TableProvider;
 use snafu::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -381,10 +382,15 @@ pub async fn to_mem_table(
     }
 }
 
-pub async fn to_datafusion_table(t: &TableSource) -> Result<LoadedTable, table::Error> {
-    Ok(LoadedTable::new_from_table(Arc::new(
-        to_mem_table(t).await?,
-    )))
+async fn to_datafusion_table(t: TableSource) -> Result<Arc<dyn TableProvider>, table::Error> {
+    Ok(Arc::new(to_mem_table(&t).await?))
+}
+
+pub async fn to_loaded_table(t: TableSource) -> Result<LoadedTable, table::Error> {
+    let reloader = Box::new(move || {
+        Box::pin(to_datafusion_table(t.clone())) as crate::table::TableRefresherOutput
+    });
+    Ok(LoadedTable::new(reloader().await?, reloader))
 }
 
 #[cfg(test)]

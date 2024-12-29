@@ -116,7 +116,7 @@ impl ColumnQ {
         &mut self,
         name: impl Into<String>,
         mut refresher: TableRefresher,
-        interval: std::time::Duration,
+        interval: tokio::time::Duration,
     ) {
         let tx = self.refresh_tx.clone();
         let name = name.into();
@@ -176,9 +176,8 @@ impl ColumnQ {
         self.register_table(t.name.to_string(), loaded_table.table)?;
 
         if !self.read_only {
-            if let (Some(refresher), Some(interval)) = (loaded_table.refresher, t.refresh_interval)
-            {
-                self.register_refresher(t.name.to_string(), refresher, interval);
+            if let Some(interval) = t.refresh_interval {
+                self.register_refresher(t.name.to_string(), loaded_table.refresher, interval);
             }
         }
 
