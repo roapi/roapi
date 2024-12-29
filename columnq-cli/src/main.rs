@@ -90,7 +90,7 @@ async fn cmd_console(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let config = SessionConfig::default().with_information_schema(true);
     let mut cq = ColumnQ::new_with_config(config, true);
 
-    if let Some(tables) = args.get_many::<&str>("table") {
+    if let Some(tables) = args.get_many::<String>("table") {
         for v in tables {
             cq.load_table(&parse_table_uri_arg(v)?).await?;
         }
@@ -110,33 +110,37 @@ async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let config = SessionConfig::default().with_information_schema(true);
     let mut cq = ColumnQ::new_with_config(config, true);
 
-    if let Some(tables) = args.get_many::<&str>("table") {
+    if let Some(tables) = args.get_many::<String>("table") {
         for v in tables {
             cq.load_table(&parse_table_uri_arg(v)?).await?;
         }
     }
 
-    match args.get_one::<&str>("SQL") {
+    match args.get_one::<String>("SQL") {
         Some(query) => match cq.query_sql(query).await {
-            Ok(batches) => match args.get_one::<&str>("output").unwrap_or(&"table") {
-                &"table" => pretty::print_batches(&batches)?,
-                &"json" => {
+            Ok(batches) => match args
+                .get_one::<String>("output")
+                .unwrap_or(&String::from("table"))
+                .as_str()
+            {
+                "table" => pretty::print_batches(&batches)?,
+                "json" => {
                     let bytes = encoding::json::record_batches_to_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                &"csv" => {
+                "csv" => {
                     let bytes = encoding::csv::record_batches_to_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                &"parquet" => {
+                "parquet" => {
                     let bytes = encoding::parquet::record_batches_to_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                &"arrow" => {
+                "arrow" => {
                     let bytes = encoding::arrow::record_batches_to_file_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
-                &"arrows" => {
+                "arrows" => {
                     let bytes = encoding::arrow::record_batches_to_stream_bytes(&batches)?;
                     bytes_to_stdout(&bytes)?;
                 }
