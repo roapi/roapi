@@ -45,10 +45,17 @@ pub enum Error {
     },
 }
 
-pub async fn to_datafusion_table(
-    t: &TableSource,
-    dfctx: &datafusion::execution::context::SessionContext,
+pub async fn to_loaded_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
 ) -> Result<LoadedTable, table::Error> {
+    LoadedTable::new_from_df_table_cb(move || to_datafusion_table(t.clone(), dfctx.clone())).await
+}
+
+async fn to_datafusion_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, table::Error> {
     let opt = t
         .option
         .clone()
@@ -56,7 +63,7 @@ pub async fn to_datafusion_table(
     let TableOptionParquet { use_memory_table } = opt.as_parquet()?;
 
     if *use_memory_table {
-        Ok(LoadedTable::new_from_table(to_mem_table(t, dfctx).await?))
+        to_mem_table(&t, &dfctx).await
     } else {
         let table_url = ListingTableUrl::parse(t.get_uri_str())
             .context(ParseUriSnafu)
@@ -67,7 +74,7 @@ pub async fn to_datafusion_table(
         }
 
         let schemaref = datafusion_get_or_infer_schema(
-            dfctx,
+            &dfctx,
             &table_url,
             &options,
             &t.schema,
@@ -78,9 +85,9 @@ pub async fn to_datafusion_table(
         let table_config = ListingTableConfig::new(table_url)
             .with_listing_options(options)
             .with_schema(schemaref);
-        Ok(LoadedTable::new_from_table(Arc::new(
+        Ok(Arc::new(
             ListingTable::try_new(table_config).context(table::CreateListingTableSnafu)?,
-        )))
+        ))
     }
 }
 
@@ -165,15 +172,15 @@ mod tests {
     #[tokio::test]
     async fn load_flattened_parquet() {
         let ctx = SessionContext::new();
-        let t = to_datafusion_table(
-            &TableSource::new(
+        let t = to_loaded_table(
+            TableSource::new(
                 "blogs".to_string(),
                 test_data_path("blogs_flattened.parquet"),
             )
             .with_option(TableLoadOption::parquet(TableOptionParquet {
                 use_memory_table: false,
             })),
-            &ctx,
+            ctx.clone(),
         )
         .await
         .unwrap();

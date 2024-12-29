@@ -433,7 +433,7 @@ pub struct TableSource {
     pub batch_size: usize,
     pub partition_columns: Option<Vec<TableColumn>>,
     #[serde(default = "TableSource::default_refresh_interval")]
-    pub refresh_interval: Option<std::time::Duration>,
+    pub refresh_interval: Option<tokio::time::Duration>,
 }
 
 impl From<KeyValueSource> for TableSource {
@@ -650,36 +650,39 @@ pub async fn datafusion_get_or_infer_schema(
     })
 }
 
-// pub type TableRefresher = Arc<
-//     tokio::sync::Mutex<
-//         dyn FnMut() -> Pin<Box<dyn Future<Output = Result<Arc<dyn TableProvider>, Error>> + Send>>
-//             + Send,
-//     >,
-// >;
-//
-pub type TableRefresher = Box<
-    dyn FnMut() -> Pin<Box<dyn Future<Output = Result<Arc<dyn TableProvider>, Error>> + Send>>
-        + Send,
->;
+pub type TableRefresherOutput =
+    Pin<Box<dyn Future<Output = Result<Arc<dyn TableProvider>, Error>> + Send>>;
+
+pub type TableRefresher = Box<dyn FnMut() -> TableRefresherOutput + Send>;
 
 pub struct LoadedTable {
     pub table: Arc<dyn TableProvider>,
-    pub refresher: Option<TableRefresher>,
+    pub refresher: TableRefresher,
 }
 
 impl LoadedTable {
     pub fn new(table: Arc<dyn TableProvider>, refresher: TableRefresher) -> Self {
-        Self {
-            table,
-            refresher: Some(refresher),
-        }
+        Self { table, refresher }
     }
 
-    pub fn new_from_table(table: Arc<dyn TableProvider>) -> Self {
-        Self {
-            table,
-            refresher: None,
-        }
+    pub async fn new_from_df_table_cb<F, Fut>(to_df_table_cb: F) -> Result<Self, Error>
+    where
+        F: Fn() -> Fut + Send + 'static,
+        Fut: Future<Output = Result<Arc<dyn TableProvider>, Error>> + Send + 'static,
+    {
+        let refresher =
+            Box::new(move || Box::pin(to_df_table_cb()) as crate::table::TableRefresherOutput);
+        Ok(Self::new(refresher().await?, refresher))
+    }
+
+    pub fn new_from_df_table(table: Arc<dyn TableProvider>) -> Self {
+        let t = table.clone();
+        let refresher = Box::new(move || {
+            let t = table.clone();
+            let fut = async { Ok(t) };
+            Box::pin(fut) as crate::table::TableRefresherOutput
+        });
+        Self::new(t, refresher)
     }
 }
 
@@ -689,50 +692,54 @@ pub async fn load(
 ) -> Result<LoadedTable, Error> {
     if let Some(opt) = &t.option {
         Ok(match opt {
-            TableLoadOption::json { .. } => json::to_datafusion_table(t, dfctx).await?,
+            TableLoadOption::json { .. } => json::to_loaded_table(t.clone(), dfctx.clone()).await?,
             TableLoadOption::ndjson { .. } | TableLoadOption::jsonl { .. } => {
-                ndjson::to_datafusion_table(t, dfctx).await?
+                ndjson::to_loaded_table(t.clone(), dfctx.clone()).await?
             }
-            TableLoadOption::csv { .. } => csv::to_datafusion_table(t, dfctx).await?,
-            TableLoadOption::parquet { .. } => parquet::to_datafusion_table(t, dfctx).await?,
+            TableLoadOption::csv { .. } => csv::to_loaded_table(t.clone(), dfctx.clone()).await?,
+            TableLoadOption::parquet { .. } => {
+                parquet::to_loaded_table(t.clone(), dfctx.clone()).await?
+            }
             TableLoadOption::google_spreadsheet(_) => {
-                LoadedTable::new_from_table(Arc::new(google_spreadsheets::to_mem_table(t).await?))
+                google_spreadsheets::to_loaded_table(t).await?
             }
             TableLoadOption::xlsx { .. }
             | TableLoadOption::xls { .. }
             | TableLoadOption::xlsb { .. }
-            | TableLoadOption::ods { .. } => excel::to_datafusion_table(t).await?,
-            TableLoadOption::delta { .. } => delta::to_datafusion_table(t, dfctx).await?,
-            TableLoadOption::arrow { .. } => arrow_ipc_file::to_datafusion_table(t, dfctx).await?,
-            TableLoadOption::arrows { .. } => {
-                arrow_ipc_stream::to_datafusion_table(t, dfctx).await?
+            | TableLoadOption::ods { .. } => excel::to_loaded_table(t.clone()).await?,
+            TableLoadOption::delta { .. } => delta::to_loaded_table(t, dfctx).await?,
+            TableLoadOption::arrow { .. } => {
+                arrow_ipc_file::to_loaded_table(t.clone(), dfctx.clone()).await?
             }
-            TableLoadOption::mysql { .. } => LoadedTable::new_from_table(Arc::new(
+            TableLoadOption::arrows { .. } => {
+                arrow_ipc_stream::to_loaded_table(t.clone(), dfctx.clone()).await?
+            }
+            TableLoadOption::mysql { .. } => LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::MySQL.to_mem_table(t)?,
             )),
-            TableLoadOption::sqlite { .. } => LoadedTable::new_from_table(Arc::new(
+            TableLoadOption::sqlite { .. } => LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::SQLite.to_mem_table(t)?,
             )),
-            TableLoadOption::postgres { .. } => LoadedTable::new_from_table(Arc::new(
+            TableLoadOption::postgres { .. } => LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::Postgres.to_mem_table(t)?,
             )),
         })
     } else {
         match t.extension()? {
-            "csv" => csv::to_datafusion_table(t, dfctx).await,
-            "json" => json::to_datafusion_table(t, dfctx).await,
-            "ndjson" | "jsonl" => ndjson::to_datafusion_table(t, dfctx).await,
-            "parquet" => parquet::to_datafusion_table(t, dfctx).await,
-            "xls" | "xlsx" | "xlsb" | "ods" => excel::to_datafusion_table(t).await,
-            "arrow" => arrow_ipc_file::to_datafusion_table(t, dfctx).await,
-            "arrows" => arrow_ipc_stream::to_datafusion_table(t, dfctx).await,
-            "mysql" => Ok(LoadedTable::new_from_table(Arc::new(
+            "csv" => csv::to_loaded_table(t.clone(), dfctx.clone()).await,
+            "json" => json::to_loaded_table(t.clone(), dfctx.clone()).await,
+            "ndjson" | "jsonl" => ndjson::to_loaded_table(t.clone(), dfctx.clone()).await,
+            "parquet" => parquet::to_loaded_table(t.clone(), dfctx.clone()).await,
+            "xls" | "xlsx" | "xlsb" | "ods" => excel::to_loaded_table(t.clone()).await,
+            "arrow" => arrow_ipc_file::to_loaded_table(t.clone(), dfctx.clone()).await,
+            "arrows" => arrow_ipc_stream::to_loaded_table(t.clone(), dfctx.clone()).await,
+            "mysql" => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::MySQL.to_mem_table(t)?,
             ))),
-            "sqlite" => Ok(LoadedTable::new_from_table(Arc::new(
+            "sqlite" => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::SQLite.to_mem_table(t)?,
             ))),
-            "postgresql" => Ok(LoadedTable::new_from_table(Arc::new(
+            "postgresql" => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::Postgres.to_mem_table(t)?,
             ))),
             ext => Err(Error::InvalidUri {
