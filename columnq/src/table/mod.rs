@@ -426,6 +426,7 @@ pub struct TableSource {
     pub name: String,
     #[serde(flatten)]
     pub io_source: TableIoSource,
+    pub io_option: Option<io::IoOption>,
     pub schema: Option<TableSchema>,
     pub schema_from_files: Option<Vec<String>>,
     pub option: Option<TableLoadOption>,
@@ -447,6 +448,7 @@ impl From<KeyValueSource> for TableSource {
             batch_size: Self::default_batch_size(),
             partition_columns: None,
             refresh_interval: None,
+            io_option: None,
         }
     }
 }
@@ -464,6 +466,7 @@ impl TableSource {
             batch_size: Self::default_batch_size(),
             partition_columns: None,
             refresh_interval: Self::default_refresh_interval(),
+            io_option: None,
         }
     }
 
@@ -493,6 +496,12 @@ impl TableSource {
     #[must_use]
     pub fn with_option(mut self, option: impl Into<TableLoadOption>) -> Self {
         self.option = Some(option.into());
+        self
+    }
+
+    #[inline]
+    pub fn with_io_option(mut self, io_option: io::IoOption) -> Self {
+        self.io_option = Some(io_option);
         self
     }
 

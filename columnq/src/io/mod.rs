@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use serde_derive::Deserialize;
 use snafu::prelude::*;
 
 pub mod fs;
@@ -14,6 +17,16 @@ pub enum Error {
     },
     #[snafu(display("Unsupported URI scheme: {scheme}"))]
     InvalidUriScheme { scheme: String },
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(tag = "protcol")]
+#[serde(deny_unknown_fields)]
+pub enum IoOption {
+    http {
+        headers: Option<HashMap<String, String>>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
