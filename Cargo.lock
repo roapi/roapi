@@ -1461,7 +1461,7 @@ dependencies = [
  "dotenvy",
  "futures",
  "graphql-parser",
- "hyper-rustls 0.27.5",
+ "hyper-rustls 0.24.2",
  "hyper-tls",
  "lazy_static",
  "log",
@@ -2212,8 +2212,7 @@ dependencies = [
 [[package]]
 name = "delta_kernel"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2efadff110c892910f5b1b09a764845dd136f5dabdd802e64f2968586fbe19e6"
+source = "git+https://github.com/houqp/delta-kernel-rs?rev=92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1#92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1"
 dependencies = [
  "arrow-arith",
  "arrow-array",
@@ -2250,8 +2249,7 @@ dependencies = [
 [[package]]
 name = "delta_kernel_derive"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49fe89c064f509a4a00c00c895af4b966e4b592e7ddf6a476eae856a9b883623"
+source = "git+https://github.com/houqp/delta-kernel-rs?rev=92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1#92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3201,7 +3199,7 @@ dependencies = [
  "httpdate",
  "itoa",
  "pin-project-lite",
- "socket2 0.5.8",
+ "socket2 0.4.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -4640,7 +4638,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157c5a9d7ea5c2ed2d9fb8f495b64759f7816c7eaea54ba3978f0d63000162e3"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.93",
@@ -4936,7 +4934,6 @@ checksum = "43e734407157c3c2034e0258f5e4473ddb361b1e85f95a66690d67264d7cd1da"
 dependencies = [
  "base64 0.22.1",
  "bytes",
- "encoding_rs",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -4965,7 +4962,6 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper",
- "system-configuration",
  "tokio",
  "tokio-native-tls",
  "tokio-rustls 0.26.1",
@@ -5779,27 +5775,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.93",
-]
-
-[[package]]
-name = "system-configuration"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c879d448e9d986b661742763247d3693ed13609438cf3d006f51f5368a5ba6b"
-dependencies = [
- "bitflags 2.6.0",
- "core-foundation 0.9.4",
- "system-configuration-sys",
-]
-
-[[package]]
-name = "system-configuration-sys"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e1d1b10ced5ca923a1fcb8d03e96b8d3268065d724548c0211415ff6ac6bac4"
-dependencies = [
- "core-foundation-sys",
- "libc",
 ]
 
 [[package]]
