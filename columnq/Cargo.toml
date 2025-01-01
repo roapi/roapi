@@ -25,7 +25,7 @@ bytes = { version = "1" }
 percent-encoding = "2.3"
 
 # datafusion
-datafusion = { version = "42", features = ["serde"] }
+datafusion = { version = "43", features = ["serde"] }
 
 # spreadsheets reader
 calamine = { version = "0.23.1", features = ["dates"] }
@@ -47,7 +47,7 @@ hyper-rustls = { version = "0.27", default-features = false, optional = true }
 
 object_store = { version = "0.11", features = ["aws", "gcp", "azure"] }
 tokio-postgres = { version = "0.7.12", optional = true }
-deltalake = { version = "0.20", features = [
+deltalake = { version = "0.22", features = [
     "datafusion",
     "datafusion-ext",
     "s3",

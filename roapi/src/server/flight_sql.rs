@@ -24,7 +24,7 @@ use arrow_flight::{
 };
 use async_trait::async_trait;
 use base64::prelude::*;
-use columnq::arrow_schema::Schema;
+use columnq::datafusion::arrow::datatypes::Schema;
 use columnq::datafusion::arrow::ipc::writer::IpcWriteOptions;
 use columnq::datafusion::arrow::record_batch::RecordBatch;
 use columnq::datafusion::logical_expr::LogicalPlan;

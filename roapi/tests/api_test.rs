@@ -80,7 +80,7 @@ async fn test_sql_invalid_post() {
         serde_json::json!({
             "code": 400,
             "error": "plan_sql",
-            "message": "Failed to plan execution from SQL query: SQL error: ParserError(\"Expected identifier, found: EOF\")"
+            "message": "Failed to plan execution from SQL query: SQL error: ParserError(\"Expected: identifier, found: EOF\")"
         })
     );
 }

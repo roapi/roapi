@@ -22,9 +22,9 @@ snmalloc-rs = { version = "0.3", optional = true }
 # dependencies related to axum
 tokio = { version = "1", features = ["rt-multi-thread"] }
 hyper = { version = "0", features = ["http1", "server"] }
-axum = { version = "0.6", features = ["default", "http2"] }
+axum = { version = "0.7", features = ["default", "http2"] }
 tower = { version = "0" }  # introduced only for tower::layer::util::Stack
-tower-http = { version = "0.4.4", features = ["cors", "trace"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
 tower-layer = "0"
 tower-service = "0"
 tracing = "0"
@@ -45,9 +45,9 @@ thiserror = "1"
 snafu = "0"
 
 # flight-sql
-arrow-flight = { version = "52", features = ["flight-sql-experimental"] }
-tonic = { version = "0.11", features = ["tls"] }
-prost = "0.12"
+arrow-flight = { version = "53", features = ["flight-sql-experimental"] }
+tonic = { version = "0", features = ["tls"] }
+prost = "0"
 futures = "0"
 # TODO: remove once_cell dependency
 once_cell = "*"
@@ -57,12 +57,12 @@ uuid = "1"
 [dependencies.convergence]
 version = "0"
 git = "https://github.com/roapi/convergence.git"
-rev = "40c5fca38d83611f6c941c9ffe86b597c2e5851b"
+rev = "da158f04d09460ff9416f3328df419ce01dbae77"
 
 [dependencies.convergence-arrow]
 version = "0"
 git = "https://github.com/roapi/convergence.git"
-rev = "40c5fca38d83611f6c941c9ffe86b597c2e5851b"
+rev = "da158f04d09460ff9416f3328df419ce01dbae77"
 
 [features]
 default = ["rustls", "snmalloc"]
