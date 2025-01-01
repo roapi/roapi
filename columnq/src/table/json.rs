@@ -6,10 +6,11 @@ use datafusion::arrow::datatypes::Schema;
 #[allow(deprecated)]
 use datafusion::arrow::json::reader::ReaderBuilder;
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::TableProvider;
 use serde_json::value::Value;
 use snafu::prelude::*;
 
-use crate::table::{self, TableLoadOption, TableSchema, TableSource};
+use crate::table::{self, LoadedTable, TableLoadOption, TableSchema, TableSource};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -211,6 +212,20 @@ pub async fn to_mem_table(
         partitions,
     )
     .context(table::CreateMemTableSnafu)
+}
+
+async fn to_datafusion_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
+) -> Result<Arc<dyn TableProvider>, table::Error> {
+    Ok(Arc::new(to_mem_table(&t, &dfctx).await?))
+}
+
+pub async fn to_loaded_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
+) -> Result<LoadedTable, table::Error> {
+    LoadedTable::new_from_df_table_cb(move || to_datafusion_table(t.clone(), dfctx.clone())).await
 }
 
 #[cfg(test)]

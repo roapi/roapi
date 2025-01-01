@@ -11,7 +11,7 @@ use log::debug;
 use snafu::prelude::*;
 
 use crate::table::{
-    self, datafusion_get_or_infer_schema, TableLoadOption, TableOptionCsv, TableSource,
+    self, datafusion_get_or_infer_schema, LoadedTable, TableLoadOption, TableOptionCsv, TableSource,
 };
 
 #[derive(Debug, Snafu)]
@@ -34,9 +34,9 @@ pub enum Error {
     },
 }
 
-pub async fn to_datafusion_table(
-    t: &TableSource,
-    dfctx: &datafusion::execution::context::SessionContext,
+async fn to_datafusion_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
     let opt = t
         .option
@@ -46,7 +46,7 @@ pub async fn to_datafusion_table(
         .as_csv()
         .expect("Invalid table format option, expect csv");
     if opt.use_memory_table {
-        return to_mem_table(t, dfctx).await;
+        return to_mem_table(&t, &dfctx).await;
     }
     let table_url =
         ListingTableUrl::parse(t.get_uri_str()).with_context(|_| table::ListingTableUriSnafu {
@@ -58,7 +58,7 @@ pub async fn to_datafusion_table(
     }
 
     let schemaref = datafusion_get_or_infer_schema(
-        dfctx,
+        &dfctx,
         &table_url,
         &options,
         &t.schema,
@@ -74,7 +74,7 @@ pub async fn to_datafusion_table(
     ))
 }
 
-pub async fn to_mem_table(
+async fn to_mem_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
@@ -154,6 +154,13 @@ pub async fn to_mem_table(
     );
 
     Ok(table)
+}
+
+pub async fn to_loaded_table(
+    t: TableSource,
+    dfctx: datafusion::execution::context::SessionContext,
+) -> Result<LoadedTable, table::Error> {
+    LoadedTable::new_from_df_table_cb(move || to_datafusion_table(t.clone(), dfctx.clone())).await
 }
 
 #[cfg(test)]

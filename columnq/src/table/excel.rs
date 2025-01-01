@@ -1,4 +1,3 @@
-use crate::table::{self, TableOptionExcel, TableSchema, TableSource};
 use calamine::{open_workbook_auto, DataType as ExcelDataType, Range, Reader, Sheets};
 use datafusion::arrow::array::{
     ArrayRef, BooleanArray, DurationSecondArray, NullArray, PrimitiveArray, StringArray,
@@ -8,10 +7,13 @@ use datafusion::arrow::datatypes::{
     DataType, Date32Type, Date64Type, Field, Float64Type, Int64Type, Schema, TimeUnit,
 };
 use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::TableProvider;
 use snafu::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::vec;
+
+use crate::table::{self, LoadedTable, TableOptionExcel, TableSchema, TableSource};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -44,7 +46,7 @@ impl<'a> ExcelSubrange<'a> {
         rows_range_end: Option<usize>,
         columns_range_start: Option<usize>,
         columns_range_end: Option<usize>,
-    ) -> ExcelSubrange {
+    ) -> ExcelSubrange<'a> {
         let rows_range_start = rows_range_start.unwrap_or(usize::MIN);
         let rows_range_end = rows_range_end
             .or(range.end().map(|v| v.0 as usize))
@@ -377,6 +379,17 @@ pub async fn to_mem_table(
         })
         .context(table::LoadExcelSnafu)
     }
+}
+
+async fn to_datafusion_table(t: TableSource) -> Result<Arc<dyn TableProvider>, table::Error> {
+    Ok(Arc::new(to_mem_table(&t).await?))
+}
+
+pub async fn to_loaded_table(t: TableSource) -> Result<LoadedTable, table::Error> {
+    let reloader = Box::new(move || {
+        Box::pin(to_datafusion_table(t.clone())) as crate::table::TableRefresherOutput
+    });
+    Ok(LoadedTable::new(reloader().await?, reloader))
 }
 
 #[cfg(test)]

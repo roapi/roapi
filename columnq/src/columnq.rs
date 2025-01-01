@@ -6,6 +6,7 @@ use std::sync::Once;
 use datafusion::arrow;
 use datafusion::arrow::array::as_string_array;
 use datafusion::arrow::array::StringArray;
+use datafusion::datasource::TableProvider;
 use datafusion::error::DataFusionError;
 use datafusion::error::Result as DatafusionResult;
 pub use datafusion::execution::context::SessionConfig;
@@ -17,12 +18,14 @@ use object_store::azure::MicrosoftAzureBuilder;
 use object_store::gcp::GoogleCloudStorageBuilder;
 use object_store::DynObjectStore;
 use object_store::ObjectStore;
+use tokio::sync::mpsc;
 use url::Url;
 
 use crate::error::{ColumnQError, QueryError};
 use crate::io::BlobStoreType;
 use crate::query;
 use crate::table::TableIoSource;
+use crate::table::TableRefresher;
 use crate::table::{self, KeyValueSource, TableSource};
 
 static START: Once = Once::new();
@@ -31,6 +34,9 @@ pub struct ColumnQ {
     pub dfctx: SessionContext,
     schema_map: HashMap<String, arrow::datatypes::SchemaRef>,
     kv_catalog: HashMap<String, Arc<HashMap<String, String>>>,
+    read_only: bool,
+    refresh_rx: mpsc::Receiver<(String, Arc<dyn TableProvider>)>,
+    refresh_tx: mpsc::Sender<(String, Arc<dyn TableProvider>)>,
 }
 
 impl ColumnQ {
@@ -39,10 +45,20 @@ impl ColumnQ {
             SessionConfig::from_env()
                 .expect("Valid environment variables should be set to create SessionConfig")
                 .with_information_schema(true),
+            true,
         )
     }
 
-    pub fn new_with_config(config: SessionConfig) -> Self {
+    pub fn new_with_read_only(read_only: bool) -> Self {
+        Self::new_with_config(
+            SessionConfig::from_env()
+                .expect("Valid environment variables should be set to create SessionConfig")
+                .with_information_schema(true),
+            read_only,
+        )
+    }
+
+    pub fn new_with_config(config: SessionConfig, read_only: bool) -> Self {
         START.call_once(|| {
             deltalake::aws::register_handlers(None);
             deltalake::azure::register_handlers(None);
@@ -58,15 +74,69 @@ impl ColumnQ {
                 false,
             );
         let rn_config = RuntimeConfig::new();
-        let runtime_env = RuntimeEnv::new(rn_config).unwrap();
+        let runtime_env =
+            RuntimeEnv::new(rn_config).expect("failed to create datafusion runtime env");
         let dfctx = SessionContext::new_with_config_rt(config, Arc::new(runtime_env));
-
         let schema_map = HashMap::<String, arrow::datatypes::SchemaRef>::new();
+        let (refresh_tx, refresh_rx) = mpsc::channel(1024);
+
         Self {
             dfctx,
             schema_map,
             kv_catalog: HashMap::new(),
+            refresh_rx,
+            refresh_tx,
+            read_only,
         }
+    }
+
+    fn register_table(
+        &mut self,
+        name: impl Into<String>,
+        table: Arc<dyn TableProvider>,
+    ) -> Result<(), ColumnQError> {
+        let name = name.into();
+        let schema = table.schema();
+        self.dfctx.deregister_table(name.as_str())?;
+        self.dfctx.register_table(name.as_str(), table)?;
+        self.schema_map.insert(name, schema);
+
+        Ok(())
+    }
+
+    pub async fn refresh_tables(&mut self) -> Result<(), ColumnQError> {
+        while let Ok((name, table)) = self.refresh_rx.try_recv() {
+            log::debug!("refreshing table {name:?}...");
+            self.register_table(name, table)?;
+        }
+        Ok(())
+    }
+
+    fn register_refresher(
+        &mut self,
+        name: impl Into<String>,
+        mut refresher: TableRefresher,
+        interval: tokio::time::Duration,
+    ) {
+        let tx = self.refresh_tx.clone();
+        let name = name.into();
+        let _handle = tokio::task::spawn(async move {
+            loop {
+                tokio::time::sleep(interval).await;
+                match refresher().await {
+                    Ok(table) => {
+                        log::debug!("sending newly refreshed table {name:?}");
+                        if tx.send((name.clone(), table)).await.is_err() {
+                            log::info!("receiver dropped, ending refresh loop for table {name:?}");
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("failed to refresh table {name:?}: {e:?}");
+                    }
+                }
+            }
+        });
     }
 
     pub async fn load_table(&mut self, t: &TableSource) -> Result<(), ColumnQError> {
@@ -102,10 +172,14 @@ impl ColumnQ {
             TableIoSource::Memory(_) => {}
         };
 
-        let table = table::load(t, &self.dfctx).await?;
-        self.schema_map.insert(t.name.clone(), table.schema());
-        self.dfctx.deregister_table(t.name.as_str())?;
-        self.dfctx.register_table(t.name.as_str(), table)?;
+        let loaded_table = table::load(t, &self.dfctx).await?;
+        self.register_table(t.name.to_string(), loaded_table.table)?;
+
+        if !self.read_only {
+            if let Some(interval) = t.refresh_interval {
+                self.register_refresher(t.name.to_string(), loaded_table.refresher, interval);
+            }
+        }
 
         Ok(())
     }
@@ -178,7 +252,7 @@ impl ColumnQ {
 
         let kv_entry = self.kv_catalog.entry(kv.name.clone());
         let (key, value) = (kv.key.clone(), kv.value.clone());
-        let table = table::load(&kv.into(), &self.dfctx).await?;
+        let table = table::load(&kv.into(), &self.dfctx).await?.table;
         let schema = table.schema();
         let key_schema_idx = schema.index_of(&key)?;
         if schema.field(key_schema_idx).data_type() != &DataType::Utf8 {
@@ -254,7 +328,7 @@ impl ColumnQ {
         table_name: &str,
         params: &HashMap<String, String>,
     ) -> Result<Vec<arrow::record_batch::RecordBatch>, QueryError> {
-        query::rest::query_table(&self.dfctx, table_name, params).await
+        query::rest::exec_table_query(&self.dfctx, table_name, params).await
     }
 
     pub fn kv_get(&self, kv_name: &str, key: &str) -> Result<Option<&String>, QueryError> {

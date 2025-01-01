@@ -5,7 +5,7 @@ use std::sync::Arc;
 use datafusion::arrow;
 use datafusion::prelude::SessionContext;
 
-use columnq::table::csv::to_datafusion_table;
+use columnq::table::csv::to_loaded_table;
 use columnq::table::{TableIoSource, TableLoadOption, TableOptionCsv, TableSource};
 
 #[tokio::test]
@@ -34,19 +34,20 @@ async fn infer_csv_schema_by_selected_files() {
     assert!(table_source.schema_from_files.is_some());
     assert_eq!(table_source.schema, None);
 
-    match to_datafusion_table(&table_source, &ctx).await {
+    match to_loaded_table(table_source.clone(), ctx.clone()).await {
         Err(columnq::table::Error::Generic { msg }) => {
             assert_eq!(&msg, "schema_from_files is an empty list");
         }
         _ => panic!("Empty schema_from_files should result in an error"),
     }
 
-    let t = to_datafusion_table(
-        &table_source.with_schema_from_files(vec!["year=2023/month=1/p001.csv".to_string()]),
-        &ctx,
+    let t = to_loaded_table(
+        table_source.with_schema_from_files(vec!["year=2023/month=1/p001.csv".to_string()]),
+        ctx,
     )
     .await
-    .unwrap();
+    .unwrap()
+    .table;
 
     let mut builder = SchemaBuilder::new();
     builder.push(Field::new("ts", DataType::Int64, true));

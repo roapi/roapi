@@ -16,24 +16,11 @@ jobs:
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          ${{ runner.os }}-cargo-
     - name: Install minimal stable with clippy and rustfmt
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: stable
         override: true
     - name: Check
@@ -44,34 +31,17 @@ jobs:
       run: mold -run cargo build
     - name: Run tests
       run: mold -run cargo test
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   database_test:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          database-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          database-1-${{ runner.os }}-cargo-
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: ${{ env.RUST_TC_VER }}
         components: clippy
         override: true
@@ -81,34 +51,17 @@ jobs:
       run: mold -run cargo build --features database
     - name: Run tests
       run: mold -run cargo test --features database
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   object_store_memory_test:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          s3-1-${{ runner.os }}-cargo-
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: ${{ env.RUST_TC_VER }}
         override: true
     - name: Setup minio server (S3)
@@ -151,24 +104,11 @@ jobs:
     env:
       RUSTFLAGS: "-C target-cpu=skylake"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          s3-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          s3-1-${{ runner.os }}-cargo-
     - name: Install rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: ${{ env.RUST_TC_VER }}
         override: true
     - name: Setup minio server (S3)
@@ -211,45 +151,26 @@ jobs:
   openssl_build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install minimal stable with clippy and rustfmt
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        profile: default
         toolchain: stable
         override: true
     - name: Check
       run: cargo clippy --no-default-features --features=native-tls
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   # cross compile from x86 mac to arm64, this is to make sure universal2
   # release will build without error
   mac_cross_build:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-        restore-keys: |
-          mac-1-${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
-          mac-1-${{ runner.os }}-cargo-
+    - uses: actions/checkout@v4
     - name: Install Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: ${{ env.RUST_TC_VER }}
         target: aarch64-apple-darwin
-        profile: minimal
-        default: true
     - name: Build binary - universal2
       env:
         DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
@@ -259,16 +180,12 @@ jobs:
         export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
         cd roapi && \
           cargo build --bin roapi --features database-sqlite,database-mysql  --target aarch64-apple-darwin
-    - name: Trim cache
-      run: |
-        which cargo-cache || cargo install cargo-cache
-        cargo cache trim -l 1G
 
   docker_build:
     name: Docker Image Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build Docker image

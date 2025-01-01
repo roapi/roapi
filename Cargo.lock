@@ -1696,7 +1696,7 @@ checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 
 [[package]]
 name = "columnq"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "bytes",
  "calamine",
@@ -5890,7 +5890,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "arrow-cast 53.1.0",
  "arrow-flight",
