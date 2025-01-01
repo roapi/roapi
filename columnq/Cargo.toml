@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.9.2"
+version = "0.9.3"
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 authors = ["QP Hou <dave2008713@gmail.com>"]
@@ -38,12 +38,12 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 
 # net
-reqwest = { version = "0.12", default-features = false, features = [
+reqwest = { version = "0", default-features = false, features = [
     "blocking",
     "json",
 ] }
-hyper-tls = { version = "0.6.0", default-features = false, optional = true }
-hyper-rustls = { version = "0.27", default-features = false, optional = true }
+hyper-tls = { version = "0", default-features = false, optional = true }
+hyper-rustls = { version = "0", default-features = false, optional = true }
 
 object_store = { version = "0.11", features = ["aws", "gcp", "azure"] }
 tokio-postgres = { version = "0.7.12", optional = true }
@@ -81,10 +81,11 @@ rustls = [
     "deltalake/s3",
     "deltalake/azure",
     "yup-oauth2/hyper-rustls",
+    "hyper-tls?/vendored",
 ]
 native-tls-vendored = [
     "reqwest/native-tls-vendored",
-    "hyper-tls/vendored",
+    "hyper-tls?/vendored",
     "deltalake/s3",
     "deltalake/azure",
     "yup-oauth2/hyper-tls",
