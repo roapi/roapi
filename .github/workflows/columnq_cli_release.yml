@@ -12,7 +12,7 @@ on:
 
 env:
   # NOTE: the version is also defined in build.yml and Dockerfile
-  RUST_TC_VER: "1.78.0"
+  RUST_TC_VER: "1.83.0"
 
 jobs:
   # skip tag version validation on non-release branch run

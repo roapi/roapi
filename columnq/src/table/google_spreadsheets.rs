@@ -316,7 +316,7 @@ struct GetReqContext {
 }
 
 async fn gs_get_req_contex(t: &TableSource) -> Result<GetReqContext, table::Error> {
-    lazy_static! {
+    lazy_static::lazy_static! {
         static ref RE_GOOGLE_SHEET: Regex =
             Regex::new(r"https://docs.google.com/spreadsheets/d/(.+)").unwrap();
     }

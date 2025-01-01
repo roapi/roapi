@@ -5,7 +5,7 @@ use arrow_flight::sql::client::FlightSqlServiceClient;
 use arrow_flight::FlightInfo;
 use arrow_ipc::convert::try_schema_from_ipc_buffer;
 use columnq::arrow::datatypes::{DataType, Field};
-use columnq::arrow_schema::ArrowError;
+use columnq::arrow::error::ArrowError;
 use columnq::datafusion::arrow;
 use columnq::datafusion::arrow::record_batch::RecordBatch;
 use columnq::table::TableSource;
@@ -86,7 +86,7 @@ async fn test_flight_sql_spacex_aggregate() {
     let res = pretty_format_batches(batches.as_slice()).unwrap();
     let expected = r#"
 +----------+--------------------------+
-| COUNT(*) | launch_cnt               |
+| count(*) | launch_cnt               |
 +----------+--------------------------+
 | 5        | 5e9d0d95eda69955f709d1eb |
 | 122      | 5e9d0d95eda69973a809d1ec |

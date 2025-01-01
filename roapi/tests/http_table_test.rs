@@ -1,14 +1,13 @@
 mod helpers;
 
 use std::collections::HashMap;
-use std::net::TcpListener;
 use std::sync::Arc;
 
 use axum::http::HeaderMap;
 use axum::{extract::State, response::IntoResponse, routing::get};
 
 async fn http_server() -> (
-    axum::Server<hyper::server::conn::AddrIncoming, axum::routing::IntoMakeService<axum::Router>>,
+    axum::serve::Serve<axum::Router, axum::Router>,
     std::net::SocketAddr,
 ) {
     async fn serve_json(
@@ -29,15 +28,13 @@ async fn http_server() -> (
         .route("/table.json", get(serve_json))
         .with_state(state);
 
-    let listener = TcpListener::bind("localhost:0").unwrap();
+    let listener = tokio::net::TcpListener::bind("localhost:0").await.unwrap();
     let addr = listener
         .local_addr()
         .expect("Failed to get address from listener");
 
-    let http_server = axum::Server::from_tcp(listener).unwrap();
-    let http_server = http_server.serve(app.into_make_service());
-
-    (http_server, addr)
+    let serve = axum::serve(listener, app);
+    (serve, addr)
 }
 
 #[tokio::test]

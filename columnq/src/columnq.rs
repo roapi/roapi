@@ -75,7 +75,7 @@ impl ColumnQ {
             );
         let rn_config = RuntimeConfig::new();
         let runtime_env =
-            RuntimeEnv::new(rn_config).expect("failed to create datafusion runtime env");
+            RuntimeEnv::try_new(rn_config).expect("failed to create datafusion runtime env");
         let dfctx = SessionContext::new_with_config_rt(config, Arc::new(runtime_env));
         let schema_map = HashMap::<String, arrow::datatypes::SchemaRef>::new();
         let (refresh_tx, refresh_rx) = mpsc::channel(1024);

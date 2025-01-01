@@ -49,7 +49,7 @@ impl TableReloader {
 
 pub struct Application {
     http_addr: std::net::SocketAddr,
-    http_server: server::http::HttpApiServer,
+    http_server: server::http::HttpApiServe,
     table_reloader: Option<TableReloader>,
     postgres_server: Box<dyn server::RunnableServer>,
     flight_sql_server: Box<dyn server::RunnableServer>,
