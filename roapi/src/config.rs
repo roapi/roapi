@@ -113,6 +113,7 @@ fn reload_interval_arg() -> clap::Arg {
         .num_args(1)
         .long("reload-interval")
         .short('r')
+        .value_parser(clap::value_parser!(u64))
 }
 
 fn response_format_arg() -> clap::Arg {
