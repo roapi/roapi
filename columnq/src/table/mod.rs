@@ -489,7 +489,7 @@ impl TableSource {
 
     #[inline]
     pub fn default_refresh_interval() -> Option<std::time::Duration> {
-        Some(std::time::Duration::from_secs(60))
+        Some(std::time::Duration::from_secs(60 * 60))
     }
 
     #[inline]
