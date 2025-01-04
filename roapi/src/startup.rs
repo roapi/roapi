@@ -71,6 +71,7 @@ impl Application {
         let tables = Arc::new(Mutex::new(tables));
 
         if config.disable_read_only {
+            info!("Read-only mode disabled.");
             let ctx_ext: Arc<ConcurrentRoapiContext> = Arc::new(RwLock::new(handler_ctx));
             let postgres_server = Box::new(
                 server::postgres::PostgresServer::new(
@@ -119,6 +120,7 @@ impl Application {
                 table_reloader,
             })
         } else {
+            info!("Running in read-only mode.");
             let ctx_ext = Arc::new(handler_ctx);
             let postgres_server = Box::new(
                 server::postgres::PostgresServer::new(

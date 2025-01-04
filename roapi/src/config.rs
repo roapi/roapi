@@ -104,6 +104,7 @@ fn read_only_arg() -> clap::Arg {
         .num_args(0)
         .long("disable-read-only")
         .short('d')
+        .action(clap::ArgAction::SetTrue)
 }
 
 fn reload_interval_arg() -> clap::Arg {
@@ -135,8 +136,8 @@ fn config_arg() -> clap::Arg {
         .short('c')
 }
 
-pub fn get_configuration() -> Result<Config, Whatever> {
-    let matches = clap::Command::new("roapi")
+fn get_cmd() -> clap::Command {
+    clap::Command::new("roapi")
         .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
         .about(
@@ -153,7 +154,10 @@ pub fn get_configuration() -> Result<Config, Whatever> {
             response_format_arg(),
             table_arg(),
         ])
-        .get_matches();
+}
+
+pub fn get_configuration() -> Result<Config, Whatever> {
+    let matches = get_cmd().get_matches();
 
     let mut config: Config = match matches.get_one::<String>("config") {
         None => Config::default(),
@@ -199,7 +203,7 @@ pub fn get_configuration() -> Result<Config, Whatever> {
         config.addr.flight_sql = Some(addr.to_owned());
     }
 
-    if matches.contains_id("disable-read-only") {
+    if matches.get_one::<bool>("disable-read-only") == Some(&true) {
         config.disable_read_only = true;
     }
 
@@ -235,5 +239,31 @@ impl Config {
             }
             None => Ok(SessionConfig::default()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_read_only() {
+        let matches = get_cmd()
+            .try_get_matches_from(vec!["roapi", "--disable-read-only", "-c", "a.yml"])
+            .unwrap();
+        assert!(matches.get_one::<bool>("disable-read-only").unwrap());
+
+        let matches = get_cmd()
+            .try_get_matches_from(vec!["roapi", "-c", "a.yml"])
+            .unwrap();
+        assert_eq!(matches.get_one::<bool>("disable-read-only"), Some(&false));
+    }
+
+    #[test]
+    fn test_parse_reload_interval() {
+        let matches = get_cmd()
+            .try_get_matches_from(vec!["roapi", "--reload-interval", "10", "-c", "a.yml"])
+            .unwrap();
+        assert_eq!(matches.get_one::<u64>("reload-interval"), Some(&10));
     }
 }
