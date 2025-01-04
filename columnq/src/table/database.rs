@@ -10,6 +10,7 @@ pub enum DatabaseLoader {
     feature = "database-postgres"
 ))]
 mod imp {
+    use crate::table::TableLoadOption;
     use crate::table::{self, TableSource};
     use connectorx::prelude::*;
     use log::debug;
@@ -39,7 +40,16 @@ mod imp {
             t: &TableSource,
         ) -> Result<datafusion::datasource::MemTable, table::Error> {
             debug!("loading database table data...");
-            let queries = CXQuery::naked(format!("SELECT * FROM {}", t.name));
+
+            let table_name = match &t.option {
+                Some(TableLoadOption::mysql { table }) => table.clone(),
+                Some(TableLoadOption::postgres { table }) => table.clone(),
+                Some(TableLoadOption::sqlite { table }) => table.clone(),
+                _ => None,
+            }
+            .unwrap_or(t.name.clone());
+
+            let queries = CXQuery::naked(format!("SELECT * FROM {}", table_name));
             let source = SourceConn::try_from(t.get_uri_str())
                 .context(SourceSnafu)
                 .context(table::LoadDatabaseSnafu)?;

@@ -323,9 +323,15 @@ pub enum TableLoadOption {
     delta(TableOptionDelta),
     arrow {},
     arrows {},
-    mysql {},
-    sqlite {},
-    postgres {},
+    mysql {
+        table: Option<String>,
+    },
+    sqlite {
+        table: Option<String>,
+    },
+    postgres {
+        table: Option<String>,
+    },
 }
 
 impl TableLoadOption {
@@ -418,6 +424,10 @@ impl std::fmt::Display for TableIoSource {
             TableIoSource::Memory(_) => write!(f, "memory"),
         }
     }
+}
+
+fn table_name_from_path(path: &uriparse::Path) -> Option<String> {
+    Some(path.segments()[0].to_string())
 }
 
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -542,9 +552,16 @@ impl TableSource {
                 let uri = URIReference::try_from(uri.as_str()).ok()?;
                 let scheme = uri.scheme()?;
                 match scheme.as_str() {
-                    "mysql" => Some(TableLoadOption::mysql {}),
-                    "sqlite" => Some(TableLoadOption::sqlite {}),
-                    "postgresql" => Some(TableLoadOption::postgres {}),
+                    "mysql" => Some(TableLoadOption::mysql {
+                        table: table_name_from_path(uri.path()),
+                    }),
+                    "sqlite" => Some(TableLoadOption::sqlite {
+                        // for sqlite, db uri only contains the path to the db file
+                        table: None,
+                    }),
+                    "postgresql" => Some(TableLoadOption::postgres {
+                        table: table_name_from_path(uri.path()),
+                    }),
                     _ => None,
                 }
             }
@@ -595,9 +612,9 @@ impl TableSource {
                     None => {
                         // database sources doesn't have suffix extension, parse scheme instead
                         match TableSource::parse_option(&self.io_source) {
-                            Some(TableLoadOption::mysql {}) => "mysql",
-                            Some(TableLoadOption::sqlite {}) => "sqlite",
-                            Some(TableLoadOption::postgres {}) => "postgres",
+                            Some(TableLoadOption::mysql { .. }) => "mysql",
+                            Some(TableLoadOption::sqlite { .. }) => "sqlite",
+                            Some(TableLoadOption::postgres { .. }) => "postgres",
                             _ => {
                                 return Err(Error::Extension {
                                     msg: format!("unsupported extension in uri: {uri}"),
@@ -958,6 +975,18 @@ schema:
             TableSource::new("foo", "s3://a/b/foo.csv")
                 .with_option(TableLoadOption::csv(TableOptionCsv::default())),
             t
+        );
+    }
+
+    #[test]
+    fn test_table_name_from_path() {
+        assert_eq!(
+            table_name_from_path(
+                &URIReference::try_from("mysql://root:123456@1.1.1.1:3306/test")
+                    .unwrap()
+                    .path()
+            ),
+            Some("test".to_string()),
         );
     }
 
