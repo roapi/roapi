@@ -19,6 +19,8 @@ pub enum Error {
     BuildHttpServer { source: server::http::Error },
     #[snafu(display("Failed to build FlightSQL server: {source}"))]
     BuildFlightSqlServer { source: server::flight_sql::Error },
+    #[snafu(display("Failed to build context: {source}"))]
+    BuildContext { source: crate::context::Error },
 }
 
 // TODO: replace table reloader with the new concurrent refresh infra
@@ -61,7 +63,7 @@ impl Application {
 
         let handler_ctx = RawRoapiContext::new(&config, !config.disable_read_only)
             .await
-            .expect("Failed to create Roapi context");
+            .context(BuildContextSnafu)?;
 
         let tables = config
             .tables
