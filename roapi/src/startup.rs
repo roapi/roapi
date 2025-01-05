@@ -23,36 +23,9 @@ pub enum Error {
     BuildContext { source: crate::context::Error },
 }
 
-// TODO: replace table reloader with the new concurrent refresh infra
-pub struct TableReloader {
-    reload_interval: Duration,
-    ctx_ext: Arc<RwLock<RawRoapiContext>>,
-    tables: Arc<Mutex<HashMap<String, TableSource>>>,
-}
-
-impl TableReloader {
-    pub async fn run(self) {
-        let mut interval = time::interval(self.reload_interval);
-        loop {
-            interval.tick().await;
-            for (table_name, table) in self.tables.lock().await.iter() {
-                match self.ctx_ext.load_table(table).await {
-                    Ok(_) => {
-                        info!("table {} reloaded", table_name);
-                    }
-                    Err(err) => {
-                        error!("failed to reload table {}: {:?}", table_name, err);
-                    }
-                }
-            }
-        }
-    }
-}
-
 pub struct Application {
     http_addr: std::net::SocketAddr,
     http_server: server::http::HttpApiServe,
-    table_reloader: Option<TableReloader>,
     postgres_server: Box<dyn server::RunnableServer>,
     flight_sql_server: Box<dyn server::RunnableServer>,
 }
@@ -84,12 +57,6 @@ impl Application {
                 .await,
             );
 
-            let table_reloader = config.reload_interval.map(|reload_interval| TableReloader {
-                reload_interval,
-                tables: tables.clone(),
-                ctx_ext: ctx_ext.clone(),
-            });
-
             let flight_sql_server = Box::new(
                 server::flight_sql::RoapiFlightSqlServer::new(
                     ctx_ext.clone(),
@@ -119,7 +86,6 @@ impl Application {
                 http_server,
                 postgres_server,
                 flight_sql_server,
-                table_reloader,
             })
         } else {
             info!("Running in read-only mode.");
@@ -155,7 +121,6 @@ impl Application {
                 http_server,
                 postgres_server,
                 flight_sql_server,
-                table_reloader: None,
             })
         }
     }
@@ -196,12 +161,6 @@ impl Application {
                 .await
                 .expect("Failed to run FlightSQL server");
         });
-
-        if let Some(table_reloader) = self.table_reloader {
-            tokio::spawn(async move {
-                table_reloader.run().await;
-            });
-        }
 
         info!("🚀 Listening on {} for HTTP traffic...", self.http_addr);
         self.http_server.await.expect("Failed to start HTTP server");

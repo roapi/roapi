@@ -37,8 +37,8 @@ pub struct RawRoapiContext {
 impl RawRoapiContext {
     pub async fn new(config: &Config, read_only: bool) -> Result<Self, Error> {
         let mut cq = match config.get_datafusion_config() {
-            Ok(df_cfg) => ColumnQ::new_with_config(df_cfg, read_only),
-            _ => ColumnQ::new_with_read_only(read_only),
+            Ok(df_cfg) => ColumnQ::new_with_config(df_cfg, read_only, config.reload_interval),
+            _ => ColumnQ::new_with_read_only(read_only, config.reload_interval),
         };
 
         if config.tables.is_empty() && config.kvstores.is_empty() {
