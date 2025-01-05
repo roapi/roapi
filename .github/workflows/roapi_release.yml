@@ -108,7 +108,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-widnows
+          name: wheels-windows
           path: dist
       - name: Archive binary
         if: "startsWith(github.ref, 'refs/tags/')"
