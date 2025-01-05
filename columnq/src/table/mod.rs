@@ -443,8 +443,8 @@ pub struct TableSource {
     #[serde(default = "TableSource::default_batch_size")]
     pub batch_size: usize,
     pub partition_columns: Option<Vec<TableColumn>>,
-    #[serde(default = "TableSource::default_refresh_interval")]
-    pub refresh_interval: Option<tokio::time::Duration>,
+    #[serde(default = "TableSource::default_reload_interval")]
+    pub reload_interval: Option<tokio::time::Duration>,
 }
 
 impl From<KeyValueSource> for TableSource {
@@ -457,7 +457,7 @@ impl From<KeyValueSource> for TableSource {
             option: kv.option,
             batch_size: Self::default_batch_size(),
             partition_columns: None,
-            refresh_interval: None,
+            reload_interval: None,
             io_option: None,
         }
     }
@@ -475,7 +475,7 @@ impl TableSource {
             option,
             batch_size: Self::default_batch_size(),
             partition_columns: None,
-            refresh_interval: Self::default_refresh_interval(),
+            reload_interval: Self::default_reload_interval(),
             io_option: None,
         }
     }
@@ -498,8 +498,8 @@ impl TableSource {
     }
 
     #[inline]
-    pub fn default_refresh_interval() -> Option<std::time::Duration> {
-        Some(std::time::Duration::from_secs(60 * 60))
+    pub fn default_reload_interval() -> Option<std::time::Duration> {
+        None
     }
 
     #[inline]
@@ -534,8 +534,8 @@ impl TableSource {
         self
     }
 
-    pub fn with_refresh_interval(mut self, interval: std::time::Duration) -> Self {
-        self.refresh_interval = Some(interval);
+    pub fn with_reload_interval(mut self, interval: std::time::Duration) -> Self {
+        self.reload_interval = Some(interval);
         self
     }
 

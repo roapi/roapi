@@ -13,11 +13,13 @@ pub use datafusion::execution::context::SessionConfig;
 use datafusion::execution::context::SessionContext;
 use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
 use datafusion::physical_plan::collect;
+use log::info;
 use object_store::aws::AmazonS3Builder;
 use object_store::azure::MicrosoftAzureBuilder;
 use object_store::gcp::GoogleCloudStorageBuilder;
 use object_store::DynObjectStore;
 use object_store::ObjectStore;
+use std::time::Duration;
 use tokio::sync::mpsc;
 use url::Url;
 
@@ -35,6 +37,7 @@ pub struct ColumnQ {
     schema_map: HashMap<String, arrow::datatypes::SchemaRef>,
     kv_catalog: HashMap<String, Arc<HashMap<String, String>>>,
     read_only: bool,
+    reload_interval: Option<Duration>,
     refresh_rx: mpsc::Receiver<(String, Arc<dyn TableProvider>)>,
     refresh_tx: mpsc::Sender<(String, Arc<dyn TableProvider>)>,
 }
@@ -46,19 +49,25 @@ impl ColumnQ {
                 .expect("Valid environment variables should be set to create SessionConfig")
                 .with_information_schema(true),
             true,
+            None,
         )
     }
 
-    pub fn new_with_read_only(read_only: bool) -> Self {
+    pub fn new_with_read_only(read_only: bool, reload_interval: Option<Duration>) -> Self {
         Self::new_with_config(
             SessionConfig::from_env()
                 .expect("Valid environment variables should be set to create SessionConfig")
                 .with_information_schema(true),
             read_only,
+            reload_interval,
         )
     }
 
-    pub fn new_with_config(config: SessionConfig, read_only: bool) -> Self {
+    pub fn new_with_config(
+        config: SessionConfig,
+        read_only: bool,
+        reload_interval: Option<Duration>,
+    ) -> Self {
         START.call_once(|| {
             deltalake::aws::register_handlers(None);
             deltalake::azure::register_handlers(None);
@@ -87,6 +96,7 @@ impl ColumnQ {
             refresh_rx,
             refresh_tx,
             read_only,
+            reload_interval,
         }
     }
 
@@ -123,6 +133,7 @@ impl ColumnQ {
         let _handle = tokio::task::spawn(async move {
             loop {
                 tokio::time::sleep(interval).await;
+                info!("reloading table {name:?}...");
                 match refresher().await {
                     Ok(table) => {
                         log::debug!("sending newly refreshed table {name:?}");
@@ -176,8 +187,12 @@ impl ColumnQ {
         self.register_table(t.name.to_string(), loaded_table.table)?;
 
         if !self.read_only {
-            if let Some(interval) = t.refresh_interval {
+            if let Some(interval) = t.reload_interval.or(self.reload_interval) {
                 self.register_refresher(t.name.to_string(), loaded_table.refresher, interval);
+                info!(
+                    "table {} will be reloaded every {:?} seconds.",
+                    t.name, interval
+                );
             }
         }
 

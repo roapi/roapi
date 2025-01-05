@@ -88,7 +88,7 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
 
 async fn cmd_console(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let config = SessionConfig::default().with_information_schema(true);
-    let mut cq = ColumnQ::new_with_config(config, true);
+    let mut cq = ColumnQ::new_with_config(config, true, None);
 
     if let Some(tables) = args.get_many::<String>("table") {
         for v in tables {
@@ -108,7 +108,7 @@ fn bytes_to_stdout(bytes: &[u8]) -> anyhow::Result<()> {
 
 async fn cmd_sql(args: &clap::ArgMatches) -> anyhow::Result<()> {
     let config = SessionConfig::default().with_information_schema(true);
-    let mut cq = ColumnQ::new_with_config(config, true);
+    let mut cq = ColumnQ::new_with_config(config, true, None);
 
     if let Some(tables) = args.get_many::<String>("table") {
         for v in tables {
