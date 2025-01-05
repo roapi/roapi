@@ -12,11 +12,21 @@ use columnq::error::QueryError;
 use columnq::table::TableSource;
 use columnq::ColumnQ;
 use log::info;
-use snafu::{whatever, Whatever};
+use snafu::prelude::*;
 use tokio::sync::RwLock;
 
 use crate::config::Config;
 use crate::error::ApiErrResp;
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    #[snafu(display("No table nor kvstore found in config"))]
+    NoData,
+    #[snafu(display("Failed to load table: {source}"))]
+    LoadTable { source: ColumnQError },
+    #[snafu(display("Failed to load kvstore: {source}"))]
+    LoadKvstore { source: ColumnQError },
+}
 
 pub struct RawRoapiContext {
     pub cq: ColumnQ,
@@ -25,25 +35,25 @@ pub struct RawRoapiContext {
 }
 
 impl RawRoapiContext {
-    pub async fn new(config: &Config, read_only: bool) -> Result<Self, Whatever> {
+    pub async fn new(config: &Config, read_only: bool) -> Result<Self, Error> {
         let mut cq = match config.get_datafusion_config() {
             Ok(df_cfg) => ColumnQ::new_with_config(df_cfg, read_only),
             _ => ColumnQ::new_with_read_only(read_only),
         };
 
         if config.tables.is_empty() && config.kvstores.is_empty() {
-            whatever!("No table nor kvstore found in config");
+            return Err(Error::NoData);
         }
 
         for t in config.tables.iter() {
             info!("loading `{}` as table `{}`", t.io_source, t.name);
-            whatever!(cq.load_table(t).await, "Failed to load table");
+            cq.load_table(t).await.context(LoadTableSnafu)?;
             info!("registered `{}` as table `{}`", t.io_source, t.name);
         }
 
         for k in config.kvstores.iter() {
             info!("loading `{}` as kv store `{}`", k.io_source, k.name);
-            whatever!(cq.load_kv(k.clone()).await, "Failed to load kvstore");
+            cq.load_kv(k.clone()).await.context(LoadKvstoreSnafu)?;
             info!("registered `{}` as kv store `{}`", k.io_source, k.name);
         }
 

@@ -136,7 +136,7 @@ fn config_arg() -> clap::Arg {
         .short('c')
 }
 
-fn get_cmd() -> clap::Command {
+pub fn get_cmd() -> clap::Command {
     clap::Command::new("roapi")
         .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
@@ -156,8 +156,8 @@ fn get_cmd() -> clap::Command {
         ])
 }
 
-pub fn get_configuration() -> Result<Config, Whatever> {
-    let matches = get_cmd().get_matches();
+pub fn get_configuration(cmd: clap::Command) -> Result<Config, Whatever> {
+    let matches = cmd.get_matches();
 
     let mut config: Config = match matches.get_one::<String>("config") {
         None => Config::default(),
