@@ -125,7 +125,7 @@ advanced format specific table options:
 
 ```yaml
 addr:
-  http: 0.0.0.0:8084
+  http: 0.0.0.0:8080
   postgres: 0.0.0.0:5433
 tables:
   - name: "blogs"
