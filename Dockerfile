@@ -1,4 +1,4 @@
-ARG RUST_VER=1.83.0-bookworm
+ARG RUST_VER=1.84.0-bookworm
 ARG RUSTFLAGS='-C target-cpu=skylake'
 ARG FEATURES="database"
 

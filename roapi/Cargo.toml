@@ -1,6 +1,6 @@
 [package]
 name = "roapi"
-version = "0.12.3"
+version = "0.12.4"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -72,6 +72,7 @@ snmalloc = ["snmalloc-rs"]
 database = ["columnq/database"]
 database-sqlite = ["columnq/database-sqlite"]
 database-mysql = ["columnq/database-mysql"]
+database-postgres = ["columnq/database-postgres"]
 
 [dev-dependencies]
 reqwest = { version = "0", default-features = false, features = [

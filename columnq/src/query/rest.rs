@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::logical_expr::Operator;
@@ -56,16 +57,14 @@ fn num_parse_err(e: std::num::ParseIntError) -> QueryError {
     }
 }
 
+static RE_REST_FILTER: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"filter\[(?P<column>.+)\](?P<op>.+)?").unwrap());
+
 /// Applies a rest query to the provided DataFrame.
 pub fn apply_query(
     mut df: datafusion::dataframe::DataFrame,
     params: &HashMap<String, String>,
 ) -> Result<datafusion::dataframe::DataFrame, QueryError> {
-    lazy_static::lazy_static! {
-        static ref RE_REST_FILTER: Regex =
-            Regex::new(r"filter\[(?P<column>.+)\](?P<op>.+)?").unwrap();
-    }
-
     // filter[col1]eq='foo'
     // filter[col2]lt=2
     for (key, val) in params.iter().filter(|(k, _)| k.starts_with("filter[")) {

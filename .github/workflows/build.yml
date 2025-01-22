@@ -8,7 +8,7 @@ on:
 
 env:
   # NOTE: the version is also defined in roapi_release.yml and Dockerfile
-  RUST_TC_VER: "1.83.0"
+  RUST_TC_VER: "1.84.0"
 
 jobs:
   build:

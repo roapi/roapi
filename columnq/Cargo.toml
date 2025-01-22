@@ -1,6 +1,6 @@
 [package]
 name = "columnq"
-version = "0.9.3"
+version = "0.9.4"
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
 authors = ["QP Hou <dave2008713@gmail.com>"]
@@ -14,7 +14,6 @@ path = "src/lib.rs"
 url = "2.5"
 log = "0.4"
 regex = "1"
-lazy_static = "1.5"
 thiserror = "1"
 snafu = "0.8"
 serde_json = { version = "1" }
