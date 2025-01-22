@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use datafusion::arrow::array::{ArrayRef, BooleanArray, PrimitiveArray, StringArray};
 use datafusion::arrow::datatypes::{DataType, Field, Schema};
@@ -256,10 +257,10 @@ async fn fetch_auth_token(
     sa.token(scopes).await.context(ObtainTokenSnafu)
 }
 
-async fn resolve_sheet_title<'a, 'b, 'c, 'd>(
-    token: &'a str,
-    spreadsheet_id: &'b str,
-    uri: &'c URIReference<'d>,
+async fn resolve_sheet_title(
+    token: &str,
+    spreadsheet_id: &str,
+    uri: &URIReference<'_>,
 ) -> Result<String, Error> {
     // look up sheet title by sheet id through API
     let resp = gs_api_get(
@@ -315,11 +316,10 @@ struct GetReqContext {
     url: String,
 }
 
+static RE_GOOGLE_SHEET: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"https://docs.google.com/spreadsheets/d/(.+)").unwrap());
+
 async fn gs_get_req_contex(t: &TableSource) -> Result<GetReqContext, table::Error> {
-    lazy_static::lazy_static! {
-        static ref RE_GOOGLE_SHEET: Regex =
-            Regex::new(r"https://docs.google.com/spreadsheets/d/(.+)").unwrap();
-    }
     let uri_str = t.get_uri_str();
     if RE_GOOGLE_SHEET.captures(uri_str).is_none() {
         return Err(Error::InvalidUri {

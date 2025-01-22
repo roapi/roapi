@@ -137,12 +137,28 @@ fn config_arg() -> clap::Arg {
 }
 
 pub fn get_cmd() -> clap::Command {
+    let features: &[&'static str] = &[
+        #[cfg(feature = "database")]
+        "database",
+        #[cfg(feature = "database-sqlite")]
+        "database-sqlite",
+        #[cfg(feature = "database-postgres")]
+        "database-postgres",
+        #[cfg(feature = "database-mysql")]
+        "database-mysql",
+        #[cfg(feature = "snmalloc")]
+        "snmalloc",
+        #[cfg(feature = "rustls")]
+        "rustls",
+    ];
+
     clap::Command::new("roapi")
         .version(env!("CARGO_PKG_VERSION"))
         .author("QP Hou")
         .about(
             "Create full-fledged APIs for static datasets without writing a single line of code.",
         )
+        .after_help(format!("Built with features: {}", features.join(", ")))
         .arg_required_else_help(true)
         .args(&[
             address_http_arg(),

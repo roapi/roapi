@@ -1451,7 +1451,7 @@ checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
 name = "columnq"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "bytes",
  "calamine",
@@ -1463,7 +1463,6 @@ dependencies = [
  "graphql-parser",
  "hyper-rustls 0.24.2",
  "hyper-tls",
- "lazy_static",
  "log",
  "object_store",
  "percent-encoding",
@@ -5023,7 +5022,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.12.3"
+version = "0.12.4"
 dependencies = [
  "arrow-cast",
  "arrow-flight",
@@ -5058,7 +5057,7 @@ dependencies = [
  "tokio-stream",
  "toml",
  "tonic",
- "tower 0.5.2",
+ "tower 0.4.13",
  "tower-http",
  "tower-layer",
  "tower-service",
