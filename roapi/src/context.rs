@@ -11,6 +11,7 @@ use columnq::error::ColumnQError;
 use columnq::error::QueryError;
 use columnq::table::TableSource;
 use columnq::ColumnQ;
+use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm, TokenData, errors::Error as JwtError};
 use log::info;
 use snafu::prelude::*;
 use tokio::sync::RwLock;
@@ -31,11 +32,12 @@ pub enum Error {
 pub struct RawRoapiContext {
     pub cq: ColumnQ,
     pub response_format: encoding::ContentType,
+    pub jwt_secret: String,
     // TODO: store pre serialized schema in handler context
 }
 
 impl RawRoapiContext {
-    pub async fn new(config: &Config, read_only: bool) -> Result<Self, Error> {
+    pub async fn new(config: &Config, read_only: bool, jwt_secret: String) -> Result<Self, Error> {
         let mut cq = match config.get_datafusion_config() {
             Ok(df_cfg) => ColumnQ::new_with_config(df_cfg, read_only, config.reload_interval),
             _ => ColumnQ::new_with_read_only(read_only, config.reload_interval),
@@ -60,7 +62,16 @@ impl RawRoapiContext {
         Ok(Self {
             cq,
             response_format: config.response_format,
+            jwt_secret,
         })
+    }
+
+    pub fn authorize_jwt(&self, token: &str) -> Result<TokenData<Claims>, JwtError> {
+        decode::<Claims>(
+            token,
+            &DecodingKey::from_secret(self.jwt_secret.as_ref()),
+            &Validation::new(Algorithm::HS256),
+        )
     }
 }
 

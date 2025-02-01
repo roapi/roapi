@@ -277,6 +277,32 @@ houqp=> select count(*) from uk_cities;
 (1 row)
 ```
 
+### JWT Authorization
+
+ROAPI now supports JWT authorization for multi-tenant usage. You can authorize a claim from your IDP and map claims to data fusion context for enforcing row level security.
+
+To enable JWT authorization, you need to provide a `jwt_secret` parameter in the configuration file.
+
+Example configuration:
+
+```yaml
+addr:
+  http: 0.0.0.0:8080
+  postgres: 0.0.0.0:5433
+tables:
+  - name: "blogs"
+    uri: "test_data/blogs.parquet"
+jwt_secret: "your_jwt_secret"
+```
+
+Usage example:
+
+```bash
+curl -X POST \
+    -H 'Authorization: Bearer <your_jwt_token>' \
+    -d "SELECT city, lat, lng FROM uk_cities LIMIT 2" \
+    localhost:8080/api/sql
+```
 
 ## Features
 

@@ -17,7 +17,8 @@ pub fn register_app_routes<H: RoapiContext>() -> Router {
         .route(
             "/api/schema/:table_name",
             get(api::schema::get_by_table_name::<H>),
-        );
+        )
+        .route("/api/jwt/authorize", post(api::jwt::authorize::<H>));
 
     if H::read_only_mode() {
         router = router
