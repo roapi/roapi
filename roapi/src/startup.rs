@@ -138,32 +138,38 @@ impl Application {
     }
 
     pub async fn run_until_stopped(self) -> Result<(), Error> {
+        let mut handles = vec![];
+
         let postgres_server = self.postgres_server;
         info!(
             "🚀 Listening on {} for Postgres traffic...",
             postgres_server.addr()
         );
-        tokio::spawn(async move {
+        handles.push(tokio::spawn(async move {
             postgres_server
                 .run()
                 .await
                 .expect("Failed to run postgres server");
-        });
+        }));
 
         let flight_sql_server = self.flight_sql_server;
         info!(
             "🚀 Listening on {} for FlightSQL traffic...",
             flight_sql_server.addr()
         );
-        tokio::spawn(async move {
+        handles.push(tokio::spawn(async move {
             flight_sql_server
                 .run()
                 .await
                 .expect("Failed to run FlightSQL server");
-        });
+        }));
 
         info!("🚀 Listening on {} for HTTP traffic...", self.http_addr);
-        self.http_server.await.expect("Failed to start HTTP server");
+        handles.push(tokio::spawn(async move {
+            self.http_server.await.expect("Failed to start HTTP server");
+        }));
+
+        futures::future::join_all(handles).await;
 
         Ok(())
     }

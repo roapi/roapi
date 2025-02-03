@@ -1,0 +1,4 @@
+[build]
+filehash = false
+public_url ="/ui/"
+minify = "on_release"

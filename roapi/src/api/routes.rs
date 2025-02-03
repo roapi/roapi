@@ -1,3 +1,4 @@
+use axum::response::IntoResponse;
 use axum::{
     routing::{get, post},
     Router,
@@ -6,28 +7,34 @@ use axum::{
 use crate::api;
 use crate::context::RoapiContext;
 
-pub fn register_app_routes<H: RoapiContext>() -> Router {
-    let mut router = Router::new()
-        .route("/health", get(api::health::health))
-        .route("/api/tables/:table_name", get(api::rest::get_table::<H>))
-        .route("/api/sql", post(api::sql::post::<H>))
-        .route("/api/kv/:kv_name/:key", get(api::kv::get::<H>))
-        .route("/api/graphql", post(api::graphql::post::<H>))
-        .route("/api/schema", get(api::schema::schema::<H>))
+pub async fn version() -> Result<impl IntoResponse, crate::error::ApiErrResp> {
+    Ok(api::bytes_to_json_resp(
+        format!("\"{}\"", env!("CARGO_PKG_VERSION")).into(),
+    ))
+}
+
+pub fn register_api_routes<H: RoapiContext>() -> Router {
+    let mut api_routes = Router::new()
+        .route("/version", get(version))
+        .route("/tables/:table_name", get(api::rest::get_table::<H>))
+        .route("/sql", post(api::sql::post::<H>))
+        .route("/kv/:kv_name/:key", get(api::kv::get::<H>))
+        .route("/graphql", post(api::graphql::post::<H>))
+        .route("/schema", get(api::schema::schema::<H>))
         .route(
-            "/api/schema/:table_name",
+            "/schema/:table_name",
             get(api::schema::get_by_table_name::<H>),
         );
 
     if H::read_only_mode() {
-        router = router
-            .route("/api/table", post(api::register::register_table_read_only))
-            .route("/api/tables/drop", post(api::drop::drop_table_read_only));
+        api_routes = api_routes
+            .route("/table", post(api::register::register_table_read_only))
+            .route("/tables/drop", post(api::drop::drop_table_read_only));
     } else {
-        router = router
-            .route("/api/table", post(api::register::register_table::<H>))
-            .route("/api/tables/drop", post(api::drop::drop_table::<H>));
+        api_routes = api_routes
+            .route("/table", post(api::register::register_table::<H>))
+            .route("/tables/drop", post(api::drop::drop_table::<H>));
     }
 
-    router
+    Router::new().nest("/api", api_routes)
 }
