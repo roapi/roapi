@@ -32,6 +32,7 @@ use columnq::datafusion::prelude::{DataFrame, SessionContext};
 use constant_time_eq::constant_time_eq;
 use dashmap::DashMap;
 use futures::{Stream, StreamExt, TryStreamExt};
+use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm, TokenData, errors::Error as JwtError};
 use log::{debug, info};
 use once_cell::sync::Lazy;
 use prost::Message;
@@ -110,10 +111,11 @@ pub struct RoapiFlightSqlService<H: RoapiContext> {
     results: Arc<DashMap<String, Vec<RecordBatch>>>,
     auth_token: Option<String>,
     auth_basic_encoded: Option<String>,
+    jwt_secret: Option<String>,
 }
 
 impl<H: RoapiContext> RoapiFlightSqlService<H> {
-    fn new(ctx: Arc<H>, auth_token: Option<String>, auth_basic: Option<BasicAuth>) -> Self {
+    fn new(ctx: Arc<H>, auth_token: Option<String>, auth_basic: Option<BasicAuth>, jwt_secret: Option<String>) -> Self {
         Self {
             ctx,
             statements: Arc::new(DashMap::new()),
@@ -122,6 +124,7 @@ impl<H: RoapiContext> RoapiFlightSqlService<H> {
             auth_basic_encoded: auth_basic.map(|auth| {
                 BASE64_STANDARD_NO_PAD.encode(format!("{}:{}", auth.username, auth.password))
             }),
+            jwt_secret,
         }
     }
 
@@ -179,6 +182,28 @@ impl<H: RoapiContext> RoapiFlightSqlService<H> {
             if !constant_time_eq(token.as_bytes(), user_token.as_bytes()) {
                 return Err(Status::unauthenticated("invalid token"));
             }
+        } else if let Some(jwt_secret) = &self.jwt_secret {
+            let metadata = req.metadata();
+            let auth_header = metadata
+                .get(AUTH_HEADER)
+                .ok_or_else(|| Status::unauthenticated("token not found"))?;
+            let auth_header = auth_header
+                .to_str()
+                .map_err(|e| Status::internal(format!("Error parsing header: {e}")))?;
+
+            if !auth_header.starts_with(BEARER_PREFIX) {
+                Err(Status::internal("invalid auth type"))?;
+            }
+            if auth_header.len() <= BEARER_PREFIX.len() {
+                return Err(Status::unauthenticated("invalid token"));
+            }
+            let user_token = &auth_header[BEARER_PREFIX.len()..];
+            let token_data = decode::<Claims>(
+                user_token,
+                &DecodingKey::from_secret(jwt_secret.as_ref()),
+                &Validation::new(Algorithm::HS256),
+            ).map_err(|e| Status::unauthenticated(format!("invalid token: {e}")))?;
+            // You can use token_data.claims to enforce row level security here
         }
         Ok(())
     }
@@ -930,6 +955,7 @@ pub struct RoapiFlightSqlServer<H: RoapiContext> {
     pub tls_config: Option<ServerTlsConfig>,
     pub auth_token: Option<String>,
     pub auth_basic: Option<BasicAuth>,
+    pub jwt_secret: Option<String>,
 }
 
 impl<H: RoapiContext> RoapiFlightSqlServer<H> {
@@ -988,6 +1014,11 @@ impl<H: RoapiContext> RoapiFlightSqlServer<H> {
             (None, None) => None,
         };
 
+        let jwt_secret = config
+            .flight_sql_config
+            .as_ref()
+            .and_then(|c| c.jwt_secret.clone());
+
         Ok(Self {
             ctx,
             addr: listener
@@ -996,6 +1027,7 @@ impl<H: RoapiContext> RoapiFlightSqlServer<H> {
             tls_config,
             auth_token,
             auth_basic,
+            jwt_secret,
         })
     }
 }
@@ -1011,6 +1043,7 @@ impl<H: RoapiContext> RunnableServer for RoapiFlightSqlServer<H> {
             self.ctx.clone(),
             self.auth_token.clone(),
             self.auth_basic.clone(),
+            self.jwt_secret.clone(),
         ));
 
         let mut builder = tonic::transport::Server::builder();

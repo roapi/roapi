@@ -18,6 +18,7 @@ path = "src/main.rs"
 columnq = { path = "../columnq", version = "0", default-features = false }
 # for datafusion optimization
 snmalloc-rs = { version = "0.3", optional = true }
+jsonwebtoken = "8.1.1"
 
 # dependencies related to axum
 tokio = { version = "1", features = ["rt-multi-thread"] }

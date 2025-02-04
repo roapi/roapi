@@ -14,3 +14,6 @@ codegen-units = 1
 
 [patch.crates-io]
 delta_kernel = { git = "https://github.com/houqp/delta-kernel-rs", rev = "92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1" }
+
+[features]
+default = ["rustls", "snmalloc"]
