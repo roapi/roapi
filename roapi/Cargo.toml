@@ -53,6 +53,10 @@ once_cell = "*"
 dashmap = "6"
 uuid = "1"
 
+# query ui
+rust-embed = { version = "8", optional = true }
+mime_guess = { version = "2", optional = true }
+
 [dependencies.convergence]
 version = "0"
 git = "https://github.com/roapi/convergence.git"
@@ -73,6 +77,7 @@ database = ["columnq/database"]
 database-sqlite = ["columnq/database-sqlite"]
 database-mysql = ["columnq/database-mysql"]
 database-postgres = ["columnq/database-postgres"]
+ui = ["rust-embed", "mime_guess"]
 
 [dev-dependencies]
 reqwest = { version = "0", default-features = false, features = [

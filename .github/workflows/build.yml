@@ -32,6 +32,24 @@ jobs:
     - name: Run tests
       run: mold -run cargo test
 
+  build_ui:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-C target-cpu=skylake"
+    steps:
+    - uses: actions/checkout@v4
+    - uses: rui314/setup-mold@v1
+    - name: Install minimal stable with clippy and rustfmt
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        target: wasm32-unknown-unknown
+        toolchain: stable
+        override: true
+    - name: Build
+      run: |
+        mold -run cargo install --locked trunk
+        mold -run cargo build --features=ui
+
   database_test:
     runs-on: ubuntu-latest
     env:

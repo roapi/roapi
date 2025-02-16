@@ -58,7 +58,6 @@ pub fn encode_record_batches(
 
 pub mod drop;
 pub mod graphql;
-pub mod health;
 pub mod kv;
 pub mod register;
 pub mod rest;
@@ -66,4 +65,4 @@ pub mod routes;
 pub mod schema;
 pub mod sql;
 
-pub use routes::register_app_routes;
+pub use routes::register_api_routes;
