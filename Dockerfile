@@ -1,12 +1,16 @@
-ARG RUST_VER=1.84.0-bookworm
+ARG RUST_VER=1.84.1-bookworm
 ARG RUSTFLAGS='-C target-cpu=skylake'
-ARG FEATURES="database"
+ARG FEATURES="database,ui"
 
 # Step 0: Install cargo-chef
 FROM rust:${RUST_VER} AS chef
+
+RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+RUN cargo binstall trunk
+
 # We only pay the installation cost once,
 # it will be cached from the second build onwards
-RUN cargo install cargo-chef
+RUN cargo binstall cargo-chef
 # install cmake for snmalloc
 RUN apt-get update \
     && apt-get install --no-install-recommends -y cmake
