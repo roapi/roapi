@@ -165,6 +165,8 @@ impl Application {
         }));
 
         info!("🚀 Listening on {} for HTTP traffic...", self.http_addr);
+        #[cfg(feature = "ui")]
+        info!("🚀 Serving web UI through {}/ui", self.http_addr);
         handles.push(tokio::spawn(async move {
             self.http_server.await.expect("Failed to start HTTP server");
         }));

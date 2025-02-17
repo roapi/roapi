@@ -59,14 +59,6 @@ roapi \
     --table "test_data/spacex_launches.json"
 ```
 
-For windows, full scheme(file:// or filesystem://) must filled, and use double quote(") instead of single quote(') to escape windows cmdline limit:
-
-```bash
-roapi \
-    --table "uk_cities=file://d:/path/to/uk_cities_with_headers.csv" \
-    --table "file://d:/path/to/test_data/spacex_launches.json"
-```
-
 Or using docker:
 
 ```bash
@@ -75,7 +67,25 @@ docker run -t --rm -p 8080:8080 ghcr.io/roapi/roapi:latest --addr-http 0.0.0.0:8
     --table "test_data/spacex_launches.json"
 ```
 
-For MySQL and SQLite, use parameters like this.
+Query data using the builtin web UI at `http://localhost:8080/ui`:
+
+<img alt="roapi-design-diagram" src="https://roapi.github.io/docs/images/ui.png">
+
+Query data using SQL, GraphQL or REST via curl:
+
+```bash
+curl -X POST -d "SELECT city, lat, lng FROM uk_cities LIMIT 2" localhost:8080/api/sql
+curl -X POST -d "query { uk_cities(limit: 2) {city, lat, lng} }" localhost:8080/api/graphql
+curl "localhost:8080/api/tables/uk_cities?columns=city,lat,lng&limit=2"
+```
+
+Get inferred schema for all tables:
+
+```bash
+curl 'localhost:8080/api/schema'
+```
+
+For MySQL and SQLite, specify the table argument like below:
 ```
 --table "table_name=mysql://username:password@localhost:3306/database"
 --table "table_name=sqlite://path/to/database"
@@ -104,19 +114,14 @@ curl -X POST http://172.24.16.1:8080/api/table \
      ]'
 ```
 
-Query tables using SQL, GraphQL or REST:
+For windows, full scheme(file:// or filesystem://) must filled, and use double quote(") instead of single quote(') to escape windows cmdline limit:
 
 ```bash
-curl -X POST -d "SELECT city, lat, lng FROM uk_cities LIMIT 2" localhost:8080/api/sql
-curl -X POST -d "query { uk_cities(limit: 2) {city, lat, lng} }" localhost:8080/api/graphql
-curl "localhost:8080/api/tables/uk_cities?columns=city,lat,lng&limit=2"
+roapi \
+    --table "uk_cities=file://d:/path/to/uk_cities_with_headers.csv" \
+    --table "file://d:/path/to/test_data/spacex_launches.json"
 ```
 
-Get inferred schema for all tables:
-
-```bash
-curl 'localhost:8080/api/schema'
-```
 
 ### Config file
 

@@ -191,7 +191,10 @@ jobs:
           rustup update ${{ env.RUST_TC_VER }}
           rustup target add \
             --toolchain ${{ env.RUST_TC_VER }} \
-            ${{ matrix.platform.target }},wasm32-unknown-unknown
+            ${{ matrix.platform.target }}
+          rustup target add \
+            --toolchain ${{ env.RUST_TC_VER }} \
+            wasm32-unknown-unknown
           rustup default ${{ env.RUST_TC_VER }}
       - uses: taiki-e/install-action@v2
         with:
