@@ -51,7 +51,7 @@ pub async fn build_http_server<H: RoapiContext>(
     #[cfg(not(feature = "ui"))]
     let routes = {
         async fn ui() -> Result<impl IntoResponse, crate::error::ApiErrResp> {
-            Ok("ROAPI is not built with UI support".into_response())
+            Ok("ROAPI is not compiled with UI support".into_response())
         }
         routes.route("/ui", get(ui))
     };
