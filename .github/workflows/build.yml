@@ -8,7 +8,7 @@ on:
 
 env:
   # NOTE: the version is also defined in roapi_release.yml and Dockerfile
-  RUST_TC_VER: "1.84.0"
+  RUST_TC_VER: "1.84.1"
 
 jobs:
   build:
@@ -45,9 +45,11 @@ jobs:
         target: wasm32-unknown-unknown
         toolchain: stable
         override: true
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: trunk
     - name: Build
       run: |
-        mold -run cargo install --locked trunk
         mold -run cargo build --features=ui
 
   database_test:
@@ -207,7 +209,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Build Docker image
-        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: false

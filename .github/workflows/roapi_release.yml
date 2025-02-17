@@ -12,7 +12,7 @@ on:
 
 env:
   # NOTE: the version is also defined in build.yml and Dockerfile
-  RUST_TC_VER: "1.84.0"
+  RUST_TC_VER: "1.84.1"
 
 jobs:
   validate-release-tag:
@@ -46,12 +46,15 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ env.RUST_TC_VER }}
-          target: aarch64-apple-darwin,x86_64-apple-darwin
+          target: aarch64-apple-darwin,x86_64-apple-darwin,wasm32-unknown-unknown
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
       - name: Install maturin
         run: pip3 install 'maturin<2'
       - name: Build wheels - x86_64
         run: |
-          maturin build -m roapi/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --features=database-sqlite
+          maturin build -m roapi/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --features=database-sqlite,ui
       - name: Build wheels - universal2
         env:
           DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
@@ -59,7 +62,7 @@ jobs:
         run: |
           # set SDKROOT for C dependencies
           export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
-          maturin build -m roapi/Cargo.toml -b bin --release --target universal2-apple-darwin --out dist --features=database-sqlite
+          maturin build -m roapi/Cargo.toml -b bin --release --target universal2-apple-darwin --out dist --features=database-sqlite,ui
           pip install roapi --no-index --find-links dist --force-reinstall
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -97,12 +100,15 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ env.RUST_TC_VER }}
-          target: ${{ matrix.platform.target }}
+          target: ${{ matrix.platform.target }},wasm32-unknown-unknown
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
       - name: Install maturin
         run: pip3 install 'maturin<2'
       - name: Build wheels
         run: |
-          maturin build -m roapi/Cargo.toml -b bin --release --out dist --target ${{ matrix.platform.target }} --features=${{ matrix.platform.features }}
+          maturin build -m roapi/Cargo.toml -b bin --release --out dist --target ${{ matrix.platform.target }} --features=${{ matrix.platform.features }},ui
           pip install roapi --no-index --find-links dist --force-reinstall
           roapi --help
       - name: Upload wheels
@@ -185,8 +191,11 @@ jobs:
           rustup update ${{ env.RUST_TC_VER }}
           rustup target add \
             --toolchain ${{ env.RUST_TC_VER }} \
-            ${{ matrix.platform.target }}
+            ${{ matrix.platform.target }},wasm32-unknown-unknown
           rustup default ${{ env.RUST_TC_VER }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk
       - name: Install build deps
         if: "contains(matrix.platform.name_suffix, 'openssl')"
         run: |
@@ -198,7 +207,7 @@ jobs:
           export RUSTFLAGS='${{ matrix.platform.rustflags }}'
           maturin build -m roapi/Cargo.toml -b bin --release -o dist \
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
-            --no-default-features --features=${{ matrix.platform.features }}
+            --no-default-features --features=${{ matrix.platform.features }},ui
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         if: "matrix.platform.upload == 'true'"
@@ -269,7 +278,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v5
         with:
           flavor: |
             latest=true
@@ -278,7 +287,7 @@ jobs:
           images: ghcr.io/${{ github.repository_owner }}/roapi
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
