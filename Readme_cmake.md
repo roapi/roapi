@@ -1,3 +1,3 @@
-``Обновление-установка Cmake на Ubuntu``
+'Обновление-установка Cmake на Ubuntu'
 
-cmake --version
+```cmake --version```
