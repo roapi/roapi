@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use axum::extract::{Extension, Json};
-use columnq::{error::ColumnQError, table::TableSource};
+use columnq::table::TableSource;
 use log::info;
 use serde::Deserialize;
 use tokio::sync::Mutex;
@@ -26,10 +26,7 @@ pub async fn register_table<H: RoapiContext>(
         if let Some(ref uri) = config.uri {
             let t = TableSource::new_with_uri(&config.table_name, uri);
             info!("loading `{}` as table `{}`", t.io_source, config.table_name);
-            ctx.load_table(&t)
-                .await
-                .map_err(ColumnQError::from)
-                .map_err(ApiErrResp::load_table)?;
+            ctx.load_table(&t).await.map_err(ApiErrResp::load_table)?;
             tables.insert(config.table_name.clone(), t.clone());
             info!(
                 "registered `{}` as table `{}`",
@@ -37,10 +34,7 @@ pub async fn register_table<H: RoapiContext>(
             );
         } else if let Some(t) = tables.get(&config.table_name) {
             info!("Re register table {}", t.name);
-            ctx.load_table(t)
-                .await
-                .map_err(ColumnQError::from)
-                .map_err(ApiErrResp::load_table)?;
+            ctx.load_table(t).await.map_err(ApiErrResp::load_table)?;
         } else {
             return Err(ApiErrResp::register_table(format!(
                 "Table `{}` source not exists",
