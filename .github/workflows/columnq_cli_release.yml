@@ -134,20 +134,17 @@ jobs:
             target: "x86_64-unknown-linux-musl"
             image_tag: "x86_64-musl"
             features: "rustls,database-sqlite"
-            rustflags: "-C target-cpu=skylake"
             name_suffix: ""
             upload: "true"
           # - manylinux: "2010"
           #   target: "x86_64-unknown-linux-musl"
           #   image_tag: "x86_64-musl"
           #   features: "native-tls,database-sqlite"
-          #   rustflags: "-C target-cpu=skylake"
           #   name_suffix: "-openssl"
           #   upload: "false"
           - manylinux: '2014'
             target: "aarch64-unknown-linux-musl"
             image_tag: "aarch64-musl"
-            rustflags: ""
             features: "rustls,database-sqlite"
             name_suffix: ""
             upload: "true"
@@ -156,19 +153,16 @@ jobs:
           #   image_tag: "aarch64-musl"
           #   features: "native-tls,database-sqlite"
           #   name_suffix: "-openssl"
-          #   rustflags: ""
           #   upload: "false"
           # - manylinux: '2014'
           #   target: "armv7-unknown-linux-musleabihf"
           #   image_tag: "armv7-musleabihf"
-          #   rustflags: ""
           #   features: "rustls,database-sqlite"
           #   name_suffix: ""
           #   upload: "true"
           # - manylinux: '2014'
           #   target: "armv7-unknown-linux-musleabihf"
           #   image_tag: "armv7-musleabihf"
-          #   rustflags: ""
           #   features: "native-tls,database-sqlite"
           #   name_suffix: "-openssl"
           #   upload: "false"
@@ -194,7 +188,6 @@ jobs:
       - name: Build Wheels
         run: |
           sudo python3 -m pip install 'maturin<2'
-          export RUSTFLAGS='${{ matrix.platform.rustflags }}'
           maturin build -m columnq-cli/Cargo.toml -b bin --release -o dist \
             --target ${{ matrix.platform.target }} --manylinux ${{ matrix.platform.manylinux }} \
             --no-default-features --features=${{ matrix.platform.features }}

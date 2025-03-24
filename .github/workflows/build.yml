@@ -13,8 +13,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
@@ -34,8 +32,6 @@ jobs:
 
   build_ui:
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
@@ -54,8 +50,6 @@ jobs:
 
   database_test:
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
@@ -74,8 +68,6 @@ jobs:
 
   object_store_memory_test:
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1
@@ -121,8 +113,6 @@ jobs:
 
   object_store_direct_test:
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-C target-cpu=skylake"
     steps:
     - uses: actions/checkout@v4
     - uses: rui314/setup-mold@v1

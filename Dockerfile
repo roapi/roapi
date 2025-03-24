@@ -1,5 +1,4 @@
 ARG RUST_VER=1.84.1-bookworm
-ARG RUSTFLAGS='-C target-cpu=skylake'
 ARG FEATURES="database,ui"
 
 # Step 0: Install cargo-chef
@@ -23,23 +22,19 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 # Step 2: Cache project dependencies
 FROM chef AS cacher
-ARG RUSTFLAGS
 ARG FEATURES
 WORKDIR /roapi_src
 COPY --from=planner /roapi_src/recipe.json recipe.json
-RUN RUSTFLAGS=${RUSTFLAGS} \
-    cargo chef cook --features ${FEATURES} --release --recipe-path recipe.json
+RUN cargo chef cook --features ${FEATURES} --release --recipe-path recipe.json
 
 # Step 3: Build the release binary
 FROM chef AS builder
-ARG RUSTFLAGS
 ARG FEATURES
 WORKDIR /roapi_src
 COPY ./ /roapi_src
 COPY --from=cacher /roapi_src/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
-RUN RUSTFLAGS=${RUSTFLAGS} \
-    cargo build --release --locked --bin roapi --features ${FEATURES}
+RUN cargo build --release --locked --bin roapi --features ${FEATURES}
 
 # Step 4: Assemble the final image
 FROM debian:bookworm-slim
