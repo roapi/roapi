@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use axum::extract::{Extension, Json};
-use columnq::error::ColumnQError;
 use columnq::table::TableSource;
 use log::info;
 use serde::Deserialize;
@@ -25,10 +24,7 @@ pub async fn drop_table<H: RoapiContext>(
     for config in body {
         if let Some(t) = tables.get(&config.table_name) {
             info!("dropping table `{}`", t.name);
-            ctx.drop_table(t)
-                .await
-                .map_err(ColumnQError::from)
-                .map_err(ApiErrResp::drop_table)?;
+            ctx.drop_table(t).await.map_err(ApiErrResp::drop_table)?;
             tables.remove(&config.table_name);
             info!("dropped table `{}`", config.table_name);
         } else {
