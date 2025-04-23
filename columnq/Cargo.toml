@@ -44,7 +44,7 @@ reqwest = { version = "0", default-features = false, features = [
 hyper-tls = { version = "0", default-features = false, optional = true }
 hyper-rustls = { version = "0", default-features = false, optional = true }
 
-object_store = { version = "0.11", features = ["aws", "gcp", "azure"] }
+object_store = { version = "0.11", features = ["http", "aws", "gcp", "azure"] }
 tokio-postgres = { version = "0.7.12", optional = true }
 deltalake = { version = "0.22", features = [
     "datafusion",

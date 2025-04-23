@@ -62,6 +62,7 @@ impl TryFrom<&str> for BlobStoreType {
 
     fn try_from(scheme: &str) -> Result<Self, Self::Error> {
         match scheme {
+            "http" | "https" => Ok(BlobStoreType::Http), 
             "s3" => Ok(BlobStoreType::S3),
             "gs" => Ok(BlobStoreType::GCS),
             "az" | "adl" | "adfs" | "adfss" | "azure" => Ok(BlobStoreType::Azure),
@@ -104,5 +105,15 @@ mod tests {
         let uri_ref = URIReference::try_from("/tmp/path/to/file.csv").unwrap();
         let blob_type = BlobStoreType::try_from(uri_ref.scheme()).unwrap();
         assert_eq!(blob_type, BlobStoreType::FileSystem);
+
+        // *http
+        let uri_ref = URIReference::try_from("http://tmp/path/to/file.csv").unwrap();
+        let blob_type = BlobStoreType::try_from(uri_ref.scheme()).unwrap();
+        assert_eq!(blob_type, BlobStoreType::Http);
+
+        // *https
+        let uri_ref = URIReference::try_from("https://tmp/path/to/file.csv").unwrap();
+        let blob_type = BlobStoreType::try_from(uri_ref.scheme()).unwrap();
+        assert_eq!(blob_type, BlobStoreType::Http);
     }
 }

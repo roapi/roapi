@@ -17,9 +17,10 @@ use log::info;
 use object_store::aws::AmazonS3Builder;
 use object_store::azure::MicrosoftAzureBuilder;
 use object_store::gcp::GoogleCloudStorageBuilder;
-use object_store::DynObjectStore;
+use object_store::{ClientOptions, DynObjectStore};
 use object_store::ObjectStore;
 use std::time::Duration;
+use object_store::http::HttpBuilder;
 use tokio::sync::mpsc;
 use url::Url;
 
@@ -219,6 +220,17 @@ impl ColumnQ {
             ))),
             Some(host) => {
                 match blob_type {
+                    BlobStoreType::Http => {
+                        let http_builder =
+                            HttpBuilder::new()
+                                .with_client_options(ClientOptions::new().with_allow_http(true))
+                                .with_url(url.origin().ascii_serialization());
+                        
+                        match http_builder.build() {
+                            Ok(http) => Ok(Arc::new(http)),
+                            Err(err) => Err(DataFusionError::External(Box::new(err))),
+                        }
+                    }
                     BlobStoreType::S3 => {
                         let mut s3_builder =
                             AmazonS3Builder::from_env().with_bucket_name(host.to_string());
@@ -450,6 +462,36 @@ mod tests {
 
         env::remove_var("AZURE_STORAGE_ACCOUNT_NAME");
         env::remove_var("AZURE_STORAGE_ACCOUNT_KEY");
+    }
+
+    #[test]
+    fn http_object_store_type() {
+        let mut cq = ColumnQ::new();
+        let host_url = "http://bucket_name/path";
+        let _ = cq.register_object_storage(&Url::parse(host_url).unwrap());
+        let provider = &cq.dfctx.runtime_env().object_store_registry;
+
+        let res = provider.get_store(&Url::from_str(host_url).unwrap());
+        let msg = match res {
+            Err(e) => format!("{e}"),
+            Ok(_) => "".to_string(),
+        };
+        assert_eq!("".to_string(), msg);
+    }
+
+    #[test]
+    fn https_object_store_type() {
+        let mut cq = ColumnQ::new();
+        let host_url = "https://bucket_name/path";
+        let _ = cq.register_object_storage(&Url::parse(host_url).unwrap());
+        let provider = &cq.dfctx.runtime_env().object_store_registry;
+
+        let res = provider.get_store(&Url::from_str(host_url).unwrap());
+        let msg = match res {
+            Err(e) => format!("{e}"),
+            Ok(_) => "".to_string(),
+        };
+        assert_eq!("".to_string(), msg);
     }
 
     #[test]
