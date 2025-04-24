@@ -2021,7 +2021,7 @@ checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 [[package]]
 name = "convergence"
 version = "0.16.0"
-source = "git+https://github.com/roapi/convergence.git?rev=da158f04d09460ff9416f3328df419ce01dbae77#da158f04d09460ff9416f3328df419ce01dbae77"
+source = "git+https://github.com/roapi/convergence.git?rev=5ddae0d849710eabb91118657758f8db17ac1886#5ddae0d849710eabb91118657758f8db17ac1886"
 dependencies = [
  "async-trait",
  "bytes",
@@ -2036,7 +2036,7 @@ dependencies = [
 [[package]]
 name = "convergence-arrow"
 version = "0.16.0"
-source = "git+https://github.com/roapi/convergence.git?rev=da158f04d09460ff9416f3328df419ce01dbae77#da158f04d09460ff9416f3328df419ce01dbae77"
+source = "git+https://github.com/roapi/convergence.git?rev=5ddae0d849710eabb91118657758f8db17ac1886#5ddae0d849710eabb91118657758f8db17ac1886"
 dependencies = [
  "async-trait",
  "chrono",
