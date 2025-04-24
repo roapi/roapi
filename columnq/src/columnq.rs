@@ -17,10 +17,10 @@ use log::info;
 use object_store::aws::AmazonS3Builder;
 use object_store::azure::MicrosoftAzureBuilder;
 use object_store::gcp::GoogleCloudStorageBuilder;
-use object_store::{ClientOptions, DynObjectStore};
-use object_store::ObjectStore;
-use std::time::Duration;
 use object_store::http::HttpBuilder;
+use object_store::ObjectStore;
+use object_store::{ClientOptions, DynObjectStore};
+use std::time::Duration;
 use tokio::sync::mpsc;
 use url::Url;
 
@@ -221,11 +221,10 @@ impl ColumnQ {
             Some(host) => {
                 match blob_type {
                     BlobStoreType::Http => {
-                        let http_builder =
-                            HttpBuilder::new()
-                                .with_client_options(ClientOptions::new().with_allow_http(true))
-                                .with_url(url.origin().ascii_serialization());
-                        
+                        let http_builder = HttpBuilder::new()
+                            .with_client_options(ClientOptions::new().with_allow_http(true))
+                            .with_url(url.origin().ascii_serialization());
+
                         match http_builder.build() {
                             Ok(http) => Ok(Arc::new(http)),
                             Err(err) => Err(DataFusionError::External(Box::new(err))),

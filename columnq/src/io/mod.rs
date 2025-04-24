@@ -62,7 +62,7 @@ impl TryFrom<&str> for BlobStoreType {
 
     fn try_from(scheme: &str) -> Result<Self, Self::Error> {
         match scheme {
-            "http" | "https" => Ok(BlobStoreType::Http), 
+            "http" | "https" => Ok(BlobStoreType::Http),
             "s3" => Ok(BlobStoreType::S3),
             "gs" => Ok(BlobStoreType::GCS),
             "az" | "adl" | "adfs" | "adfss" | "azure" => Ok(BlobStoreType::Azure),
