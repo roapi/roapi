@@ -240,7 +240,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         if auth_basic_encoded.len() > auth_value.len()
             || !constant_time_eq(
                 auth_basic_encoded.as_bytes(),
-                auth_value[..auth_basic_encoded.len()].as_bytes(),
+                &auth_value.as_bytes()[..auth_basic_encoded.len()],
             )
         {
             return Err(Status::unauthenticated("unauthorized"));
