@@ -150,6 +150,8 @@ pub fn get_cmd() -> clap::Command {
         "snmalloc",
         #[cfg(feature = "rustls")]
         "rustls",
+        #[cfg(feature = "ui")]
+        "ui",
     ];
 
     clap::Command::new("roapi")
