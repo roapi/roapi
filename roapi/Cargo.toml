@@ -60,12 +60,12 @@ mime_guess = { version = "2", optional = true }
 [dependencies.convergence]
 version = "0"
 git = "https://github.com/roapi/convergence.git"
-rev = "5ddae0d849710eabb91118657758f8db17ac1886"
+rev = "92dc4c4b4dac87afeb193e416399767911b67b4f"
 
 [dependencies.convergence-arrow]
 version = "0"
 git = "https://github.com/roapi/convergence.git"
-rev = "5ddae0d849710eabb91118657758f8db17ac1886"
+rev = "92dc4c4b4dac87afeb193e416399767911b67b4f"
 
 [features]
 default = ["rustls", "snmalloc"]
