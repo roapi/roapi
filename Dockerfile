@@ -44,7 +44,7 @@ RUN cargo build --release --locked --bin roapi --features ${FEATURES}
 
 # Step 4: Assemble the final image
 FROM debian:bookworm-slim
-LABEL org.opencontainers.image.source https://github.com/roapi/roapi
+LABEL org.opencontainers.image.source=https://github.com/roapi/roapi
 
 RUN apt-get update \
     && apt-get install -y libssl-dev ca-certificates \
