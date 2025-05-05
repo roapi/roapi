@@ -44,7 +44,11 @@ jobs:
     - uses: taiki-e/install-action@v2
       with:
         tool: trunk
-    - name: Build
+    - name: Build UI first
+      run: |
+        cd roapi-ui
+        trunk build --release
+    - name: Build ROAPI with UI
       run: |
         mold -run cargo build --features=ui
 
