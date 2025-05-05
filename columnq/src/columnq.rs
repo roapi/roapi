@@ -11,7 +11,7 @@ use datafusion::error::DataFusionError;
 use datafusion::error::Result as DatafusionResult;
 pub use datafusion::execution::context::SessionConfig;
 use datafusion::execution::context::SessionContext;
-use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
+use datafusion::execution::runtime_env::RuntimeEnvBuilder;
 use datafusion::physical_plan::collect;
 use log::info;
 use object_store::aws::AmazonS3Builder;
@@ -83,9 +83,9 @@ impl ColumnQ {
                 "datafusion.execution.listing_table_ignore_subdirectory",
                 false,
             );
-        let rn_config = RuntimeConfig::new();
-        let runtime_env =
-            RuntimeEnv::try_new(rn_config).expect("failed to create datafusion runtime env");
+        let runtime_env = RuntimeEnvBuilder::new()
+            .build()
+            .expect("failed to create datafusion runtime env");
         let dfctx = SessionContext::new_with_config_rt(config, Arc::new(runtime_env));
         let schema_map = HashMap::<String, arrow::datatypes::SchemaRef>::new();
         let (refresh_tx, refresh_rx) = mpsc::channel(1024);

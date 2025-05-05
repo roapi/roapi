@@ -44,7 +44,7 @@ thiserror = "1"
 snafu = "0"
 
 # flight-sql
-arrow-flight = { version = "53", features = ["flight-sql-experimental"] }
+arrow-flight = { version = "55", features = ["flight-sql-experimental"] }
 tonic = { version = "0", features = ["tls"] }
 prost = "0"
 futures = "0"
@@ -60,12 +60,12 @@ mime_guess = { version = "2", optional = true }
 [dependencies.convergence]
 version = "0"
 git = "https://github.com/roapi/convergence.git"
-rev = "92dc4c4b4dac87afeb193e416399767911b67b4f"
+rev = "5509d87bf84be3eb72653a007759c05c0a0831de"
 
 [dependencies.convergence-arrow]
 version = "0"
 git = "https://github.com/roapi/convergence.git"
-rev = "92dc4c4b4dac87afeb193e416399767911b67b4f"
+rev = "5509d87bf84be3eb72653a007759c05c0a0831de"
 
 [features]
 default = ["rustls", "snmalloc"]
@@ -89,8 +89,8 @@ tokio-postgres = "0.7"
 tower = "*"
 tempfile = "*"
 tokio-stream = { version = "*", features = ["net"] }
-arrow-cast = "*"
-arrow-ipc = "*"  # for flight_sql test
+arrow-cast = "55"
+arrow-ipc = "55"  # for flight_sql test
 
 # TODO: uncomment this when we exclude roapi from root workspace
 # [profile.release]

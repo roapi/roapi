@@ -1,4 +1,4 @@
-ARG RUST_VER=1.84.1-bookworm
+ARG RUST_VER=1.86.0-bookworm
 ARG FEATURES="database,ui"
 
 # Step 0: Install cargo-chef
