@@ -2067,14 +2067,14 @@ checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 [[package]]
 name = "convergence"
 version = "0.17.1"
-source = "git+https://github.com/roapi/convergence.git?rev=5509d87bf84be3eb72653a007759c05c0a0831de#5509d87bf84be3eb72653a007759c05c0a0831de"
+source = "git+https://github.com/returnString/convergence?rev=1ac88ac166a4bde340de3a5d30ba9d017eaa006d#1ac88ac166a4bde340de3a5d30ba9d017eaa006d"
 dependencies = [
  "async-trait",
  "bytes",
  "chrono",
  "futures",
  "rust_decimal",
- "sqlparser 0.55.0",
+ "sqlparser 0.56.0",
  "thiserror 2.0.12",
  "tokio",
  "tokio-postgres",
@@ -2084,7 +2084,7 @@ dependencies = [
 [[package]]
 name = "convergence-arrow"
 version = "0.17.1"
-source = "git+https://github.com/roapi/convergence.git?rev=5509d87bf84be3eb72653a007759c05c0a0831de#5509d87bf84be3eb72653a007759c05c0a0831de"
+source = "git+https://github.com/returnString/convergence?rev=1ac88ac166a4bde340de3a5d30ba9d017eaa006d#1ac88ac166a4bde340de3a5d30ba9d017eaa006d"
 dependencies = [
  "async-trait",
  "chrono",
@@ -7769,6 +7769,16 @@ dependencies = [
  "log",
  "recursive",
  "sqlparser_derive",
+]
+
+[[package]]
+name = "sqlparser"
+version = "0.56.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e68feb51ffa54fc841e086f58da543facfe3d7ae2a60d69b0a8cbbd30d16ae8d"
+dependencies = [
+ "log",
+ "recursive",
 ]
 
 [[package]]
