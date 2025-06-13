@@ -146,6 +146,8 @@ pub fn get_cmd() -> clap::Command {
         "database-postgres",
         #[cfg(feature = "database-mysql")]
         "database-mysql",
+        #[cfg(feature = "iceberg")]
+        "iceberg",
         #[cfg(feature = "snmalloc")]
         "snmalloc",
         #[cfg(feature = "rustls")]

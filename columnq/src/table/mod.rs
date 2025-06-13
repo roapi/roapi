@@ -9,10 +9,13 @@ use datafusion::arrow;
 use datafusion::datasource::file_format::csv::CsvFormat;
 use datafusion::datasource::listing::{ListingOptions, ListingTableUrl};
 use datafusion::datasource::TableProvider;
-use serde::de::{Deserialize, Deserializer};
-use serde_derive::Deserialize;
+use serde::de::Deserializer;
+use serde::{Deserialize, Serialize};
 use snafu::prelude::*;
 use uriparse::URIReference;
+
+#[cfg(feature = "iceberg")]
+use ::iceberg::Error as IcebergError;
 
 use crate::error::ColumnQError;
 use crate::io;
@@ -24,6 +27,7 @@ pub mod database;
 pub mod delta;
 pub mod excel;
 pub mod google_spreadsheets;
+pub mod iceberg;
 pub mod json;
 pub mod ndjson;
 pub mod parquet;
@@ -48,6 +52,8 @@ pub enum Error {
     LoadGoogleSheet { source: google_spreadsheets::Error },
     #[snafu(display("Failed to load Excel data: {source}"))]
     LoadExcel { source: excel::Error },
+    #[snafu(display("Failed to load Iceberg table: {source}"))]
+    LoadIceberg { source: IcebergError },
     #[snafu(display("Failed to load database data: {source}"))]
     LoadDatabase { source: database::Error },
     #[snafu(display("Failed to cast IO source to memory bytes for source: {table_source}"))]
@@ -110,6 +116,7 @@ pub enum Extension {
     Sqlite,
     Mysql,
     Postgresql,
+    Iceberg,
 }
 
 impl From<Extension> for &'static str {
@@ -130,6 +137,7 @@ impl From<Extension> for &'static str {
             Extension::Sqlite => "sqlite",
             Extension::Mysql => "mysql",
             Extension::Postgresql => "postgresql",
+            Extension::Iceberg => "iceberg",
         }
     }
 }
@@ -138,13 +146,12 @@ impl TryFrom<&str> for Extension {
     type Error = Error;
 
     fn try_from(ext: &str) -> Result<Self, Error> {
-        Ok(match ext {
-            "" => Extension::None,
+        Ok(match ext.to_lowercase().as_str() {
             "csv" => Extension::Csv,
             "json" => Extension::Json,
+            "parquet" => Extension::Parquet,
             "ndjson" => Extension::NdJson,
             "jsonl" => Extension::Jsonl,
-            "parquet" => Extension::Parquet,
             "arrow" => Extension::Arrow,
             "arrows" => Extension::Arrows,
             "xls" => Extension::Xls,
@@ -152,9 +159,12 @@ impl TryFrom<&str> for Extension {
             "xlsb" => Extension::Xlsb,
             "ods" => Extension::Ods,
             "sqlite" | "sqlite3" | "db" => Extension::Sqlite,
+            "mysql" => Extension::Mysql,
+            "postgresql" => Extension::Postgresql,
+            "iceberg" => Extension::Iceberg,
             _ => {
                 return Err(Error::Extension {
-                    msg: format!("unsupported extension {ext}"),
+                    msg: format!("unsupported extension: {ext}"),
                 });
             }
         })
@@ -368,6 +378,8 @@ impl Default for TableOptionDelta {
 // * update TableLoadOption.extension
 // * update TableSource.extension
 // * update load
+#[derive(Deserialize, Serialize, Clone, Debug, Default, Eq, PartialEq)]
+pub struct TableOptionIceberg {}
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -389,6 +401,7 @@ pub enum TableLoadOption {
     xlsb(TableOptionExcel),
     ods(TableOptionExcel),
     delta(TableOptionDelta),
+    iceberg(TableOptionIceberg),
     arrow {},
     arrows {},
     mysql {
@@ -434,9 +447,18 @@ impl TableLoadOption {
     }
 
     pub fn as_delta(&self) -> Result<&TableOptionDelta, Error> {
-        match self {
-            Self::delta(opt) => Ok(opt),
-            _ => Err(Error::ExpectFormatOption { fmt: "delta" }),
+        if let TableLoadOption::delta(opt) = self {
+            Ok(opt)
+        } else {
+            Err(Error::ExpectFormatOption { fmt: "delta" })
+        }
+    }
+
+    pub fn as_iceberg(&self) -> Result<&TableOptionIceberg, Error> {
+        if let TableLoadOption::iceberg(opt) = self {
+            Ok(opt)
+        } else {
+            Err(Error::ExpectFormatOption { fmt: "iceberg" })
         }
     }
 
@@ -457,6 +479,7 @@ impl TableLoadOption {
             Self::mysql { .. } => Extension::Mysql,
             Self::sqlite { .. } => Extension::Sqlite,
             Self::postgres { .. } => Extension::Postgresql,
+            Self::iceberg { .. } => Extension::Iceberg,
         }
     }
 }
@@ -796,6 +819,11 @@ pub async fn load(
             | TableLoadOption::xlsb { .. }
             | TableLoadOption::ods { .. } => excel::to_loaded_table(t.clone()).await?,
             TableLoadOption::delta { .. } => delta::to_loaded_table(t, dfctx).await?,
+            TableLoadOption::iceberg(_) => {
+                iceberg::to_loaded_table(t)
+                    .await
+                    .context(LoadIcebergSnafu)?
+            }
             TableLoadOption::arrow { .. } => {
                 arrow_ipc_file::to_loaded_table(t.clone(), dfctx.clone()).await?
             }
@@ -834,6 +862,7 @@ pub async fn load(
             Extension::Postgresql => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::Postgres.to_mem_table(t)?,
             ))),
+            Extension::Iceberg => iceberg::to_loaded_table(t).await.context(LoadIcebergSnafu),
             ext => Err(Error::InvalidUri {
                 msg: format!(
                     "failed to register `{}` as table `{}`, unsupported table format `{:?}`",

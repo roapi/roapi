@@ -54,6 +54,9 @@ deltalake = { version = "0.26", features = [
     "gcs",
     "azure",
 ] }
+iceberg = { version = "0.5.1", optional = true }
+iceberg-datafusion = { version = "0.5.1", optional = true }
+iceberg-catalog-rest = { version = "0.5.1", optional = true }
 yup-oauth2 = { version = "10", default-features = false, features = [
     "service_account",
 ] }
@@ -101,3 +104,4 @@ database-sqlite = ["connectorx/src_sqlite"]
 database-mysql = ["connectorx/src_mysql"]
 database-postgres = ["connectorx/src_postgres", "dep:tokio-postgres"]
 database = ["database-sqlite", "database-mysql", "database-postgres"]
+iceberg = ["dep:iceberg", "dep:iceberg-datafusion", "dep:iceberg-catalog-rest"]
