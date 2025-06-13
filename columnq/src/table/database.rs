@@ -2,12 +2,14 @@ pub enum DatabaseLoader {
     MySQL,
     SQLite,
     Postgres,
+    Trino, // Added Trino
 }
 
 #[cfg(any(
     feature = "database-sqlite",
     feature = "database-mysql",
-    feature = "database-postgres"
+    feature = "database-postgres",
+    feature = "database-trino" // Added
 ))]
 mod imp {
     use crate::table::TableLoadOption;
@@ -45,6 +47,7 @@ mod imp {
                 Some(TableLoadOption::mysql { table }) => table.clone(),
                 Some(TableLoadOption::postgres { table }) => table.clone(),
                 Some(TableLoadOption::sqlite { table }) => table.clone(),
+                Some(TableLoadOption::trino { table }) => table.clone(), // Added
                 _ => None,
             }
             .unwrap_or(t.name.clone());
@@ -72,7 +75,8 @@ mod imp {
 #[cfg(not(any(
     feature = "database-sqlite",
     feature = "database-mysql",
-    feature = "database-postgres"
+    feature = "database-postgres",
+    feature = "database-trino" // Added
 )))]
 mod imp {
     use crate::table::TableSource;

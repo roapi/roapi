@@ -110,6 +110,7 @@ pub enum Extension {
     Sqlite,
     Mysql,
     Postgresql,
+    Trino, // Added
 }
 
 impl From<Extension> for &'static str {
@@ -130,6 +131,7 @@ impl From<Extension> for &'static str {
             Extension::Sqlite => "sqlite",
             Extension::Mysql => "mysql",
             Extension::Postgresql => "postgresql",
+            Extension::Trino => "trino", // Added
         }
     }
 }
@@ -152,6 +154,7 @@ impl TryFrom<&str> for Extension {
             "xlsb" => Extension::Xlsb,
             "ods" => Extension::Ods,
             "sqlite" | "sqlite3" | "db" => Extension::Sqlite,
+            "trino" => Extension::Trino, // Added. Consider if other aliases are needed.
             _ => {
                 return Err(Error::Extension {
                     msg: format!("unsupported extension {ext}"),
@@ -400,6 +403,9 @@ pub enum TableLoadOption {
     postgres {
         table: Option<String>,
     },
+    trino { // Added
+        table: Option<String>,
+    },
 }
 
 impl TableLoadOption {
@@ -457,6 +463,7 @@ impl TableLoadOption {
             Self::mysql { .. } => Extension::Mysql,
             Self::sqlite { .. } => Extension::Sqlite,
             Self::postgres { .. } => Extension::Postgresql,
+            Self::trino { .. } => Extension::Trino, // Added
         }
     }
 }
@@ -628,6 +635,9 @@ impl TableSource {
                         table: None,
                     }),
                     "postgresql" => Some(TableLoadOption::postgres {
+                        table: table_name_from_path(uri.path()),
+                    }),
+                    "trino" => Some(TableLoadOption::trino { // Added
                         table: table_name_from_path(uri.path()),
                     }),
                     _ => None,
@@ -811,6 +821,9 @@ pub async fn load(
             TableLoadOption::postgres { .. } => LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::Postgres.to_mem_table(t)?,
             )),
+            TableLoadOption::trino { .. } => LoadedTable::new_from_df_table(Arc::new( // Added
+                database::DatabaseLoader::Trino.to_mem_table(t)?,
+            )),
         })
     } else {
         match t.extension()? {
@@ -833,6 +846,9 @@ pub async fn load(
             ))),
             Extension::Postgresql => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::Postgres.to_mem_table(t)?,
+            ))),
+            Extension::Trino => Ok(LoadedTable::new_from_df_table(Arc::new( // Added
+                database::DatabaseLoader::Trino.to_mem_table(t)?,
             ))),
             ext => Err(Error::InvalidUri {
                 msg: format!(
