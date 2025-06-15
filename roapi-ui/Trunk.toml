@@ -2,3 +2,6 @@
 filehash = false
 public_url ="/ui/"
 minify = "on_release"
+
+[tools]
+wasm_bindgen = "0.2.100"
