@@ -55,7 +55,7 @@ jobs:
       - name: Build UI first
         run: |
           cd roapi-ui
-          trunk build --release
+          trunk build --release --locked
       - name: Build wheels - x86_64
         run: |
           maturin build -m roapi/Cargo.toml -b bin --target x86_64-apple-darwin --release --out dist --features=database-sqlite,ui
@@ -113,7 +113,7 @@ jobs:
       - name: Build UI first
         run: |
           cd roapi-ui
-          trunk build --release
+          trunk build --release --locked
       - name: Build wheels
         run: |
           maturin build -m roapi/Cargo.toml -b bin --release --out dist --target ${{ matrix.platform.target }} --features=${{ matrix.platform.features }},ui
@@ -209,7 +209,7 @@ jobs:
       - name: Build UI first
         run: |
           cd roapi-ui
-          trunk build --release
+          trunk build --release --locked
       - name: Build Wheels
         run: |
           sudo python3 -m pip install 'maturin<2'
