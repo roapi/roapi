@@ -10,7 +10,9 @@ use datafusion::datasource::file_format::csv::CsvFormat;
 use datafusion::datasource::listing::{ListingOptions, ListingTableUrl};
 use datafusion::datasource::TableProvider;
 use serde::de::Deserializer;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+#[cfg(feature = "iceberg")]
+use serde::Serialize;
 use snafu::prelude::*;
 use uriparse::URIReference;
 
@@ -27,6 +29,7 @@ pub mod database;
 pub mod delta;
 pub mod excel;
 pub mod google_spreadsheets;
+#[cfg(feature = "iceberg")]
 pub mod iceberg;
 pub mod json;
 pub mod ndjson;
@@ -52,6 +55,7 @@ pub enum Error {
     LoadGoogleSheet { source: google_spreadsheets::Error },
     #[snafu(display("Failed to load Excel data: {source}"))]
     LoadExcel { source: excel::Error },
+    #[cfg(feature = "iceberg")]
     #[snafu(display("Failed to load Iceberg table: {source}"))]
     LoadIceberg { source: IcebergError },
     #[snafu(display("Failed to load database data: {source}"))]
@@ -116,6 +120,7 @@ pub enum Extension {
     Sqlite,
     Mysql,
     Postgresql,
+    #[cfg(feature = "iceberg")]
     Iceberg,
 }
 
@@ -137,6 +142,7 @@ impl From<Extension> for &'static str {
             Extension::Sqlite => "sqlite",
             Extension::Mysql => "mysql",
             Extension::Postgresql => "postgresql",
+            #[cfg(feature = "iceberg")]
             Extension::Iceberg => "iceberg",
         }
     }
@@ -161,6 +167,7 @@ impl TryFrom<&str> for Extension {
             "sqlite" | "sqlite3" | "db" => Extension::Sqlite,
             "mysql" => Extension::Mysql,
             "postgresql" => Extension::Postgresql,
+            #[cfg(feature = "iceberg")]
             "iceberg" => Extension::Iceberg,
             _ => {
                 return Err(Error::Extension {
@@ -378,6 +385,7 @@ impl Default for TableOptionDelta {
 // * update TableLoadOption.extension
 // * update TableSource.extension
 // * update load
+#[cfg(feature = "iceberg")]
 #[derive(Deserialize, Serialize, Clone, Debug, Default, Eq, PartialEq)]
 pub struct TableOptionIceberg {}
 
@@ -401,6 +409,7 @@ pub enum TableLoadOption {
     xlsb(TableOptionExcel),
     ods(TableOptionExcel),
     delta(TableOptionDelta),
+    #[cfg(feature = "iceberg")]
     iceberg(TableOptionIceberg),
     arrow {},
     arrows {},
@@ -454,6 +463,7 @@ impl TableLoadOption {
         }
     }
 
+    #[cfg(feature = "iceberg")]
     pub fn as_iceberg(&self) -> Result<&TableOptionIceberg, Error> {
         if let TableLoadOption::iceberg(opt) = self {
             Ok(opt)
@@ -479,6 +489,7 @@ impl TableLoadOption {
             Self::mysql { .. } => Extension::Mysql,
             Self::sqlite { .. } => Extension::Sqlite,
             Self::postgres { .. } => Extension::Postgresql,
+            #[cfg(feature = "iceberg")]
             Self::iceberg { .. } => Extension::Iceberg,
         }
     }
@@ -819,11 +830,10 @@ pub async fn load(
             | TableLoadOption::xlsb { .. }
             | TableLoadOption::ods { .. } => excel::to_loaded_table(t.clone()).await?,
             TableLoadOption::delta { .. } => delta::to_loaded_table(t, dfctx).await?,
-            TableLoadOption::iceberg(_) => {
-                iceberg::to_loaded_table(t)
-                    .await
-                    .context(LoadIcebergSnafu)?
-            }
+            #[cfg(feature = "iceberg")]
+            TableLoadOption::iceberg(_) => iceberg::to_loaded_table(t)
+                .await
+                .context(LoadIcebergSnafu)?,
             TableLoadOption::arrow { .. } => {
                 arrow_ipc_file::to_loaded_table(t.clone(), dfctx.clone()).await?
             }
@@ -862,6 +872,7 @@ pub async fn load(
             Extension::Postgresql => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::Postgres.to_mem_table(t)?,
             ))),
+            #[cfg(feature = "iceberg")]
             Extension::Iceberg => iceberg::to_loaded_table(t).await.context(LoadIcebergSnafu),
             ext => Err(Error::InvalidUri {
                 msg: format!(
