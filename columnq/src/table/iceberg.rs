@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use datafusion::arrow::datatypes::SchemaRef;
+use datafusion::datasource::MemTable;
 use iceberg::{Catalog, TableIdent};
 use iceberg_catalog_rest::{RestCatalog, RestCatalogConfig};
-use datafusion::datasource::MemTable;
-use datafusion::arrow::datatypes::SchemaRef;
 
 use crate::table::{LoadedTable, TableSource};
 
@@ -40,19 +40,20 @@ pub async fn to_loaded_table(t: &TableSource) -> Result<LoadedTable, ::iceberg::
         let table = catalog.load_table(&table_ident).await?;
 
         let iceberg_schema = table.metadata().current_schema();
-        let arrow_schema: SchemaRef = Arc::new(
-            iceberg_schema.as_ref().try_into()
-                .map_err(|e| ::iceberg::Error::new(
+        let arrow_schema: SchemaRef =
+            Arc::new(iceberg_schema.as_ref().try_into().map_err(|e| {
+                ::iceberg::Error::new(
                     ::iceberg::ErrorKind::DataInvalid,
                     format!("Failed to convert iceberg schema to arrow: {}", e),
-                ))?
-        );
+                )
+            })?);
 
-        let mem_table = MemTable::try_new(arrow_schema, vec![])
-            .map_err(|e| ::iceberg::Error::new(
+        let mem_table = MemTable::try_new(arrow_schema, vec![]).map_err(|e| {
+            ::iceberg::Error::new(
                 ::iceberg::ErrorKind::DataInvalid,
                 format!("Failed to create DataFusion MemTable: {}", e),
-            ))?;
+            )
+        })?;
 
         let loaded_table = LoadedTable::new_from_df_table(Arc::new(mem_table));
         Ok(loaded_table)
@@ -62,4 +63,4 @@ pub async fn to_loaded_table(t: &TableSource) -> Result<LoadedTable, ::iceberg::
             "Only iceberg REST catalog is supported currently. URI must start with iceberg://",
         ))
     }
-} 
+}
