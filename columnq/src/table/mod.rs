@@ -31,36 +31,40 @@ pub mod parquet;
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Failed to parse JSON: {source}"))]
-    LoadJson { source: json::Error },
+    LoadJson { source: Box<json::Error> },
     #[snafu(display("Failed to parse NDJSON: {source}"))]
-    LoadNdJson { source: ndjson::Error },
+    LoadNdJson { source: Box<ndjson::Error> },
     #[snafu(display("Failed to load parquet: {source}"))]
-    LoadParquet { source: parquet::Error },
+    LoadParquet { source: Box<parquet::Error> },
     #[snafu(display("Failed to load csv data: {source}"))]
-    LoadCsv { source: csv::Error },
+    LoadCsv { source: Box<csv::Error> },
     #[snafu(display("Failed to load delta table: {source}"))]
-    LoadDelta { source: delta::Error },
+    LoadDelta { source: Box<delta::Error> },
     #[snafu(display("Failed to load Arrow IPC data: {source}"))]
-    LoadArrowIpc { source: arrow_ipc_stream::Error },
+    LoadArrowIpc {
+        source: Box<arrow_ipc_stream::Error>,
+    },
     #[snafu(display("Failed to load Arrow IPC file data: {source}"))]
-    LoadArrowIpcFile { source: arrow_ipc_file::Error },
+    LoadArrowIpcFile { source: Box<arrow_ipc_file::Error> },
     #[snafu(display("Failed to load Google Sheet data: {source}"))]
-    LoadGoogleSheet { source: google_spreadsheets::Error },
+    LoadGoogleSheet {
+        source: Box<google_spreadsheets::Error>,
+    },
     #[snafu(display("Failed to load Excel data: {source}"))]
-    LoadExcel { source: excel::Error },
+    LoadExcel { source: Box<excel::Error> },
     #[snafu(display("Failed to load database data: {source}"))]
-    LoadDatabase { source: database::Error },
+    LoadDatabase { source: Box<database::Error> },
     #[snafu(display("Failed to cast IO source to memory bytes for source: {table_source}"))]
     MemoryCast { table_source: TableIoSource },
     #[snafu(display("Failed to resolve extension: {msg}"))]
     Extension { msg: String },
     #[snafu(display("Failed to create datafusion memory table: {source}"))]
     CreateMemTable {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to create datafusion listing table: {source}"))]
     CreateListingTable {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to read table data: {source}"))]
     Io { source: io::Error },
@@ -69,19 +73,21 @@ pub enum Error {
     #[snafu(display("Invalid table URI: {msg}"))]
     InvalidUri { msg: String },
     #[snafu(display("Invalid URI: {source}"))]
-    InvalidUriReference { source: uriparse::URIReferenceError },
+    InvalidUriReference {
+        source: Box<uriparse::URIReferenceError>,
+    },
     #[snafu(display("Failed to infer schema for listing table"))]
     InferListingTableSchema {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to parse URI for listing table: {uri}"))]
     ListingTableUri {
         uri: String,
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to merge schema: {source}"))]
     MergeSchema {
-        source: datafusion::arrow::error::ArrowError,
+        source: Box<datafusion::arrow::error::ArrowError>,
     },
     #[snafu(display("Table source missing required option"))]
     MissingOption {},
@@ -89,7 +95,7 @@ pub enum Error {
     Generic { msg: String },
     #[snafu(display("Failed to infer table schema: {source}"))]
     InferSchema {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
 }
 
@@ -729,21 +735,28 @@ pub async fn datafusion_get_or_infer_schema(
                         .to_str()
                         .expect("Failed to create file url"),
                 )
+                .map_err(Box::new)
                 .context(InferSchemaSnafu)?;
                 let inferred_schema = listing_options
                     .infer_schema(&dfctx.state(), &file_url)
                     .await
+                    .map_err(Box::new)
                     .context(InferSchemaSnafu)?;
                 schemas.push(
                     Arc::into_inner(inferred_schema)
                         .expect("Failed to unwrap schemaref into schema on merge"),
                 );
             }
-            Arc::new(arrow::datatypes::Schema::try_merge(schemas).context(MergeSchemaSnafu)?)
+            Arc::new(
+                arrow::datatypes::Schema::try_merge(schemas)
+                    .map_err(Box::new)
+                    .context(MergeSchemaSnafu)?,
+            )
         }
         (None, None) => listing_options
             .infer_schema(&dfctx.state(), table_url)
             .await
+            .map_err(Box::new)
             .context(InferSchemaSnafu)?,
     })
 }

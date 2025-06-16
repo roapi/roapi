@@ -32,6 +32,7 @@ fn json_schema_from_reader<R: Read>(r: R) -> Result<Schema, table::Error> {
     let mut reader = BufReader::new(r);
     let (schema, _) = infer_json_schema(&mut reader, None)
         .context(InferSchemaSnafu)
+        .map_err(Box::new)
         .context(table::LoadNdJsonSnafu)?;
     Ok(schema)
 }
@@ -45,11 +46,13 @@ fn decode_json_from_reader<R: Read>(
         .with_batch_size(batch_size)
         .build(BufReader::new(r))
         .context(BuildReaderSnafu)
+        .map_err(Box::new)
         .context(table::LoadNdJsonSnafu)?;
 
     let batches = batch_reader
         .collect::<Result<Vec<RecordBatch>, _>>()
         .context(CollectBatchesSnafu)
+        .map_err(Box::new)
         .context(table::LoadNdJsonSnafu)?;
 
     Ok(batches)
@@ -69,11 +72,12 @@ pub async fn to_mem_table(
                 partitions_from_table_source!(t, json_schema_from_reader, dfctx)
                     .context(table::IoSnafu)?;
             if inferred_schema.is_empty() {
-                return Err(Error::EmptySchema {}).context(table::LoadNdJsonSnafu);
+                return Err(Box::new(Error::EmptySchema {})).context(table::LoadNdJsonSnafu);
             }
             Arc::new(
                 Schema::try_merge(inferred_schema)
                     .context(InferSchemaSnafu)
+                    .map_err(Box::new)
                     .context(table::LoadNdJsonSnafu)?,
             )
         }
@@ -87,6 +91,7 @@ pub async fn to_mem_table(
     .context(table::IoSnafu)?;
 
     datafusion::datasource::MemTable::try_new(schema_ref, partitions)
+        .map_err(Box::new)
         .context(table::CreateMemTableSnafu)
 }
 

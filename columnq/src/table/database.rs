@@ -55,9 +55,11 @@ mod imp {
             let queries = CXQuery::naked(format!("SELECT * FROM {}", table_name));
             let source = SourceConn::try_from(t.get_uri_str())
                 .context(SourceSnafu)
+                .map_err(Box::new)
                 .context(table::LoadDatabaseSnafu)?;
             let destination = connectorx::get_arrow::get_arrow(&source, None, &[queries])
                 .context(DestinationSnafu)
+                .map_err(Box::new)
                 .context(table::LoadDatabaseSnafu)?;
 
             datafusion::datasource::MemTable::try_new(
@@ -65,8 +67,10 @@ mod imp {
                 vec![destination
                     .arrow()
                     .context(ToArrowSnafu)
+                    .map_err(Box::new)
                     .context(table::LoadDatabaseSnafu)?],
             )
+            .map_err(Box::new)
             .context(table::CreateMemTableSnafu)
         }
     }

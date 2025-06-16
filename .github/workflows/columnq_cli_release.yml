@@ -18,7 +18,7 @@ jobs:
   # skip tag version validation on non-release branch run
   validate-release-tag:
     name: Validate git tag
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         if: "startsWith(github.ref, 'refs/tags/')"
@@ -53,7 +53,7 @@ jobs:
       - name: Build wheels - universal2
         env:
           DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
-          MACOSX_DEPLOYMENT_TARGET: '10.9'
+          MACOSX_DEPLOYMENT_TARGET: '10.12'
         run: |
           # set SDKROOT for C dependencies
           export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)

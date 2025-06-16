@@ -126,58 +126,60 @@ impl<H: RoapiContext> RoapiFlightSqlService<H> {
     }
 
     async fn get_ctx<T>(&self, req: &Request<T>) -> Result<SessionContext, Status> {
-        self.check_token(req)?;
+        self.check_token(req).map_err(|e| *e)?;
 
         Ok(self.ctx.get_dfctx().await)
     }
 
-    fn pop_result(&self, handle: &str) -> Result<Vec<RecordBatch>, Status> {
+    fn pop_result(&self, handle: &str) -> Result<Vec<RecordBatch>, Box<Status>> {
         if let Some((_, result)) = self.results.remove(handle) {
             Ok(result)
         } else {
-            Err(Status::internal(format!(
+            Err(Box::new(Status::internal(format!(
                 "Request handle not found: {handle}"
-            )))?
+            ))))?
         }
     }
 
-    fn get_plan(&self, handle: &str) -> Result<LogicalPlan, Status> {
+    fn get_plan(&self, handle: &str) -> Result<LogicalPlan, Box<Status>> {
         if let Some(plan) = self.statements.get(handle) {
             Ok(plan.clone())
         } else {
-            Err(Status::internal(format!("Plan handle not found: {handle}")))?
+            Err(Box::new(Status::internal(format!(
+                "Plan handle not found: {handle}"
+            ))))?
         }
     }
 
-    fn remove_plan(&self, handle: &str) -> Result<(), Status> {
+    fn remove_plan(&self, handle: &str) -> Result<(), Box<Status>> {
         self.statements.remove(&handle.to_string());
         Ok(())
     }
 
-    fn remove_result(&self, handle: &str) -> Result<(), Status> {
+    fn remove_result(&self, handle: &str) -> Result<(), Box<Status>> {
         self.results.remove(handle);
         Ok(())
     }
 
-    fn check_token<T>(&self, req: &Request<T>) -> Result<(), Status> {
+    fn check_token<T>(&self, req: &Request<T>) -> Result<(), Box<Status>> {
         if let Some(token) = &self.auth_token {
             let metadata = req.metadata();
             let auth_header = metadata
                 .get(AUTH_HEADER)
-                .ok_or_else(|| Status::unauthenticated("token not found"))?;
+                .ok_or_else(|| Box::new(Status::unauthenticated("token not found")))?;
             let auth_header = auth_header
                 .to_str()
-                .map_err(|e| Status::internal(format!("Error parsing header: {e}")))?;
+                .map_err(|e| Box::new(Status::internal(format!("Error parsing header: {e}"))))?;
 
             if !auth_header.starts_with(BEARER_PREFIX) {
-                Err(Status::internal("invalid auth type"))?;
+                Err(Box::new(Status::internal("invalid auth type")))?;
             }
             if auth_header.len() <= BEARER_PREFIX.len() {
-                return Err(Status::unauthenticated("invalid token"));
+                return Err(Box::new(Status::unauthenticated("invalid token")));
             }
             let user_token = &auth_header[BEARER_PREFIX.len()..];
             if !constant_time_eq(token.as_bytes(), user_token.as_bytes()) {
-                return Err(Status::unauthenticated("invalid token"));
+                return Err(Box::new(Status::unauthenticated("invalid token")));
             }
         }
         Ok(())
@@ -279,7 +281,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         request: Request<Ticket>,
         message: Any,
     ) -> Result<Response<<Self as FlightService>::DoGetStream>, Status> {
-        self.check_token(&request)?;
+        self.check_token(&request).map_err(|e| *e)?;
 
         if !message.is::<FetchResults>() {
             Err(Status::unimplemented(format!(
@@ -296,7 +298,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         let handle = fr.handle;
 
         info!("getting results for {handle}");
-        let result = self.pop_result(&handle)?;
+        let result = self.pop_result(&handle).map_err(|e| *e)?;
         // if we get an empty result, create an empty schema
         let (schema, batches) = match result.first() {
             None => (Arc::new(Schema::empty()), vec![]),
@@ -319,7 +321,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         query: CommandStatementQuery,
         request: Request<FlightDescriptor>,
     ) -> Result<Response<FlightInfo>, Status> {
-        self.check_token(&request)?;
+        self.check_token(&request).map_err(|e| *e)?;
 
         debug!("got flight_info_statement user query: {:#?}", &query);
         let user_query = query.query.as_str();
@@ -386,14 +388,14 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         cmd: CommandPreparedStatementQuery,
         request: Request<FlightDescriptor>,
     ) -> Result<Response<FlightInfo>, Status> {
-        self.check_token(&request)?;
+        self.check_token(&request).map_err(|e| *e)?;
 
         info!("get_flight_info_prepared_statement");
         let handle = std::str::from_utf8(&cmd.prepared_statement_handle)
             .map_err(|e| internal_error!("Unable to parse uuid", e))?;
 
         let ctx = self.get_ctx(&request).await?;
-        let plan = self.get_plan(handle)?;
+        let plan = self.get_plan(handle).map_err(|e| *e)?;
 
         let state = ctx.state();
         let df = DataFrame::new(state, plan);
@@ -821,7 +823,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
         query: ActionCreatePreparedStatementRequest,
         request: Request<Action>,
     ) -> Result<ActionCreatePreparedStatementResult, Status> {
-        self.check_token(&request)?;
+        self.check_token(&request).map_err(|e| *e)?;
 
         let user_query = query.query.as_str();
         info!("do_action_create_prepared_statement: {user_query}");
