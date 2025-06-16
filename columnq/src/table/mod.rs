@@ -374,7 +374,24 @@ impl Default for TableOptionDelta {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default, Eq, PartialEq)]
-pub struct TableOptionIceberg {}
+pub struct TableOptionIceberg {
+    #[serde(default = "TableOptionIceberg::default_use_memory_table")]
+    pub use_memory_table: bool,
+}
+
+impl TableOptionIceberg {
+    #[inline]
+    pub fn default_use_memory_table() -> bool {
+        true
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn with_use_memory_table(mut self, use_memory: bool) -> Self {
+        self.use_memory_table = use_memory;
+        self
+    }
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
