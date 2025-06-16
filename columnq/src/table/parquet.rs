@@ -67,7 +67,8 @@ async fn to_datafusion_table(
     } else {
         let table_url = ListingTableUrl::parse(t.get_uri_str())
             .context(ParseUriSnafu)
-            .map_err(Box::new).context(table::LoadParquetSnafu)?;
+            .map_err(Box::new)
+            .context(table::LoadParquetSnafu)?;
         let mut options = ListingOptions::new(Arc::new(ParquetFormat::default()));
         if let Some(partition_cols) = t.datafusion_partition_cols() {
             options = options.with_table_partition_cols(partition_cols)
@@ -86,7 +87,9 @@ async fn to_datafusion_table(
             .with_listing_options(options)
             .with_schema(schemaref);
         Ok(Arc::new(
-            ListingTable::try_new(table_config).map_err(Box::new).context(table::CreateListingTableSnafu)?,
+            ListingTable::try_new(table_config)
+                .map_err(Box::new)
+                .context(table::CreateListingTableSnafu)?,
         ))
     }
 }
@@ -107,24 +110,28 @@ pub async fn to_mem_table(
             let mut buffer = Vec::new();
             r.read_to_end(&mut buffer)
                 .context(LoadBytesSnafu)
-                .map_err(Box::new).context(table::LoadParquetSnafu)?;
+                .map_err(Box::new)
+                .context(table::LoadParquetSnafu)?;
 
             let record_batch_reader = ParquetRecordBatchReaderBuilder::try_new_with_options(
                 bytes::Bytes::from(buffer),
                 ArrowReaderOptions::new(),
             )
             .context(BuildReaderSnafu)
-            .map_err(Box::new).context(table::LoadParquetSnafu)?
+            .map_err(Box::new)
+            .context(table::LoadParquetSnafu)?
             .with_batch_size(batch_size)
             .build()
             .context(BuildReaderSnafu)
-            .map_err(Box::new).context(table::LoadParquetSnafu)?;
+            .map_err(Box::new)
+            .context(table::LoadParquetSnafu)?;
 
             let batch_schema = &*record_batch_reader.schema();
             schema = Some(match &schema {
                 Some(s) if s != batch_schema => {
                     Schema::try_merge(vec![s.clone(), batch_schema.clone()])
-                        .map_err(Box::new).context(table::MergeSchemaSnafu)?
+                        .map_err(Box::new)
+                        .context(table::MergeSchemaSnafu)?
                 }
                 _ => batch_schema.clone(),
             });
@@ -133,15 +140,15 @@ pub async fn to_mem_table(
                 .into_iter()
                 .collect::<arrow::error::Result<Vec<RecordBatch>>>()
                 .context(CollectBatchesSnafu)
-                .map_err(Box::new).context(table::LoadParquetSnafu)
+                .map_err(Box::new)
+                .context(table::LoadParquetSnafu)
         },
         dfctx
     )
     .context(table::IoSnafu)?;
 
     if partitions.is_empty() {
-        return Err(Box::new(Error::EmptyPartition {}))
-            .context(table::LoadParquetSnafu);
+        return Err(Box::new(Error::EmptyPartition {})).context(table::LoadParquetSnafu);
     }
 
     let table = Arc::new(
@@ -154,7 +161,8 @@ pub async fn to_mem_table(
             ),
             partitions,
         )
-        .map_err(Box::new).context(table::CreateMemTableSnafu)?,
+        .map_err(Box::new)
+        .context(table::CreateMemTableSnafu)?,
     );
 
     Ok(table)

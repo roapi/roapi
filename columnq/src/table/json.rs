@@ -151,8 +151,7 @@ async fn to_partitions(
     };
 
     if array_encoded && t.schema.is_none() {
-        return Err(Box::new(Error::ArrayEncodedSchemaRequired {}))
-            .context(table::LoadJsonSnafu);
+        return Err(Box::new(Error::ArrayEncodedSchemaRequired {})).context(table::LoadJsonSnafu);
     }
 
     let pointer = match &t.option {
@@ -179,8 +178,7 @@ async fn to_partitions(
                         .context(table::LoadJsonSnafu);
                     }
                     None => {
-                        return Err(Box::new(Error::EmptyArray {}))
-                            .context(table::LoadJsonSnafu);
+                        return Err(Box::new(Error::EmptyArray {})).context(table::LoadJsonSnafu);
                     }
                 }
             }

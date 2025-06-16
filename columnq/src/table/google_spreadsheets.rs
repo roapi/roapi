@@ -324,7 +324,8 @@ async fn gs_get_req_contex(t: &TableSource) -> Result<GetReqContext, table::Erro
     if RE_GOOGLE_SHEET.captures(uri_str).is_none() {
         return Err(Box::new(Error::InvalidUri {
             uri: uri_str.to_string(),
-        })).context(table::LoadGoogleSheetSnafu);
+        }))
+        .context(table::LoadGoogleSheetSnafu);
     }
 
     let uri = URIReference::try_from(uri_str)
@@ -340,17 +341,20 @@ async fn gs_get_req_contex(t: &TableSource) -> Result<GetReqContext, table::Erro
 
     let token = fetch_auth_token(opt)
         .await
-        .map_err(Box::new).context(table::LoadGoogleSheetSnafu)?;
+        .map_err(Box::new)
+        .context(table::LoadGoogleSheetSnafu)?;
     let token_str = token
         .token()
         .ok_or(Error::EmptyToken {})
-        .map_err(Box::new).context(table::LoadGoogleSheetSnafu)?;
+        .map_err(Box::new)
+        .context(table::LoadGoogleSheetSnafu)?;
 
     let sheet_title = match &opt.sheet_title {
         Some(t) => t.clone(),
         None => resolve_sheet_title(token_str, spreadsheet_id, &uri)
             .await
-            .map_err(Box::new).context(table::LoadGoogleSheetSnafu)?,
+            .map_err(Box::new)
+            .context(table::LoadGoogleSheetSnafu)?,
     };
 
     Ok(GetReqContext {
@@ -368,26 +372,33 @@ async fn to_mem_table(
         .token
         .token()
         .ok_or(Error::EmptyToken {})
-        .map_err(Box::new).context(table::LoadGoogleSheetSnafu)?;
+        .map_err(Box::new)
+        .context(table::LoadGoogleSheetSnafu)?;
     let resp = gs_api_get(token_str, &ctx.url)
         .await
-        .map_err(Box::new).context(table::LoadGoogleSheetSnafu)?
+        .map_err(Box::new)
+        .context(table::LoadGoogleSheetSnafu)?
         .error_for_status()
         .context(HttpStatusSnafu)
-        .map_err(Box::new).context(table::LoadGoogleSheetSnafu)?;
+        .map_err(Box::new)
+        .context(table::LoadGoogleSheetSnafu)?;
 
     let sheet = resp
         .json::<SpreadsheetValues>()
         .await
         .context(ParseApiRespSnafu)
-        .map_err(Box::new).context(table::LoadGoogleSheetSnafu)?;
+        .map_err(Box::new)
+        .context(table::LoadGoogleSheetSnafu)?;
 
-    let batch = sheet_values_to_record_batch(&sheet.values).map_err(Box::new).context(table::LoadGoogleSheetSnafu)?;
+    let batch = sheet_values_to_record_batch(&sheet.values)
+        .map_err(Box::new)
+        .context(table::LoadGoogleSheetSnafu)?;
     let schema_ref = batch.schema();
     let partitions = vec![vec![batch]];
 
     datafusion::datasource::MemTable::try_new(schema_ref, partitions)
-        .map_err(Box::new).context(table::CreateMemTableSnafu)
+        .map_err(Box::new)
+        .context(table::CreateMemTableSnafu)
 }
 
 pub async fn to_loaded_table(t: &TableSource) -> Result<LoadedTable, table::Error> {

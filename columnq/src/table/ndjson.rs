@@ -72,8 +72,7 @@ pub async fn to_mem_table(
                 partitions_from_table_source!(t, json_schema_from_reader, dfctx)
                     .context(table::IoSnafu)?;
             if inferred_schema.is_empty() {
-                return Err(Box::new(Error::EmptySchema {}))
-                    .context(table::LoadNdJsonSnafu);
+                return Err(Box::new(Error::EmptySchema {})).context(table::LoadNdJsonSnafu);
             }
             Arc::new(
                 Schema::try_merge(inferred_schema)
@@ -92,7 +91,8 @@ pub async fn to_mem_table(
     .context(table::IoSnafu)?;
 
     datafusion::datasource::MemTable::try_new(schema_ref, partitions)
-        .map_err(Box::new).context(table::CreateMemTableSnafu)
+        .map_err(Box::new)
+        .context(table::CreateMemTableSnafu)
 }
 
 async fn to_datafusion_table(

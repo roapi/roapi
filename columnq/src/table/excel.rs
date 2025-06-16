@@ -357,7 +357,8 @@ pub async fn to_mem_table(
     let uri = t.get_uri_str();
     let mut workbook: Sheets<_> = open_workbook_auto(uri)
         .context(OpenWorkbookSnafu)
-        .map_err(Box::new).context(table::LoadExcelSnafu)?;
+        .map_err(Box::new)
+        .context(table::LoadExcelSnafu)?;
 
     let worksheet_range = match &opt.sheet_name {
         Some(sheet) => Some(workbook.worksheet_range(sheet)),
@@ -365,18 +366,23 @@ pub async fn to_mem_table(
     };
 
     if let Some(Ok(range)) = worksheet_range {
-        let shema = infer_schema(&range, opt, &t.schema).map_err(Box::new).context(table::LoadExcelSnafu)?;
-        let batch =
-            excel_range_to_record_batch(range, opt, shema).map_err(Box::new).context(table::LoadExcelSnafu)?;
+        let shema = infer_schema(&range, opt, &t.schema)
+            .map_err(Box::new)
+            .context(table::LoadExcelSnafu)?;
+        let batch = excel_range_to_record_batch(range, opt, shema)
+            .map_err(Box::new)
+            .context(table::LoadExcelSnafu)?;
         let schema_ref = batch.schema();
         let partitions = vec![vec![batch]];
 
         datafusion::datasource::MemTable::try_new(schema_ref, partitions)
-            .map_err(Box::new).context(table::CreateMemTableSnafu)
+            .map_err(Box::new)
+            .context(table::CreateMemTableSnafu)
     } else {
         Err(Box::new(Error::Load {
             msg: "Failed to open excel file.".to_owned(),
-        })).context(table::LoadExcelSnafu)
+        }))
+        .context(table::LoadExcelSnafu)
     }
 }
 

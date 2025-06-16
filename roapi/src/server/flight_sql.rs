@@ -145,7 +145,9 @@ impl<H: RoapiContext> RoapiFlightSqlService<H> {
         if let Some(plan) = self.statements.get(handle) {
             Ok(plan.clone())
         } else {
-            Err(Box::new(Status::internal(format!("Plan handle not found: {handle}"))))?
+            Err(Box::new(Status::internal(format!(
+                "Plan handle not found: {handle}"
+            ))))?
         }
     }
 

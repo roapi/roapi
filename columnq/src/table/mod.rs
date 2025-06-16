@@ -41,11 +41,15 @@ pub enum Error {
     #[snafu(display("Failed to load delta table: {source}"))]
     LoadDelta { source: Box<delta::Error> },
     #[snafu(display("Failed to load Arrow IPC data: {source}"))]
-    LoadArrowIpc { source: Box<arrow_ipc_stream::Error> },
+    LoadArrowIpc {
+        source: Box<arrow_ipc_stream::Error>,
+    },
     #[snafu(display("Failed to load Arrow IPC file data: {source}"))]
     LoadArrowIpcFile { source: Box<arrow_ipc_file::Error> },
     #[snafu(display("Failed to load Google Sheet data: {source}"))]
-    LoadGoogleSheet { source: Box<google_spreadsheets::Error> },
+    LoadGoogleSheet {
+        source: Box<google_spreadsheets::Error>,
+    },
     #[snafu(display("Failed to load Excel data: {source}"))]
     LoadExcel { source: Box<excel::Error> },
     #[snafu(display("Failed to load database data: {source}"))]
@@ -69,7 +73,9 @@ pub enum Error {
     #[snafu(display("Invalid table URI: {msg}"))]
     InvalidUri { msg: String },
     #[snafu(display("Invalid URI: {source}"))]
-    InvalidUriReference { source: Box<uriparse::URIReferenceError> },
+    InvalidUriReference {
+        source: Box<uriparse::URIReferenceError>,
+    },
     #[snafu(display("Failed to infer schema for listing table"))]
     InferListingTableSchema {
         source: Box<datafusion::error::DataFusionError>,
@@ -731,9 +737,11 @@ pub async fn datafusion_get_or_infer_schema(
                         .expect("Failed to unwrap schemaref into schema on merge"),
                 );
             }
-            Arc::new(arrow::datatypes::Schema::try_merge(schemas)
-                .map_err(Box::new)
-                .context(MergeSchemaSnafu)?)
+            Arc::new(
+                arrow::datatypes::Schema::try_merge(schemas)
+                    .map_err(Box::new)
+                    .context(MergeSchemaSnafu)?,
+            )
         }
         (None, None) => listing_options
             .infer_schema(&dfctx.state(), table_url)

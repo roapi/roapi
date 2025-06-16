@@ -175,8 +175,7 @@ pub async fn to_mem_table(
         .context(table::LoadDeltaSnafu)?
         .collect::<Vec<String>>();
     if paths.is_empty() {
-        return Err(Box::new(Error::EmptyTable {}))
-            .context(table::LoadDeltaSnafu);
+        return Err(Box::new(Error::EmptyTable {})).context(table::LoadDeltaSnafu);
     }
 
     let delta_schema = delta_table
