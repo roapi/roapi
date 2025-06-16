@@ -18,7 +18,7 @@ jobs:
   # skip tag version validation on non-release branch run
   validate-release-tag:
     name: Validate git tag
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         if: "startsWith(github.ref, 'refs/tags/')"
