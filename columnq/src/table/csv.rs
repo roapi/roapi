@@ -49,9 +49,11 @@ async fn to_datafusion_table(
         return to_mem_table(&t, &dfctx).await;
     }
     let table_url =
-        ListingTableUrl::parse(t.get_uri_str()).with_context(|_| table::ListingTableUriSnafu {
-            uri: t.get_uri_str().to_string(),
-        })?;
+        ListingTableUrl::parse(t.get_uri_str())
+            .map_err(Box::new)
+            .context(table::ListingTableUriSnafu {
+                uri: t.get_uri_str().to_string(),
+            })?;
     let mut options = ListingOptions::new(Arc::new(opt.as_df_csv_format()));
     if let Some(partition_cols) = t.datafusion_partition_cols() {
         options = options.with_table_partition_cols(partition_cols)
@@ -70,7 +72,9 @@ async fn to_datafusion_table(
         .with_listing_options(options)
         .with_schema(schemaref);
     Ok(Arc::new(
-        ListingTable::try_new(table_config).context(table::CreateListingTableSnafu)?,
+        ListingTable::try_new(table_config)
+            .map_err(Box::new)
+            .context(table::CreateListingTableSnafu)?,
     ))
 }
 
@@ -101,6 +105,7 @@ async fn to_mem_table(
                     let (schema, record_count) = fmt
                         .infer_schema(r, None)
                         .context(InferSchemaSnafu)
+                        .map_err(Box::new)
                         .context(table::LoadCsvSnafu)?;
                     if record_count > 0 {
                         Ok(Some(schema))
@@ -117,39 +122,42 @@ async fn to_mem_table(
 
             Arc::new(
                 Schema::try_merge(schemas)
-                    .context(MergeSchemaSnafu)
-                    .context(table::LoadCsvSnafu)?,
+                    .map_err(Box::new)
+                    .context(table::MergeSchemaSnafu)?,
             )
         }
     };
 
     debug!("loading csv table data...");
-    let partitions: Vec<Vec<RecordBatch>> = partitions_from_table_source!(
-        t,
-        |r| -> Result<Vec<RecordBatch>, table::Error> {
-            let mut builder = arrow::csv::reader::ReaderBuilder::new(schema_ref.clone())
-                .with_header(has_header)
-                .with_delimiter(delimiter)
-                .with_batch_size(batch_size);
-            if let Some(p) = projection {
-                builder = builder.with_projection(p.clone());
-            }
-            let csv_reader = builder
-                .build(r)
-                .context(BuildReaderSnafu)
-                .context(table::LoadCsvSnafu)?;
+    let partitions: Vec<Vec<RecordBatch>> =
+        partitions_from_table_source!(
+            t,
+            |r| -> Result<Vec<RecordBatch>, table::Error> {
+                let mut builder = arrow::csv::reader::ReaderBuilder::new(schema_ref.clone())
+                    .with_header(has_header)
+                    .with_delimiter(delimiter)
+                    .with_batch_size(batch_size);
+                if let Some(p) = projection {
+                    builder = builder.with_projection(p.clone());
+                }
+                let csv_reader = builder.build(r)
+                    .context(BuildReaderSnafu)
+                    .map_err(Box::new)
+                    .context(table::LoadCsvSnafu)?;
 
-            csv_reader
-                .collect::<Result<Vec<RecordBatch>, _>>()
-                .context(ReadBytesSnafu)
-                .context(table::LoadCsvSnafu)
-        },
-        dfctx
-    )
-    .context(table::IoSnafu)?;
+                csv_reader
+                    .collect::<Result<Vec<RecordBatch>, _>>()
+                    .context(ReadBytesSnafu)
+                    .map_err(Box::new)
+                    .context(table::LoadCsvSnafu)
+            },
+            dfctx
+        )
+        .context(table::IoSnafu)?;
 
     let table = Arc::new(
         datafusion::datasource::MemTable::try_new(schema_ref, partitions)
+            .map_err(Box::new)
             .context(table::CreateMemTableSnafu)?,
     );
 

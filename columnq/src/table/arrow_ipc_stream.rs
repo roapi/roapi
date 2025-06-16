@@ -32,7 +32,7 @@ pub async fn to_mem_table(
         |mut r| {
             let arrow_stream_reader = arrow::ipc::reader::StreamReader::try_new(&mut r, None)
                 .context(NewReaderSnafu)
-                .context(table::LoadArrowIpcSnafu)?;
+                .map_err(Box::new).context(table::LoadArrowIpcSnafu)?;
             let schema = (*arrow_stream_reader.schema()).clone();
 
             arrow_stream_reader
@@ -40,7 +40,7 @@ pub async fn to_mem_table(
                 .collect::<Result<Vec<RecordBatch>, _>>()
                 .map(|batches| (Some(schema), batches))
                 .context(CollectRecordBatchSnafu)
-                .context(table::LoadArrowIpcSnafu)
+                .map_err(Box::new).context(table::LoadArrowIpcSnafu)
         },
         dfctx
     )
@@ -57,7 +57,7 @@ pub async fn to_mem_table(
                         .flat_map(|v| if !(v.1).is_empty() { v.0.take() } else { None })
                         .collect::<Vec<_>>(),
                 )
-                .context(table::MergeSchemaSnafu)?,
+                .map_err(Box::new).context(table::MergeSchemaSnafu)?,
             )
         }
     };
@@ -69,7 +69,7 @@ pub async fn to_mem_table(
             .map(|v| v.1)
             .collect::<Vec<Vec<RecordBatch>>>(),
     )
-    .context(table::CreateMemTableSnafu)
+    .map_err(Box::new).context(table::CreateMemTableSnafu)
 }
 
 async fn to_datafusion_table(
