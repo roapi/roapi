@@ -77,7 +77,6 @@ database = ["columnq/database"]
 database-sqlite = ["columnq/database-sqlite"]
 database-mysql = ["columnq/database-mysql"]
 database-postgres = ["columnq/database-postgres"]
-iceberg = ["columnq/iceberg"]
 ui = ["rust-embed", "mime_guess"]
 
 [dev-dependencies]

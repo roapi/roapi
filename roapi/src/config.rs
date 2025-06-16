@@ -146,7 +146,6 @@ pub fn get_cmd() -> clap::Command {
         "database-postgres",
         #[cfg(feature = "database-mysql")]
         "database-mysql",
-        #[cfg(feature = "iceberg")]
         "iceberg",
         #[cfg(feature = "snmalloc")]
         "snmalloc",
@@ -154,6 +153,18 @@ pub fn get_cmd() -> clap::Command {
         "rustls",
         #[cfg(feature = "ui")]
         "ui",
+        "parquet",
+        "arrow",
+        "arrows",
+        "json",
+        "ndjson",
+        "jsonl",
+        "csv",
+        "xls",
+        "xlsx",
+        "xlsb",
+        "ods",
+        "delta",
     ];
 
     clap::Command::new("roapi")
