@@ -1515,7 +1515,7 @@ dependencies = [
  "arrayvec",
  "cc",
  "cfg-if",
- "constant_time_eq 0.3.1",
+ "constant_time_eq",
 ]
 
 [[package]]
@@ -2064,12 +2064,6 @@ name = "constant_time_eq"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
-
-[[package]]
-name = "constant_time_eq"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
 name = "convert_case"
@@ -7027,7 +7021,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.12.5"
+version = "0.12.6"
 dependencies = [
  "arrow-cast",
  "arrow-flight",
@@ -7038,7 +7032,7 @@ dependencies = [
  "base64 0.22.1",
  "clap",
  "columnq",
- "constant_time_eq 0.4.2",
+ "constant_time_eq",
  "dashmap",
  "env_logger",
  "futures",
@@ -7064,7 +7058,7 @@ dependencies = [
  "tokio-stream",
  "toml",
  "tonic",
- "tower 0.5.2",
+ "tower 0.4.13",
  "tower-http",
  "tower-layer",
  "tower-service",
