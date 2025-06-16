@@ -70,7 +70,7 @@ toml = "0.7"
 tempfile = "3.3.0"
 pretty_assertions = "*"
 dotenvy = "*"
-rusqlite = "0"
+rusqlite = "0.33.0"
 
 [features]
 default = ["rustls"]
