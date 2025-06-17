@@ -57,7 +57,7 @@ mod imp {
                 .context(SourceSnafu)
                 .map_err(Box::new)
                 .context(table::LoadDatabaseSnafu)?;
-            let destination = connectorx::get_arrow::get_arrow(&source, None, &[queries])
+            let destination = connectorx::get_arrow::get_arrow(&source, None, &[queries], None)
                 .context(DestinationSnafu)
                 .map_err(Box::new)
                 .context(table::LoadDatabaseSnafu)?;
