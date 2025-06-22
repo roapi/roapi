@@ -1,4 +1,4 @@
-#[cfg(any(feature = "database-sqlite"))]
+#[cfg(feature = "database-sqlite")]
 mod sqlite {
     use columnq::table::TableSource;
     use columnq::ColumnQ;

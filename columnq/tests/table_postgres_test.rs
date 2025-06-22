@@ -1,4 +1,4 @@
-#[cfg(any(feature = "database-postgres"))]
+#[cfg(feature = "database-postgres")]
 mod postgres {
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;

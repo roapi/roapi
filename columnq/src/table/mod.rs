@@ -1061,7 +1061,7 @@ schema:
     fn test_table_name_from_path() {
         assert_eq!(
             table_name_from_path(
-                &URIReference::try_from("mysql://root:123456@1.1.1.1:3306/test")
+                URIReference::try_from("mysql://root:123456@1.1.1.1:3306/test")
                     .unwrap()
                     .path()
             ),
@@ -1092,7 +1092,7 @@ schema:
     async fn test_load_sqlite_table_with_config() {
         use datafusion::common::stats::Precision;
 
-        for ext in vec!["db", "sqlite", "sqlite3"] {
+        for ext in ["db", "sqlite", "sqlite3"] {
             let t: TableSource = serde_yaml::from_str(&format!(
                 r#"
 name: "uk_cities"
