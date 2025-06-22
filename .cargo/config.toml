@@ -1,20 +1,2 @@
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-Ctarget-cpu=skylake"]
-[patch.crates-io]  # Trying to make arrow 44 work with 55 for sfu-connectorx
-# delta_kernel = { git = "https://github.com/houqp/delta-kernel-rs", rev = "92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1" } 
-#  arrow patches :
-arrow = { version = "55.0.0" }
-arrow-array = { version = "55.0.0" }
-arrow-buffer = { version = "55.0.0" }
-arrow-data = { version = "55.0.0" }
-arrow-ipc = { version = "55.0.0" }
-arrow-ord = { version = "55.0.0" }
-arrow-row = { version = "55.0.0" }
-arrow-schema = { version = "55.0.0" }
-arrow-select = { version = "55.0.0" }
-arrow-string = { version = "55.0.0" }
-arrow-cast = { version = "55.0.0" }
-arrow-arith = { version = "55.0.0" }
-
-# [patch."https://github.com/roapi/connector-x.git"]
-# connectorx = { path = "../connector-x/connectorx" }
