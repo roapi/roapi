@@ -24,8 +24,8 @@ bytes = { version = "1" }
 percent-encoding = "2.3"
 
 # datafusion
-datafusion = { version = "47", features = ["serde"] }
-arrow = { version = "55", features = ["prettyprint"] }
+datafusion = { version = "47", features = ["serde"] } 
+arrow = { version = "55.0.0", features = ["prettyprint"] }
 
 # spreadsheets reader
 calamine = { version = "0.23.1", features = ["dates"] }
@@ -61,7 +61,7 @@ yup-oauth2 = { version = "10", default-features = false, features = [
 [dependencies.connectorx]
 git = "https://github.com/sfu-db/connector-x.git"
 version = "0.4.4-alpha.1" # Updated to the latest version found
-features = ["fptr", "src_trino", "dst_arrow"] # Added fptr (default), kept src_trino and dst_arrow
+features = ["fptr", "src_trino", "dst_"] # Added fptr (default), kept src_trino and dst_arrow
 optional = true
 
 [dev-dependencies]
