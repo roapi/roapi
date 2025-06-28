@@ -113,7 +113,7 @@ impl<H: RoapiContext> RoapiQueryHandler<H> {
     }
 
     async fn execute_query(&self, query: &str) -> PgWireResult<QueryResponse<'static>> {
-        info!("executing query: {}", query);
+        info!("executing query: {query}");
 
         // Handle some special PostgreSQL queries
         if query.trim().to_lowercase().starts_with("show") {
@@ -549,7 +549,7 @@ impl<H: RoapiContext> RunnableServer for PostgresServer<H> {
                 let factory = Arc::new(RoapiHandlerFactory { handler });
 
                 if let Err(e) = process_socket(socket, None, factory).await {
-                    log::error!("Error processing postgres connection: {}", e);
+                    log::error!("Error processing postgres connection: {e}");
                 }
             });
         }

@@ -259,7 +259,7 @@ mod tests {
         let tmp_dir = tempfile::TempDir::new().unwrap();
         let tmp_file_path = tmp_dir.path().join("nested.json");
         let mut f = std::fs::File::create(tmp_file_path.clone()).unwrap();
-        writeln!(f, "{}", json_content).unwrap();
+        writeln!(f, "{json_content}").unwrap();
 
         let ctx = SessionContext::new();
         let t = to_mem_table(

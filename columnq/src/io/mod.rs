@@ -51,7 +51,7 @@ impl TryFrom<Option<&uriparse::Scheme<'_>>> for BlobStoreType {
             Some(uriparse::Scheme::HTTP) | Some(uriparse::Scheme::HTTPS) => Ok(BlobStoreType::Http),
             Some(uriparse::Scheme::Unregistered(s)) => BlobStoreType::try_from(s.as_str()),
             _ => Err(Error::InvalidUriScheme {
-                scheme: format!("{:?}", scheme),
+                scheme: format!("{scheme:?}"),
             }),
         }
     }

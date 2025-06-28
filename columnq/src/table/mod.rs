@@ -643,7 +643,7 @@ impl TableSource {
         }
     }
 
-    pub fn parsed_uri(&self) -> Result<URIReference, Error> {
+    pub fn parsed_uri(&self) -> Result<URIReference<'_>, Error> {
         match &self.io_source {
             TableIoSource::Uri(uri) => {
                 URIReference::try_from(uri.as_str()).map_err(|_| Error::InvalidUri {
@@ -1096,9 +1096,8 @@ schema:
             let t: TableSource = serde_yaml::from_str(&format!(
                 r#"
 name: "uk_cities"
-uri: "sqlite://../test_data/sqlite/sample.{}"
-"#,
-                ext
+uri: "sqlite://../test_data/sqlite/sample.{ext}"
+"#
             ))
             .unwrap();
             let ctx = datafusion::prelude::SessionContext::new();

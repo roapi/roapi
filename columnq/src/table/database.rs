@@ -49,7 +49,7 @@ mod imp {
             }
             .unwrap_or(t.name.clone());
 
-            let queries = CXQuery::naked(format!("SELECT * FROM {}", table_name));
+            let queries = CXQuery::naked(format!("SELECT * FROM {table_name}"));
             let source = SourceConn::try_from(t.get_uri_str())
                 .context(SourceSnafu)
                 .map_err(Box::new)

@@ -5,7 +5,7 @@ use columnq::table::{TableColumn, TableLoadOption, TableOptionCsv, TableSource};
 
 fn partitioned_csv_table() -> TableSource {
     let table_path = helpers::test_data_path("partitioned_csv");
-    let table = TableSource::new("partitioned_csv".to_string(), table_path)
+    TableSource::new("partitioned_csv".to_string(), table_path)
         .with_option(TableLoadOption::csv(
             TableOptionCsv::default().with_use_memory_table(false),
         ))
@@ -20,9 +20,7 @@ fn partitioned_csv_table() -> TableSource {
                 data_type: DataType::UInt16,
                 nullable: false,
             },
-        ]);
-
-    table
+        ])
 }
 
 #[tokio::test]

@@ -75,7 +75,7 @@ impl Application {
             let _handle = tokio::task::spawn(async move {
                 loop {
                     if let Err(e) = ctx_ext.refresh_tables().await {
-                        error!("Failed to refresh table: {:?}", e);
+                        error!("Failed to refresh table: {e:?}");
                     }
                     time::sleep(Duration::from_millis(1000)).await;
                 }

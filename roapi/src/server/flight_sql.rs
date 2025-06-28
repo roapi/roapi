@@ -285,8 +285,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
 
         if !message.is::<FetchResults>() {
             Err(Status::unimplemented(format!(
-                "do_get_fallback: The defined request is invalid: {:?}",
-                message
+                "do_get_fallback: The defined request is invalid: {message:?}"
             )))?
         }
 
@@ -984,7 +983,7 @@ impl<H: RoapiContext> RoapiFlightSqlServer<H> {
             // when only basic auth is specified, handshake will return encoded basic auth
             // value as token to keep it constant
             (None, Some(BasicAuth { username, password })) => {
-                let token = BASE64_STANDARD_NO_PAD.encode(format!("{}:{}", username, password));
+                let token = BASE64_STANDARD_NO_PAD.encode(format!("{username}:{password}"));
                 Some(token)
             }
             (None, None) => None,

@@ -48,7 +48,7 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
 
     let mut readline = Editor::<()>::new();
     if let Err(e) = readline.load_history(&rl_history) {
-        debug!("no query history loaded: {:?}", e);
+        debug!("no query history loaded: {e:?}");
     }
 
     loop {

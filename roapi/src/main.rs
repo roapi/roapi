@@ -22,7 +22,6 @@ async fn main() {
     }
     .await;
     if let Err(e) = re {
-        cmd.error(clap::error::ErrorKind::Io, format!("{}", e))
-            .exit();
+        cmd.error(clap::error::ErrorKind::Io, format!("{e}")).exit();
     }
 }

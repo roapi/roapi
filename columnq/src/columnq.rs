@@ -215,8 +215,7 @@ impl ColumnQ {
 
         let object_store: DatafusionResult<Arc<DynObjectStore>> = match url.host() {
             None => Err(DataFusionError::Execution(format!(
-                "Missing bucket name: {}",
-                url
+                "Missing bucket name: {url}"
             ))),
             Some(host) => {
                 match blob_type {

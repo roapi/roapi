@@ -52,7 +52,7 @@ where
     // TODO: load partitions in parallel
     let partitions = path_iter
         .map(|fpath| {
-            debug!("loading file from path: {}", fpath);
+            debug!("loading file from path: {fpath}");
             let reader = fs::File::open(fpath).context(FileOpenSnafu { fpath })?;
 
             partition_reader(reader).context(TableSnafu)
@@ -83,6 +83,6 @@ where
     let files =
         build_file_list(&fs_path, &file_ext).context(FileListSnafu { fs_path, file_ext })?;
 
-    debug!("loading file partitions: {:?}", files);
+    debug!("loading file partitions: {files:?}");
     partitions_from_iterator(files.iter().map(|s| s.as_str()), partition_reader)
 }
