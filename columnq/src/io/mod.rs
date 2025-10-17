@@ -65,7 +65,7 @@ impl TryFrom<&str> for BlobStoreType {
             "http" | "https" => Ok(BlobStoreType::Http),
             "s3" => Ok(BlobStoreType::S3),
             "gs" => Ok(BlobStoreType::GCS),
-            "az" | "adl" | "adfs" | "adfss" | "azure" => Ok(BlobStoreType::Azure),
+            "az" | "adl" | "abfs" | "abfss" | "azure" => Ok(BlobStoreType::Azure),
             "memory" => Ok(BlobStoreType::Memory),
             _ => Err(Error::InvalidUriScheme {
                 scheme: scheme.to_string(),
