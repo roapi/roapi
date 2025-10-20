@@ -24,7 +24,8 @@ bytes = { version = "1" }
 percent-encoding = "2.3"
 
 # datafusion
-datafusion = { version = "43", features = ["serde"] }
+datafusion = { version = "47", features = ["serde"] }
+arrow = { version = "55", features = ["prettyprint"] }
 
 # spreadsheets reader
 calamine = { version = "0.23.1", features = ["dates"] }
@@ -44,9 +45,9 @@ reqwest = { version = "0", default-features = false, features = [
 hyper-tls = { version = "0", default-features = false, optional = true }
 hyper-rustls = { version = "0", default-features = false, optional = true }
 
-object_store = { version = "0.11", features = ["aws", "gcp", "azure"] }
+object_store = { version = "0.12", features = ["http", "aws", "gcp", "azure"] }
 tokio-postgres = { version = "0.7.12", optional = true }
-deltalake = { version = "0.22", features = [
+deltalake = { version = "0.26", features = [
     "datafusion",
     "datafusion-ext",
     "s3",
@@ -59,7 +60,7 @@ yup-oauth2 = { version = "10", default-features = false, features = [
 
 [dependencies.connectorx]
 git = "https://github.com/roapi/connector-x.git"
-rev = "0134b4852521d636250409823d21fb4a79a7d346"
+rev = "77e769ec5d8654a5f6912573a70d56ac8b7f7a50"
 version = "0.3.3-alpha.1"
 features = ["default", "dst_arrow"]
 optional = true

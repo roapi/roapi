@@ -31,36 +31,40 @@ pub mod parquet;
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Failed to parse JSON: {source}"))]
-    LoadJson { source: json::Error },
+    LoadJson { source: Box<json::Error> },
     #[snafu(display("Failed to parse NDJSON: {source}"))]
-    LoadNdJson { source: ndjson::Error },
+    LoadNdJson { source: Box<ndjson::Error> },
     #[snafu(display("Failed to load parquet: {source}"))]
-    LoadParquet { source: parquet::Error },
+    LoadParquet { source: Box<parquet::Error> },
     #[snafu(display("Failed to load csv data: {source}"))]
-    LoadCsv { source: csv::Error },
+    LoadCsv { source: Box<csv::Error> },
     #[snafu(display("Failed to load delta table: {source}"))]
-    LoadDelta { source: delta::Error },
+    LoadDelta { source: Box<delta::Error> },
     #[snafu(display("Failed to load Arrow IPC data: {source}"))]
-    LoadArrowIpc { source: arrow_ipc_stream::Error },
+    LoadArrowIpc {
+        source: Box<arrow_ipc_stream::Error>,
+    },
     #[snafu(display("Failed to load Arrow IPC file data: {source}"))]
-    LoadArrowIpcFile { source: arrow_ipc_file::Error },
+    LoadArrowIpcFile { source: Box<arrow_ipc_file::Error> },
     #[snafu(display("Failed to load Google Sheet data: {source}"))]
-    LoadGoogleSheet { source: google_spreadsheets::Error },
+    LoadGoogleSheet {
+        source: Box<google_spreadsheets::Error>,
+    },
     #[snafu(display("Failed to load Excel data: {source}"))]
-    LoadExcel { source: excel::Error },
+    LoadExcel { source: Box<excel::Error> },
     #[snafu(display("Failed to load database data: {source}"))]
-    LoadDatabase { source: database::Error },
+    LoadDatabase { source: Box<database::Error> },
     #[snafu(display("Failed to cast IO source to memory bytes for source: {table_source}"))]
     MemoryCast { table_source: TableIoSource },
     #[snafu(display("Failed to resolve extension: {msg}"))]
     Extension { msg: String },
     #[snafu(display("Failed to create datafusion memory table: {source}"))]
     CreateMemTable {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to create datafusion listing table: {source}"))]
     CreateListingTable {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to read table data: {source}"))]
     Io { source: io::Error },
@@ -69,19 +73,21 @@ pub enum Error {
     #[snafu(display("Invalid table URI: {msg}"))]
     InvalidUri { msg: String },
     #[snafu(display("Invalid URI: {source}"))]
-    InvalidUriReference { source: uriparse::URIReferenceError },
+    InvalidUriReference {
+        source: Box<uriparse::URIReferenceError>,
+    },
     #[snafu(display("Failed to infer schema for listing table"))]
     InferListingTableSchema {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to parse URI for listing table: {uri}"))]
     ListingTableUri {
         uri: String,
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to merge schema: {source}"))]
     MergeSchema {
-        source: datafusion::arrow::error::ArrowError,
+        source: Box<datafusion::arrow::error::ArrowError>,
     },
     #[snafu(display("Table source missing required option"))]
     MissingOption {},
@@ -89,8 +95,76 @@ pub enum Error {
     Generic { msg: String },
     #[snafu(display("Failed to infer table schema: {source}"))]
     InferSchema {
-        source: datafusion::error::DataFusionError,
+        source: Box<datafusion::error::DataFusionError>,
     },
+}
+
+#[derive(Debug)]
+pub enum Extension {
+    None,
+    Csv,
+    Json,
+    NdJson,
+    Jsonl,
+    Parquet,
+    Arrow,
+    Arrows,
+    Xls,
+    Xlsx,
+    Xlsb,
+    Ods,
+    Sqlite,
+    Mysql,
+    Postgresql,
+}
+
+impl From<Extension> for &'static str {
+    fn from(ext: Extension) -> Self {
+        match ext {
+            Extension::None => "",
+            Extension::Csv => "csv",
+            Extension::Json => "json",
+            Extension::NdJson => "ndjson",
+            Extension::Jsonl => "jsonl",
+            Extension::Parquet => "parquet",
+            Extension::Arrow => "arrow",
+            Extension::Arrows => "arrows",
+            Extension::Xls => "xls",
+            Extension::Xlsx => "xlsx",
+            Extension::Xlsb => "xlsb",
+            Extension::Ods => "ods",
+            Extension::Sqlite => "sqlite",
+            Extension::Mysql => "mysql",
+            Extension::Postgresql => "postgresql",
+        }
+    }
+}
+
+impl TryFrom<&str> for Extension {
+    type Error = Error;
+
+    fn try_from(ext: &str) -> Result<Self, Error> {
+        Ok(match ext {
+            "" => Extension::None,
+            "csv" => Extension::Csv,
+            "json" => Extension::Json,
+            "ndjson" => Extension::NdJson,
+            "jsonl" => Extension::Jsonl,
+            "parquet" => Extension::Parquet,
+            "arrow" => Extension::Arrow,
+            "arrows" => Extension::Arrows,
+            "xls" => Extension::Xls,
+            "xlsx" => Extension::Xlsx,
+            "xlsb" => Extension::Xlsb,
+            "ods" => Extension::Ods,
+            "sqlite" | "sqlite3" | "db" => Extension::Sqlite,
+            _ => {
+                return Err(Error::Extension {
+                    msg: format!("unsupported extension {ext}"),
+                });
+            }
+        })
+    }
 }
 
 #[derive(Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -372,23 +446,23 @@ impl TableLoadOption {
         }
     }
 
-    pub fn extension(&self) -> &'static str {
+    pub fn extension(&self) -> Extension {
         match self {
-            Self::json { .. } => "json",
-            Self::ndjson { .. } => "ndjson",
-            Self::jsonl { .. } => "jsonl",
-            Self::csv { .. } => "csv",
-            Self::parquet { .. } => "parquet",
-            Self::google_spreadsheet(_) | Self::delta { .. } => "",
-            Self::xls { .. } => "xls",
-            Self::xlsx { .. } => "xlsx",
-            Self::ods { .. } => "ods",
-            Self::xlsb { .. } => "xlsb",
-            Self::arrow { .. } => "arrow",
-            Self::arrows { .. } => "arrows",
-            Self::mysql { .. } => "mysql",
-            Self::sqlite { .. } => "sqlite",
-            Self::postgres { .. } => "postgres",
+            Self::json { .. } => Extension::Json,
+            Self::ndjson { .. } => Extension::NdJson,
+            Self::jsonl { .. } => Extension::Jsonl,
+            Self::csv { .. } => Extension::Csv,
+            Self::parquet { .. } => Extension::Parquet,
+            Self::google_spreadsheet(_) | Self::delta { .. } => Extension::None,
+            Self::xls { .. } => Extension::Xls,
+            Self::xlsx { .. } => Extension::Xlsx,
+            Self::ods { .. } => Extension::Ods,
+            Self::xlsb { .. } => Extension::Xlsb,
+            Self::arrow { .. } => Extension::Arrow,
+            Self::arrows { .. } => Extension::Arrows,
+            Self::mysql { .. } => Extension::Mysql,
+            Self::sqlite { .. } => Extension::Sqlite,
+            Self::postgres { .. } => Extension::Postgresql,
         }
     }
 }
@@ -569,7 +643,7 @@ impl TableSource {
         }
     }
 
-    pub fn parsed_uri(&self) -> Result<URIReference, Error> {
+    pub fn parsed_uri(&self) -> Result<URIReference<'_>, Error> {
         match &self.io_source {
             TableIoSource::Uri(uri) => {
                 URIReference::try_from(uri.as_str()).map_err(|_| Error::InvalidUri {
@@ -594,27 +668,21 @@ impl TableSource {
         }
     }
 
-    pub fn extension(&self) -> Result<&str, Error> {
+    pub fn extension(&self) -> Result<Extension, Error> {
         Ok(match (&self.option, &self.io_source) {
             (Some(opt), _) => opt.extension(),
             (None, TableIoSource::Uri(uri)) => {
-                match Path::new(uri).extension().and_then(OsStr::to_str) {
-                    Some(ext) => match ext {
-                        "csv" | "json" | "ndjson" | "jsonl" | "parquet" | "arrow" | "arrows"
-                        | "xls" | "xlsx" | "xlsb" | "ods" => ext,
-                        "sqlite" | "sqlite3" | "db" => "sqlite",
-                        _ => {
-                            return Err(Error::Extension {
-                                msg: format!("unsupported extension {ext} in uri: {uri}"),
-                            });
-                        }
-                    },
+                let uri_str = Path::new(uri).extension().and_then(OsStr::to_str);
+                match uri_str {
+                    Some(ext) => ext.try_into().map_err(|_| Error::Extension {
+                        msg: format!("unsupported extension {ext} in uri: {uri}"),
+                    })?,
                     None => {
                         // database sources doesn't have suffix extension, parse scheme instead
                         match TableSource::parse_option(&self.io_source) {
-                            Some(TableLoadOption::mysql { .. }) => "mysql",
-                            Some(TableLoadOption::sqlite { .. }) => "sqlite",
-                            Some(TableLoadOption::postgres { .. }) => "postgres",
+                            Some(TableLoadOption::mysql { .. }) => Extension::Mysql,
+                            Some(TableLoadOption::sqlite { .. }) => Extension::Sqlite,
+                            Some(TableLoadOption::postgres { .. }) => Extension::Postgresql,
                             _ => {
                                 return Err(Error::Extension {
                                     msg: format!("unsupported extension in uri: {uri}"),
@@ -657,21 +725,28 @@ pub async fn datafusion_get_or_infer_schema(
                         .to_str()
                         .expect("Failed to create file url"),
                 )
+                .map_err(Box::new)
                 .context(InferSchemaSnafu)?;
                 let inferred_schema = listing_options
                     .infer_schema(&dfctx.state(), &file_url)
                     .await
+                    .map_err(Box::new)
                     .context(InferSchemaSnafu)?;
                 schemas.push(
                     Arc::into_inner(inferred_schema)
                         .expect("Failed to unwrap schemaref into schema on merge"),
                 );
             }
-            Arc::new(arrow::datatypes::Schema::try_merge(schemas).context(MergeSchemaSnafu)?)
+            Arc::new(
+                arrow::datatypes::Schema::try_merge(schemas)
+                    .map_err(Box::new)
+                    .context(MergeSchemaSnafu)?,
+            )
         }
         (None, None) => listing_options
             .infer_schema(&dfctx.state(), table_url)
             .await
+            .map_err(Box::new)
             .context(InferSchemaSnafu)?,
     })
 }
@@ -752,25 +827,29 @@ pub async fn load(
         })
     } else {
         match t.extension()? {
-            "csv" => csv::to_loaded_table(t.clone(), dfctx.clone()).await,
-            "json" => json::to_loaded_table(t.clone(), dfctx.clone()).await,
-            "ndjson" | "jsonl" => ndjson::to_loaded_table(t.clone(), dfctx.clone()).await,
-            "parquet" => parquet::to_loaded_table(t.clone(), dfctx.clone()).await,
-            "xls" | "xlsx" | "xlsb" | "ods" => excel::to_loaded_table(t.clone()).await,
-            "arrow" => arrow_ipc_file::to_loaded_table(t.clone(), dfctx.clone()).await,
-            "arrows" => arrow_ipc_stream::to_loaded_table(t.clone(), dfctx.clone()).await,
-            "mysql" => Ok(LoadedTable::new_from_df_table(Arc::new(
+            Extension::Csv => csv::to_loaded_table(t.clone(), dfctx.clone()).await,
+            Extension::Json => json::to_loaded_table(t.clone(), dfctx.clone()).await,
+            Extension::NdJson | Extension::Jsonl => {
+                ndjson::to_loaded_table(t.clone(), dfctx.clone()).await
+            }
+            Extension::Parquet => parquet::to_loaded_table(t.clone(), dfctx.clone()).await,
+            Extension::Xls | Extension::Xlsx | Extension::Xlsb | Extension::Ods => {
+                excel::to_loaded_table(t.clone()).await
+            }
+            Extension::Arrow => arrow_ipc_file::to_loaded_table(t.clone(), dfctx.clone()).await,
+            Extension::Arrows => arrow_ipc_stream::to_loaded_table(t.clone(), dfctx.clone()).await,
+            Extension::Mysql => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::MySQL.to_mem_table(t)?,
             ))),
-            "sqlite" => Ok(LoadedTable::new_from_df_table(Arc::new(
+            Extension::Sqlite => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::SQLite.to_mem_table(t)?,
             ))),
-            "postgresql" => Ok(LoadedTable::new_from_df_table(Arc::new(
+            Extension::Postgresql => Ok(LoadedTable::new_from_df_table(Arc::new(
                 database::DatabaseLoader::Postgres.to_mem_table(t)?,
             ))),
             ext => Err(Error::InvalidUri {
                 msg: format!(
-                    "failed to register `{}` as table `{}`, unsupported table format `{}`",
+                    "failed to register `{}` as table `{}`, unsupported table format `{:?}`",
                     t.io_source, t.name, ext,
                 ),
             }),
@@ -982,7 +1061,7 @@ schema:
     fn test_table_name_from_path() {
         assert_eq!(
             table_name_from_path(
-                &URIReference::try_from("mysql://root:123456@1.1.1.1:3306/test")
+                URIReference::try_from("mysql://root:123456@1.1.1.1:3306/test")
                     .unwrap()
                     .path()
             ),
@@ -1013,13 +1092,12 @@ schema:
     async fn test_load_sqlite_table_with_config() {
         use datafusion::common::stats::Precision;
 
-        for ext in vec!["db", "sqlite", "sqlite3"] {
+        for ext in ["db", "sqlite", "sqlite3"] {
             let t: TableSource = serde_yaml::from_str(&format!(
                 r#"
 name: "uk_cities"
-uri: "sqlite://../test_data/sqlite/sample.{}"
-"#,
-                ext
+uri: "sqlite://../test_data/sqlite/sample.{ext}"
+"#
             ))
             .unwrap();
             let ctx = datafusion::prelude::SessionContext::new();

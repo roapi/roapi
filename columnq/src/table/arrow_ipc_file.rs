@@ -32,6 +32,7 @@ pub async fn to_mem_table(
         |mut r| {
             let arrow_file_reader = arrow::ipc::reader::FileReader::try_new(&mut r, None)
                 .context(NewReaderSnafu)
+                .map_err(Box::new)
                 .context(table::LoadArrowIpcFileSnafu)?;
             let schema = (*arrow_file_reader.schema()).clone();
 
@@ -40,6 +41,7 @@ pub async fn to_mem_table(
                 .collect::<Result<Vec<RecordBatch>, _>>()
                 .map(|batches| (Some(schema), batches))
                 .context(CollectRecordBatchSnafu)
+                .map_err(Box::new)
                 .context(table::LoadArrowIpcFileSnafu)
         },
         dfctx
@@ -57,6 +59,7 @@ pub async fn to_mem_table(
                         .flat_map(|v| if !(v.1).is_empty() { v.0.take() } else { None })
                         .collect::<Vec<_>>(),
                 )
+                .map_err(Box::new)
                 .context(table::MergeSchemaSnafu)?,
             )
         }
@@ -69,6 +72,7 @@ pub async fn to_mem_table(
             .map(|v| v.1)
             .collect::<Vec<Vec<RecordBatch>>>(),
     )
+    .map_err(Box::new)
     .context(table::CreateMemTableSnafu)
 }
 

@@ -140,7 +140,7 @@ impl ROAPIUI {
                     }
                     Err(e) => {
                         self.show_error = true;
-                        self.error = Some(format!("Failed to parse query result: {}", e));
+                        self.error = Some(format!("Failed to parse query result: {e}"));
                     }
                 },
                 _ => {
@@ -161,7 +161,7 @@ impl ROAPIUI {
             },
             Err(e) => {
                 self.show_error = true;
-                self.error = Some(format!("Failed to send request: {}", e));
+                self.error = Some(format!("Failed to send request: {e}"));
             }
         }
     }
@@ -183,7 +183,7 @@ impl ROAPIUI {
                     }
                 },
                 Err(e) => {
-                    self.schema_fetching_message = Some(format!("Failed to fetch schema: {}", e));
+                    self.schema_fetching_message = Some(format!("Failed to fetch schema: {e}"));
                 }
             }
         }

@@ -1,6 +1,6 @@
 [package]
 name = "roapi"
-version = "0.12.5"
+version = "0.12.6"
 authors = ["QP Hou <dave2008713@gmail.com>"]
 homepage = "https://github.com/roapi/roapi"
 license = "MIT"
@@ -22,7 +22,7 @@ snmalloc-rs = { version = "0.3", optional = true }
 # dependencies related to axum
 tokio = { version = "1", features = ["rt-multi-thread"] }
 axum = { version = "0.7", features = ["default", "http2"] }
-tower = { version = "0" }  # introduced only for tower::layer::util::Stack
+tower = { version = "0" }                                      # introduced only for tower::layer::util::Stack
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 tower-layer = "0"
 tower-service = "0"
@@ -44,7 +44,7 @@ thiserror = "1"
 snafu = "0"
 
 # flight-sql
-arrow-flight = { version = "53", features = ["flight-sql-experimental"] }
+arrow-flight = { version = "55", features = ["flight-sql-experimental"] }
 tonic = { version = "0", features = ["tls"] }
 prost = "0"
 futures = "0"
@@ -57,15 +57,9 @@ uuid = "1"
 rust-embed = { version = "8", optional = true }
 mime_guess = { version = "2", optional = true }
 
-[dependencies.convergence]
-version = "0"
-git = "https://github.com/roapi/convergence.git"
-rev = "da158f04d09460ff9416f3328df419ce01dbae77"
-
-[dependencies.convergence-arrow]
-version = "0"
-git = "https://github.com/roapi/convergence.git"
-rev = "da158f04d09460ff9416f3328df419ce01dbae77"
+# postgres wire protocol
+pgwire = "0.30.2"
+hex = "0.4"
 
 [features]
 default = ["rustls", "snmalloc"]
@@ -89,8 +83,8 @@ tokio-postgres = "0.7"
 tower = "*"
 tempfile = "*"
 tokio-stream = { version = "*", features = ["net"] }
-arrow-cast = "*"
-arrow-ipc = "*"  # for flight_sql test
+arrow-cast = "55"
+arrow-ipc = "55" # for flight_sql test
 
 # TODO: uncomment this when we exclude roapi from root workspace
 # [profile.release]

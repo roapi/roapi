@@ -1,5 +1,4 @@
-ARG RUST_VER=1.84.1-bookworm
-ARG RUSTFLAGS='-C target-cpu=skylake'
+ARG RUST_VER=1.86.0-bookworm
 ARG FEATURES="database,ui"
 
 # Step 0: Install cargo-chef
@@ -7,6 +6,9 @@ FROM rust:${RUST_VER} AS chef
 
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 RUN cargo binstall trunk
+
+# Add WebAssembly target for UI build
+RUN rustup target add wasm32-unknown-unknown
 
 # We only pay the installation cost once,
 # it will be cached from the second build onwards
@@ -23,27 +25,26 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 # Step 2: Cache project dependencies
 FROM chef AS cacher
-ARG RUSTFLAGS
 ARG FEATURES
 WORKDIR /roapi_src
 COPY --from=planner /roapi_src/recipe.json recipe.json
-RUN RUSTFLAGS=${RUSTFLAGS} \
-    cargo chef cook --features ${FEATURES} --release --recipe-path recipe.json
+RUN cargo chef cook --features ${FEATURES} --release --recipe-path recipe.json
 
-# Step 3: Build the release binary
+# Step 3: Build the UI and release binary
 FROM chef AS builder
-ARG RUSTFLAGS
 ARG FEATURES
 WORKDIR /roapi_src
 COPY ./ /roapi_src
 COPY --from=cacher /roapi_src/target target
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
-RUN RUSTFLAGS=${RUSTFLAGS} \
-    cargo build --release --locked --bin roapi --features ${FEATURES}
+# First build the UI
+RUN cd roapi-ui && trunk build --release
+# Then build the ROAPI binary with the UI embedded
+RUN cargo build --release --locked --bin roapi --features ${FEATURES}
 
 # Step 4: Assemble the final image
 FROM debian:bookworm-slim
-LABEL org.opencontainers.image.source https://github.com/roapi/roapi
+LABEL org.opencontainers.image.source=https://github.com/roapi/roapi
 
 RUN apt-get update \
     && apt-get install -y libssl-dev ca-certificates \

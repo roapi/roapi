@@ -150,6 +150,8 @@ pub fn get_cmd() -> clap::Command {
         "snmalloc",
         #[cfg(feature = "rustls")]
         "rustls",
+        #[cfg(feature = "ui")]
+        "ui",
     ];
 
     clap::Command::new("roapi")
@@ -208,15 +210,15 @@ pub fn get_configuration(cmd: clap::Command) -> Result<Config, Whatever> {
     }
 
     if let Some(addr) = matches.get_one::<String>("addr-http") {
-        config.addr.http = Some(addr.to_owned());
+        config.addr.http = Some(addr.clone());
     }
 
     if let Some(addr) = matches.get_one::<String>("addr-postgres") {
-        config.addr.postgres = Some(addr.to_owned());
+        config.addr.postgres = Some(addr.clone());
     }
 
     if let Some(addr) = matches.get_one::<String>("addr-flight-sql") {
-        config.addr.flight_sql = Some(addr.to_owned());
+        config.addr.flight_sql = Some(addr.clone());
     }
 
     if matches.get_one::<bool>("disable-read-only") == Some(&true) {
@@ -227,7 +229,7 @@ pub fn get_configuration(cmd: clap::Command) -> Result<Config, Whatever> {
         if !config.disable_read_only {
             whatever!("Table reload not supported in read-only mode. Try specify the --disable-read-only option.");
         }
-        config.reload_interval = Some(Duration::from_secs(reload_interval.to_owned()));
+        config.reload_interval = Some(Duration::from_secs(*reload_interval));
     }
 
     if let Some(response_format) = matches.get_one::<String>("response-format") {
@@ -247,7 +249,7 @@ impl Config {
                 let mut opt = ConfigOptions::default();
                 for (k, v) in df_cfg {
                     whatever!(
-                        opt.set(format!("datafusion.{}", k).as_str(), v),
+                        opt.set(format!("datafusion.{k}").as_str(), v),
                         "failed to set datafusion config: {k}={v}"
                     );
                 }

@@ -12,7 +12,7 @@ fn test_load_yaml_datafusion_config() {
     let df_cfg = cfg.get_datafusion_config().unwrap();
 
     assert_eq!(df_cfg.options().sql_parser.dialect, "Hive");
-    assert_eq!(df_cfg.options().explain.physical_plan_only, true);
+    assert!(df_cfg.options().explain.physical_plan_only);
     assert_eq!(df_cfg.options().optimizer.max_passes, 10);
     assert_eq!(df_cfg.options().execution.batch_size, 100);
     assert_eq!(df_cfg.options().catalog.format, Some("parquet".to_string()));

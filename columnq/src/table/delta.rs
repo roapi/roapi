@@ -61,6 +61,7 @@ async fn update_table(
         .update()
         .await
         .context(UpdateTableSnafu)
+        .map_err(Box::new)
         .context(table::LoadDeltaSnafu)?;
     Ok(Arc::new(t) as Arc<dyn TableProvider>)
 }
@@ -79,11 +80,13 @@ pub async fn to_loaded_table(
     let uri_str = t.get_uri_str();
     let delta_table = deltalake::DeltaTableBuilder::from_valid_uri(uri_str)
         .context(OpenTableSnafu)
+        .map_err(Box::new)
         .context(table::LoadDeltaSnafu)?
         .with_allow_http(true)
         .load()
         .await
         .context(LoadTableSnafu)
+        .map_err(Box::new)
         .context(table::LoadDeltaSnafu)?;
     let parsed_uri = t.parsed_uri()?;
     let url_scheme = parsed_uri.scheme();
@@ -123,9 +126,9 @@ fn cast_datafusion_table(
         | io::BlobStoreType::S3
         | io::BlobStoreType::GCS
         | io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
-        _ => Err(Error::InvalidUri {
+        _ => Err(Box::new(Error::InvalidUri {
             uri: delta_table.table_uri().to_string(),
-        })
+        }))
         .context(table::LoadDeltaSnafu),
     }
 }
@@ -134,6 +137,7 @@ fn read_partition<R: Read>(mut r: R, batch_size: usize) -> Result<Vec<RecordBatc
     let mut buffer = Vec::new();
     r.read_to_end(&mut buffer)
         .context(ReadBytesSnafu)
+        .map_err(Box::new)
         .context(table::LoadDeltaSnafu)?;
 
     let record_batch_reader = ParquetRecordBatchReaderBuilder::try_new_with_options(
@@ -141,16 +145,20 @@ fn read_partition<R: Read>(mut r: R, batch_size: usize) -> Result<Vec<RecordBatc
         ArrowReaderOptions::new().with_skip_arrow_metadata(true),
     )
     .context(NewReaderBuilderSnafu)
-    .context(table::LoadDeltaSnafu)?
+    .map_err(|e| table::Error::LoadDelta {
+        source: Box::new(e),
+    })?
     .with_batch_size(batch_size)
     .build()
     .context(BuildReaderSnafu)
+    .map_err(Box::new)
     .context(table::LoadDeltaSnafu)?;
 
     record_batch_reader
         .into_iter()
         .collect::<arrow::error::Result<Vec<RecordBatch>>>()
         .context(CollectRecordBatchSnafu)
+        .map_err(Box::new)
         .context(table::LoadDeltaSnafu)
 }
 
@@ -163,15 +171,17 @@ pub async fn to_mem_table(
     let paths = delta_table
         .get_file_uris()
         .context(LoadTableSnafu)
+        .map_err(Box::new)
         .context(table::LoadDeltaSnafu)?
         .collect::<Vec<String>>();
     if paths.is_empty() {
-        return Err(Error::EmptyTable {}).context(table::LoadDeltaSnafu);
+        return Err(Box::new(Error::EmptyTable {})).context(table::LoadDeltaSnafu);
     }
 
     let delta_schema = delta_table
         .get_schema()
         .context(GetSchemaSnafu)
+        .map_err(Box::new)
         .context(table::LoadDeltaSnafu)?;
 
     let path_iter = paths.iter().map(|s| s.as_ref());
@@ -196,9 +206,9 @@ pub async fn to_mem_table(
             .context(table::IoSnafu)?
         }
         _ => {
-            return Err(Error::InvalidUri {
+            return Err(Box::new(Error::InvalidUri {
                 uri: delta_table.table_uri().to_string(),
-            })
+            }))
             .context(table::LoadDeltaSnafu);
         }
     };
@@ -209,10 +219,12 @@ pub async fn to_mem_table(
                 delta_schema
                     .try_into()
                     .context(ConvertSchemaSnafu)
+                    .map_err(Box::new)
                     .context(table::LoadDeltaSnafu)?,
             ),
             partitions,
         )
+        .map_err(Box::new)
         .context(table::CreateMemTableSnafu)?,
     ))
 }

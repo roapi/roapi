@@ -1,4 +1,4 @@
-#[cfg(any(feature = "database-mysql"))]
+#[cfg(feature = "database-mysql")]
 mod mysql {
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;

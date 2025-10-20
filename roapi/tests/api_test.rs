@@ -267,7 +267,7 @@ async fn test_http2() {
         .unwrap()
         .stdout;
 
-    let two = vec!['\'', '2', '\n', '\'']
+    let two = ['\'', '2', '\n', '\'']
         .iter()
         .map(|c| *c as u8)
         .collect::<Vec<_>>();

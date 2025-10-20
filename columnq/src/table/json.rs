@@ -50,6 +50,7 @@ fn json_value_from_reader<R: Read>(r: R) -> Result<Value, table::Error> {
     let reader = BufReader::new(r);
     serde_json::from_reader(reader)
         .context(DeserializeSnafu)
+        .map_err(Box::new)
         .context(table::LoadJsonSnafu)
 }
 
@@ -150,7 +151,7 @@ async fn to_partitions(
     };
 
     if array_encoded && t.schema.is_none() {
-        return Err(Error::ArrayEncodedSchemaRequired {}).context(table::LoadJsonSnafu);
+        return Err(Box::new(Error::ArrayEncodedSchemaRequired {})).context(table::LoadJsonSnafu);
     }
 
     let pointer = match &t.option {
@@ -166,27 +167,30 @@ async fn to_partitions(
         .iter()
         .map(|json_partition| {
             let json_rows = json_partition_to_vec(json_partition, pointer.as_deref())
+                .map_err(Box::new)
                 .context(table::LoadJsonSnafu)?;
             if json_rows.is_empty() {
                 match &pointer {
                     Some(p) => {
-                        return Err(Error::EmptyArrayPointer {
+                        return Err(Box::new(Error::EmptyArrayPointer {
                             pointer: p.to_string(),
-                        })
+                        }))
                         .context(table::LoadJsonSnafu);
                     }
                     None => {
-                        return Err(Error::EmptyArray {}).context(table::LoadJsonSnafu);
+                        return Err(Box::new(Error::EmptyArray {})).context(table::LoadJsonSnafu);
                     }
                 }
             }
 
             let (batch_schema, partition) =
                 json_vec_to_partition(json_rows, &t.schema, batch_size, array_encoded)
+                    .map_err(Box::new)
                     .context(table::LoadJsonSnafu)?;
 
             merged_schema = Some(match &merged_schema {
                 Some(s) if s != &batch_schema => Schema::try_merge(vec![s.clone(), batch_schema])
+                    .map_err(Box::new)
                     .context(table::MergeSchemaSnafu)?,
                 _ => batch_schema,
             });
@@ -207,10 +211,12 @@ pub async fn to_mem_table(
         Arc::new(
             merged_schema
                 .ok_or(Error::SchemaNotFound {})
+                .map_err(Box::new)
                 .context(table::LoadJsonSnafu)?,
         ),
         partitions,
     )
+    .map_err(Box::new)
     .context(table::CreateMemTableSnafu)
 }
 
@@ -253,7 +259,7 @@ mod tests {
         let tmp_dir = tempfile::TempDir::new().unwrap();
         let tmp_file_path = tmp_dir.path().join("nested.json");
         let mut f = std::fs::File::create(tmp_file_path.clone()).unwrap();
-        writeln!(f, "{}", json_content).unwrap();
+        writeln!(f, "{json_content}").unwrap();
 
         let ctx = SessionContext::new();
         let t = to_mem_table(

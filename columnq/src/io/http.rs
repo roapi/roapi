@@ -74,7 +74,7 @@ where
         Err(Error::Status {
             status: resp.status(),
             uri: uri.to_string(),
-            resp: format!("{:?}", resp),
+            resp: format!("{resp:?}"),
         })?;
     }
     let reader = std::io::Cursor::new(resp.bytes().await.context(ReadBytesSnafu { uri })?);

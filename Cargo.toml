@@ -16,5 +16,8 @@ codegen-units = 1
 [profile.release.package.roapi-ui]
 opt-level = 2 # fast and small wasm
 
-[patch.crates-io]
-delta_kernel = { git = "https://github.com/houqp/delta-kernel-rs", rev = "92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1" }
+# [patch.crates-io]
+# delta_kernel = { git = "https://github.com/houqp/delta-kernel-rs", rev = "92aa4cbd6d29c393d806f89bf5acdbaf4cb35ae1" }
+
+# [patch."https://github.com/roapi/connector-x.git"]
+# connectorx = { path = "../connector-x/connectorx" }
