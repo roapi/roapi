@@ -1,6 +1,60 @@
-/target
+# Rust/Cargo
+/target/
+**/target/
+
+# Trunk / WASM / frontend build outputs
+/dist/
+/pkg/
+*.wasm
+*.wasm.map
+
+# Node (in case frontend uses node)
+/node_modules/
+
+# IDEs and editors
 .idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
 .DS_Store
 
-# vim
+# Vim
 *.swp
+*~
+
+# Python (if any auxiliary scripts)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+env/
+.env
+.env.*
+
+# Logs and temporary files
+*.log
+/tmp/
+/temp/
+
+# Build artifacts
+/build/
+*.o
+*.so
+*.dylib
+*.dll
+
+# Docker / CI
+.dockerignore
+docker-compose.override.yml
+
+# Nix
+result
+.nix-*
+
+# Test data / local artifacts
+/coverage/
+/.cache/
+
+# Keep this file tracked
