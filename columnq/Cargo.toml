@@ -22,6 +22,7 @@ serde = "1"
 uriparse = "0"
 bytes = { version = "1" }
 percent-encoding = "2.3"
+chrono = "0.4"
 
 # datafusion
 datafusion = { version = "47", features = ["serde"] }
