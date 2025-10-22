@@ -294,8 +294,7 @@ pub async fn to_mem_table(
 
                     new_columns.push(array);
                 }
-                else{
-                    if let Some(column) = batch.column_by_name(partition_key) {
+                else if let Some(column) = batch.column_by_name(partition_key) {
                         new_columns.push(column.clone());
                     } else {
                         return Err(Box::new(Error::CollectRecordBatch {
@@ -307,7 +306,6 @@ pub async fn to_mem_table(
                         .context(table::LoadDeltaSnafu);
                     }
                 }
-            }
             let new_batch = RecordBatch::try_new(table_schema.clone(), new_columns)
                 .context(CollectRecordBatchSnafu)
                 .map_err(Box::new)
@@ -316,7 +314,6 @@ pub async fn to_mem_table(
         }
         updated_partitions.push(updated_batches);
     }
-
     Ok(Arc::new(
         datafusion::datasource::MemTable::try_new(
             table_schema,
