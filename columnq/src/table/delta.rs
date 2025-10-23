@@ -1,14 +1,14 @@
 use snafu::prelude::*;
+use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::sync::Arc;
-use std::collections::{HashMap, HashSet};
 
 use datafusion::arrow;
+use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
-use datafusion::arrow::datatypes::{Schema};
 
 use crate::io::{self, BlobStoreType};
 use crate::table::{self, LoadedTable, TableLoadOption, TableOptionDelta, TableSource};
@@ -249,24 +249,27 @@ pub async fn to_mem_table(
             let mut new_columns = Vec::new();
             for partition_key in table_schema.fields().iter().map(|f| f.name()) {
                 if partition_columns.contains(partition_key) {
-                    let value = partition_values.get(partition_key).map_or("", |v| v.as_str());
+                    let value = partition_values
+                        .get(partition_key)
+                        .map_or("", |v| v.as_str());
                     let num_rows = batch.num_rows();
 
-                    let field = table_schema
-                        .field_with_name(partition_key)
-                        .map_err(|_| 
-                            table::Error::Generic { msg: (
-                                format!(
-                                    "Partition key '{}' not found in final schema",
-                                    partition_key
-                                )
-                            ) }
-                        )?;
+                    let field = table_schema.field_with_name(partition_key).map_err(|_| {
+                        table::Error::Generic {
+                            msg: (format!(
+                                "Partition key '{}' not found in final schema",
+                                partition_key
+                            )),
+                        }
+                    })?;
                     let array: Arc<dyn arrow::array::Array> = match field.data_type() {
                         arrow::datatypes::DataType::Date32 => {
                             let parsed = chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
                                 .ok()
-                                .map(|d| (d - chrono::NaiveDate::from_ymd_opt(1970, 1, 1).unwrap()).num_days() as i32)
+                                .map(|d| {
+                                    (d - chrono::NaiveDate::from_ymd_opt(1970, 1, 1).unwrap())
+                                        .num_days() as i32
+                                })
                                 .unwrap_or(0);
                             Arc::new(arrow::array::Date32Array::from(vec![parsed; num_rows])) as _
                         }
@@ -282,7 +285,8 @@ pub async fn to_mem_table(
                         }
 
                         arrow::datatypes::DataType::Boolean => {
-                            let parsed = matches!(value.to_lowercase().as_str(), "true" | "1" | "yes");
+                            let parsed =
+                                matches!(value.to_lowercase().as_str(), "true" | "1" | "yes");
                             Arc::new(arrow::array::BooleanArray::from(vec![parsed; num_rows])) as _
                         }
 
@@ -293,19 +297,18 @@ pub async fn to_mem_table(
                     };
 
                     new_columns.push(array);
+                } else if let Some(column) = batch.column_by_name(partition_key) {
+                    new_columns.push(column.clone());
+                } else {
+                    return Err(Box::new(Error::CollectRecordBatch {
+                        source: arrow::error::ArrowError::SchemaError(format!(
+                            "Column '{}' not found in batch schema",
+                            partition_key
+                        )),
+                    }))
+                    .context(table::LoadDeltaSnafu);
                 }
-                else if let Some(column) = batch.column_by_name(partition_key) {
-                        new_columns.push(column.clone());
-                    } else {
-                        return Err(Box::new(Error::CollectRecordBatch {
-                            source: arrow::error::ArrowError::SchemaError(format!(
-                                "Column '{}' not found in batch schema",
-                                partition_key
-                            )),
-                        }))
-                        .context(table::LoadDeltaSnafu);
-                    }
-                }
+            }
             let new_batch = RecordBatch::try_new(table_schema.clone(), new_columns)
                 .context(CollectRecordBatchSnafu)
                 .map_err(Box::new)
@@ -315,12 +318,9 @@ pub async fn to_mem_table(
         updated_partitions.push(updated_batches);
     }
     Ok(Arc::new(
-        datafusion::datasource::MemTable::try_new(
-            table_schema,
-            updated_partitions,
-        )
-        .map_err(Box::new)
-        .context(table::CreateMemTableSnafu)?,
+        datafusion::datasource::MemTable::try_new(table_schema, updated_partitions)
+            .map_err(Box::new)
+            .context(table::CreateMemTableSnafu)?,
     ))
 }
 
