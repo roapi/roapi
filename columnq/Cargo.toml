@@ -81,7 +81,7 @@ rustls = [
     "deltalake/s3",
     "deltalake/azure",
     "yup-oauth2/hyper-rustls",
-    "hyper-tls?/vendored",
+    # "hyper-tls?/vendored",
 ]
 native-tls-vendored = [
     "reqwest/native-tls-vendored",
