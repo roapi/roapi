@@ -116,7 +116,8 @@ impl<H: RoapiContext> RoapiQueryHandler<H> {
         info!("executing query: {query}");
 
         // Handle some special PostgreSQL queries
-        if query.trim().to_lowercase().starts_with("show") {
+        let query_normalized = query.trim().to_lowercase();
+        if query_normalized.starts_with("show") || query_normalized.starts_with("set") {
             let empty_schema = Arc::new(vec![]);
             let empty_stream = stream::iter(vec![]);
             return Ok(QueryResponse::new(empty_schema, empty_stream));
