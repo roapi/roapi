@@ -46,7 +46,7 @@ snafu = "0"
 # flight-sql
 arrow-flight = { version = "55", features = ["flight-sql-experimental"] }
 tonic = { version = "0", features = ["tls"] }
-prost = "0"
+prost = "0.13.5"
 futures = "0"
 # TODO: remove once_cell dependency
 once_cell = "*"

@@ -1,0 +1,9 @@
+addr:
+  # binding address for TCP port that speaks HTTP protocol
+  http: 0.0.0.0:8080
+  # binding address for TCP port that speaks Postgres wire protocol
+  postgres: 0.0.0.0:5433
+
+tables:
+  - name: "test"
+    uri: "postgresql://postgres:123ASDasd@127.0.0.1:5432/postgres"
