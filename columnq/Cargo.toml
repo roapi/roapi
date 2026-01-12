@@ -24,8 +24,8 @@ bytes = { version = "1" }
 percent-encoding = "2.3"
 
 # datafusion
-datafusion = { version = "47", features = ["serde"] }
-arrow = { version = "55", features = ["prettyprint"] }
+datafusion = { version = "47", features = ["serde"] } 
+arrow = { version = "55.0.0", features = ["prettyprint"] }
 
 # spreadsheets reader
 calamine = { version = "0.23.1", features = ["dates"] }
@@ -59,10 +59,9 @@ yup-oauth2 = { version = "10", default-features = false, features = [
 ] }
 
 [dependencies.connectorx]
-git = "https://github.com/roapi/connector-x.git"
-rev = "77e769ec5d8654a5f6912573a70d56ac8b7f7a50"
-version = "0.3.3-alpha.1"
-features = ["default", "dst_arrow"]
+git = "https://github.com/sfu-db/connector-x.git"
+version = "0.4.4-alpha.1" # Updated to the latest version found
+features = ["fptr", "src_trino", "dst_"] # Added fptr (default), kept src_trino and dst_arrow
 optional = true
 
 [dev-dependencies]
@@ -71,7 +70,7 @@ toml = "0.7"
 tempfile = "3.3.0"
 pretty_assertions = "*"
 dotenvy = "*"
-rusqlite = "0"
+rusqlite = "0.33.0"
 
 [features]
 default = ["rustls"]
@@ -100,4 +99,5 @@ native-tls = [
 database-sqlite = ["connectorx/src_sqlite"]
 database-mysql = ["connectorx/src_mysql"]
 database-postgres = ["connectorx/src_postgres", "dep:tokio-postgres"]
-database = ["database-sqlite", "database-mysql", "database-postgres"]
+database-trino = ["connectorx/src_trino"]
+database = ["database-sqlite", "database-mysql", "database-postgres", "database-trino"]
