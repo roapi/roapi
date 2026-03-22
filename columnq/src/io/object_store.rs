@@ -15,7 +15,8 @@ use crate::table;
 pub enum Error {
     #[snafu(display("Could not resolve store for url: {url}"))]
     GetStore {
-        source: datafusion::error::DataFusionError,
+        #[snafu(source(from(datafusion::error::DataFusionError, Box::new)))]
+        source: Box<datafusion::error::DataFusionError>,
         url: Url,
     },
     #[snafu(display("Could not get object: {path}"))]
@@ -31,7 +32,10 @@ pub enum Error {
     #[snafu(display("Could not read object bytes"))]
     ReadObjectBytes { source: object_store::Error },
     #[snafu(display("Could not load table data"))]
-    Table { source: table::Error },
+    Table {
+        #[snafu(source(from(table::Error, Box::new)))]
+        source: Box<table::Error>,
+    },
 }
 
 impl From<Error> for io::Error {

@@ -17,7 +17,10 @@ pub enum Error {
     #[snafu(display("Failed to read bytes for {uri}: {source}"))]
     ReadBytes { uri: String, source: reqwest::Error },
     #[snafu(display("Could not load table data"))]
-    Table { source: table::Error },
+    Table {
+        #[snafu(source(from(table::Error, Box::new)))]
+        source: Box<table::Error>,
+    },
     #[snafu(display("Invalid header: {source}"))]
     HeaderName {
         source: reqwest::header::InvalidHeaderName,

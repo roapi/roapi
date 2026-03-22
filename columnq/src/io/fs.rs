@@ -11,11 +11,15 @@ use crate::table::{self, TableIoSource, TableSource};
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Could not load table data: {source}"))]
-    Table { source: table::Error },
+    Table {
+        #[snafu(source(from(table::Error, Box::new)))]
+        source: Box<table::Error>,
+    },
     #[snafu(display("Could not resolve table extension {table_io_source}: {source}"))]
     TableExtension {
         table_io_source: TableIoSource,
-        source: table::Error,
+        #[snafu(source(from(table::Error, Box::new)))]
+        source: Box<table::Error>,
     },
     #[snafu(display(
         "Failed to build file list for path `{fs_path}` with ext `{file_ext}`: {source}"
@@ -23,7 +27,8 @@ pub enum Error {
     FileList {
         fs_path: String,
         file_ext: String,
-        source: datafusion::error::DataFusionError,
+        #[snafu(source(from(datafusion::error::DataFusionError, Box::new)))]
+        source: Box<datafusion::error::DataFusionError>,
     },
     #[snafu(display("Failed to open file `{fpath}`: {source}"))]
     FileOpen {
