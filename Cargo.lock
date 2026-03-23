@@ -1876,7 +1876,7 @@ checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
 name = "columnq"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "arrow",
  "bytes",
@@ -1901,7 +1901,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
- "snafu 0.8.9",
+ "snafu",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
@@ -1983,6 +1983,7 @@ dependencies = [
 [[package]]
 name = "connectorx"
 version = "0.3.3-alpha.1"
+source = "git+https://github.com/roapi/connector-x.git?rev=7d3e0a90c83934754a81b4ae9cc5ae4b0699d39c#7d3e0a90c83934754a81b4ae9cc5ae4b0699d39c"
 dependencies = [
  "anyhow",
  "arrow",
@@ -7274,7 +7275,7 @@ dependencies = [
 
 [[package]]
 name = "roapi"
-version = "0.12.7"
+version = "0.13.0"
 dependencies = [
  "arrow-cast",
  "arrow-flight",
@@ -7302,7 +7303,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_yaml",
- "snafu 0.9.0",
+ "snafu",
  "snmalloc-rs",
  "tempfile",
  "thiserror 1.0.69",
@@ -7955,16 +7956,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e84b3f4eacbf3a1ce05eac6763b4d629d60cbc94d632e4092c54ade71f1e1a2"
 dependencies = [
- "snafu-derive 0.8.9",
-]
-
-[[package]]
-name = "snafu"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1d4bced6a69f90b2056c03dcff2c4737f98d6fb9e0853493996e1d253ca29c6"
-dependencies = [
- "snafu-derive 0.9.0",
+ "snafu-derive",
 ]
 
 [[package]]
@@ -7972,18 +7964,6 @@ name = "snafu-derive"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
-name = "snafu-derive"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54254b8531cafa275c5e096f62d48c81435d1015405a91198ddb11e967301d40"
 dependencies = [
  "heck",
  "proc-macro2",
