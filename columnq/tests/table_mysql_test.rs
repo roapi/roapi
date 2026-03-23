@@ -20,7 +20,7 @@ mod mysql {
                 .scan(&ctx.state(), None, &[], None)
                 .await
                 .unwrap()
-                .statistics()
+                .partition_statistics(None)
                 .unwrap();
             assert!(stats.num_rows.get_value().is_some());
         }

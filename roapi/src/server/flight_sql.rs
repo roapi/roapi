@@ -841,7 +841,7 @@ impl<H: RoapiContext> FlightSqlService for RoapiFlightSqlService<H> {
 
         let plan_schema = plan.schema();
 
-        let arrow_schema = (&**plan_schema).into();
+        let arrow_schema = plan_schema.as_arrow().clone();
         let message = SchemaAsIpc::new(&arrow_schema, &IpcWriteOptions::default())
             .try_into()
             .map_err(|e| internal_error!("Unable to serialize schema", e))?;

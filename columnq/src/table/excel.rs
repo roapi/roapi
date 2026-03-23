@@ -1,4 +1,6 @@
-use calamine::{open_workbook_auto, DataType as ExcelDataType, Range, Reader, Sheets};
+use calamine::{
+    open_workbook_auto, Data as ExcelData, DataType as CalamineDataType, Range, Reader, Sheets,
+};
 use datafusion::arrow::array::{
     ArrayRef, BooleanArray, DurationSecondArray, NullArray, PrimitiveArray, StringArray,
     TimestampSecondArray,
@@ -32,7 +34,7 @@ pub enum Error {
 }
 
 struct ExcelSubrange<'a> {
-    rows: calamine::Rows<'a, ExcelDataType>,
+    rows: calamine::Rows<'a, ExcelData>,
     columns_range_start: usize,
     columns_range_end: usize,
     total_rows: usize,
@@ -41,7 +43,7 @@ struct ExcelSubrange<'a> {
 
 impl<'a> ExcelSubrange<'a> {
     fn new(
-        range: &'a Range<ExcelDataType>,
+        range: &'a Range<ExcelData>,
         rows_range_start: Option<usize>,
         rows_range_end: Option<usize>,
         columns_range_start: Option<usize>,
@@ -73,7 +75,7 @@ impl<'a> ExcelSubrange<'a> {
 }
 
 impl<'a> Iterator for ExcelSubrange<'a> {
-    type Item = &'a [ExcelDataType];
+    type Item = &'a [ExcelData];
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_row_id < self.total_rows {
@@ -91,20 +93,38 @@ impl<'a> Iterator for ExcelSubrange<'a> {
     }
 }
 
-fn infer_value_type(v: &ExcelDataType) -> Result<DataType, Error> {
+fn infer_value_type(v: &ExcelData) -> Result<DataType, Error> {
     match v {
-        ExcelDataType::Int(_) => Ok(DataType::Int64),
-        ExcelDataType::Float(_) => Ok(DataType::Float64),
-        ExcelDataType::String(_) => Ok(DataType::Utf8),
-        ExcelDataType::Bool(_) => Ok(DataType::Boolean),
-        ExcelDataType::DateTime(_) | ExcelDataType::DateTimeIso(_) => {
+        ExcelData::Int(_) => Ok(DataType::Int64),
+        ExcelData::Float(_) => Ok(DataType::Float64),
+        ExcelData::String(_) => Ok(DataType::Utf8),
+        ExcelData::Bool(_) => Ok(DataType::Boolean),
+        ExcelData::DateTime(_) | ExcelData::DateTimeIso(_) => {
             Ok(DataType::Timestamp(TimeUnit::Second, None))
         }
-        ExcelDataType::Duration(_) | ExcelDataType::DurationIso(_) => {
-            Ok(DataType::Duration(TimeUnit::Second))
+        ExcelData::Error(e) => Err(Error::Load {
+            msg: format!("{:?}", e),
+        }),
+        ExcelData::Empty => Ok(DataType::Null),
+        _ => {
+            if v.as_f64().is_some() {
+                Ok(DataType::Float64)
+            } else if v.as_i64().is_some() {
+                Ok(DataType::Int64)
+            } else if v.as_string().is_some() {
+                Ok(DataType::Utf8)
+            } else if v.get_bool().is_some() {
+                Ok(DataType::Boolean)
+            } else if v.as_datetime().is_some() {
+                Ok(DataType::Timestamp(TimeUnit::Second, None))
+            } else if v.as_duration().is_some() {
+                Ok(DataType::Duration(TimeUnit::Second))
+            } else {
+                Err(Error::Load {
+                    msg: format!("unsupported excel data type: {:?}", v),
+                })
+            }
         }
-        ExcelDataType::Error(e) => Err(Error::Load { msg: e.to_string() }),
-        ExcelDataType::Empty => Ok(DataType::Null),
     }
 }
 
@@ -145,13 +165,13 @@ fn infer_schema_from_data(mut range: ExcelSubrange) -> Result<Schema, Error> {
                         *ct = DataType::Utf8;
                     }
                 })
-                .or_insert(col_type);
+                .or_insert_with(|| col_type.clone());
         }
     }
 
     let fields: Vec<Field> = col_names
         .iter()
-        .map(|col_name| {
+        .map(|col_name: &&str| {
             let dt = col_types.get(col_name).unwrap_or(&DataType::Utf8).clone();
             Field::new(col_name.replace(' ', "_"), dt, true)
         })
@@ -189,7 +209,7 @@ fn infer_schema_from_config(table_schema: &TableSchema) -> Result<Schema, Error>
     }
 }
 
-fn empty_or_panic<T>(v: &ExcelDataType, field_name: &String) -> Option<T> {
+fn empty_or_panic<T>(v: &ExcelData, field_name: &String) -> Option<T> {
     if v.is_empty() {
         None
     } else {
@@ -198,7 +218,7 @@ fn empty_or_panic<T>(v: &ExcelDataType, field_name: &String) -> Option<T> {
 }
 
 fn infer_schema(
-    r: &Range<ExcelDataType>,
+    r: &Range<ExcelData>,
     option: &TableOptionExcel,
     schema: &Option<TableSchema>,
 ) -> Result<Schema, Error> {
@@ -230,7 +250,7 @@ fn infer_schema(
 }
 
 fn excel_range_to_record_batch(
-    r: Range<ExcelDataType>,
+    r: Range<ExcelData>,
     option: &TableOptionExcel,
     schema: Schema,
 ) -> Result<RecordBatch, Error> {
@@ -282,7 +302,7 @@ fn excel_range_to_record_batch(
                     rows.map(|r| {
                         r.get(i).and_then(|v| {
                             v.as_duration()
-                                .map(|v| v.num_seconds())
+                                .map(|v: chrono::Duration| v.num_seconds())
                                 .or_else(|| empty_or_panic(v, field_name))
                         })
                     })
@@ -292,18 +312,19 @@ fn excel_range_to_record_batch(
                 DataType::Utf8 => Arc::new(
                     rows.map(|r| {
                         r.get(i).and_then(|v| match v {
-                            ExcelDataType::Bool(x) => Some(x.to_string()),
-                            ExcelDataType::Float(_)
-                            | ExcelDataType::Int(_)
-                            | ExcelDataType::String(_) => v.as_string(),
-                            ExcelDataType::DateTime(_) | ExcelDataType::DateTimeIso(_) => {
-                                v.as_datetime().map(|x| x.to_string())
+                            ExcelData::Bool(x) => Some(x.to_string()),
+                            ExcelData::Float(_) | ExcelData::Int(_) | ExcelData::String(_) => {
+                                v.as_string()
                             }
-                            ExcelDataType::Duration(_) | ExcelDataType::DurationIso(_) => {
-                                v.as_duration().map(|x| x.to_string())
+                            ExcelData::DateTime(_) | ExcelData::DateTimeIso(_) => v
+                                .as_datetime()
+                                .map(|x: chrono::NaiveDateTime| x.to_string()),
+                            _ if v.as_duration().is_some() => {
+                                v.as_duration().map(|x: chrono::Duration| x.to_string())
                             }
-                            ExcelDataType::Empty => None,
-                            ExcelDataType::Error(e) => Some(e.to_string()),
+                            ExcelData::Empty => None,
+                            ExcelData::Error(e) => Some(format!("{:?}", e)),
+                            _ => v.as_string(),
                         })
                     })
                     .collect::<StringArray>(),
@@ -312,7 +333,7 @@ fn excel_range_to_record_batch(
                     rows.map(|r| {
                         r.get(i).and_then(|v| {
                             v.as_datetime()
-                                .map(|v| v.and_utc().timestamp())
+                                .map(|v: chrono::NaiveDateTime| v.and_utc().timestamp())
                                 .or_else(|| empty_or_panic(v, field_name))
                         })
                     })
@@ -407,23 +428,23 @@ mod tests {
     use datafusion::datasource::TableProvider;
     use datafusion::prelude::SessionContext;
 
-    use calamine::{Cell, DataType as ExcelDataType};
+    use calamine::{Cell, Data as ExcelData};
 
     #[test]
     fn excel_subrange_iteration() {
-        let range = calamine::Range::<ExcelDataType>::from_sparse(vec![
-            Cell::new((0, 0), ExcelDataType::Int(0)),
-            Cell::new((0, 1), ExcelDataType::Bool(true)),
-            Cell::new((0, 2), ExcelDataType::Float(0.333)),
-            Cell::new((1, 0), ExcelDataType::Int(1)),
-            Cell::new((1, 1), ExcelDataType::Bool(false)),
-            Cell::new((1, 2), ExcelDataType::Float(1.333)),
-            Cell::new((2, 0), ExcelDataType::Int(2)),
-            Cell::new((2, 1), ExcelDataType::Empty),
-            Cell::new((2, 2), ExcelDataType::Float(2.333)),
-            Cell::new((3, 0), ExcelDataType::Int(3)),
-            Cell::new((3, 1), ExcelDataType::Bool(true)),
-            Cell::new((3, 2), ExcelDataType::Float(3.333)),
+        let range = calamine::Range::<ExcelData>::from_sparse(vec![
+            Cell::new((0, 0), ExcelData::Int(0)),
+            Cell::new((0, 1), ExcelData::Bool(true)),
+            Cell::new((0, 2), ExcelData::Float(0.333)),
+            Cell::new((1, 0), ExcelData::Int(1)),
+            Cell::new((1, 1), ExcelData::Bool(false)),
+            Cell::new((1, 2), ExcelData::Float(1.333)),
+            Cell::new((2, 0), ExcelData::Int(2)),
+            Cell::new((2, 1), ExcelData::Empty),
+            Cell::new((2, 2), ExcelData::Float(2.333)),
+            Cell::new((3, 0), ExcelData::Int(3)),
+            Cell::new((3, 1), ExcelData::Bool(true)),
+            Cell::new((3, 2), ExcelData::Float(3.333)),
         ]);
         let mut subrange = ExcelSubrange::new(&range, None, None, None, None);
         assert_eq!(subrange.size(), 4);
@@ -431,9 +452,9 @@ mod tests {
             subrange.next(),
             Some(
                 &vec![
-                    ExcelDataType::Int(0),
-                    ExcelDataType::Bool(true),
-                    ExcelDataType::Float(0.333)
+                    ExcelData::Int(0),
+                    ExcelData::Bool(true),
+                    ExcelData::Float(0.333)
                 ][..]
             )
         );
@@ -441,29 +462,23 @@ mod tests {
             subrange.next(),
             Some(
                 &vec![
-                    ExcelDataType::Int(1),
-                    ExcelDataType::Bool(false),
-                    ExcelDataType::Float(1.333)
+                    ExcelData::Int(1),
+                    ExcelData::Bool(false),
+                    ExcelData::Float(1.333)
                 ][..]
             )
         );
         assert_eq!(
             subrange.next(),
-            Some(
-                &vec![
-                    ExcelDataType::Int(2),
-                    ExcelDataType::Empty,
-                    ExcelDataType::Float(2.333)
-                ][..]
-            )
+            Some(&vec![ExcelData::Int(2), ExcelData::Empty, ExcelData::Float(2.333)][..])
         );
         assert_eq!(
             subrange.next(),
             Some(
                 &vec![
-                    ExcelDataType::Int(3),
-                    ExcelDataType::Bool(true),
-                    ExcelDataType::Float(3.333)
+                    ExcelData::Int(3),
+                    ExcelData::Bool(true),
+                    ExcelData::Float(3.333)
                 ][..]
             )
         );
@@ -471,51 +486,52 @@ mod tests {
 
         let mut subrange = ExcelSubrange::new(&range, Some(1), Some(2), Some(1), Some(1));
         assert_eq!(subrange.size(), 2);
-        assert_eq!(subrange.next(), Some(&vec![ExcelDataType::Bool(false)][..]));
-        assert_eq!(subrange.next(), Some(&vec![ExcelDataType::Empty][..]));
+        assert_eq!(subrange.next(), Some(&vec![ExcelData::Bool(false)][..]));
+        assert_eq!(subrange.next(), Some(&vec![ExcelData::Empty][..]));
         assert_eq!(subrange.next(), None);
     }
 
     #[test]
     fn inferes_schema_from_data() {
-        let range = calamine::Range::<ExcelDataType>::from_sparse(vec![
-            Cell::new((0, 0), ExcelDataType::String(String::from("int_column"))),
-            Cell::new((0, 1), ExcelDataType::String(String::from("bool_column"))),
-            Cell::new((0, 2), ExcelDataType::String(String::from("float column"))),
-            Cell::new((0, 3), ExcelDataType::String(String::from("string_column"))),
-            Cell::new(
-                (0, 4),
-                ExcelDataType::String(String::from("datetime_column")),
-            ),
+        let range = calamine::Range::<ExcelData>::from_sparse(vec![
+            Cell::new((0, 0), ExcelData::String(String::from("int_column"))),
+            Cell::new((0, 1), ExcelData::String(String::from("bool_column"))),
+            Cell::new((0, 2), ExcelData::String(String::from("float column"))),
+            Cell::new((0, 3), ExcelData::String(String::from("string_column"))),
+            Cell::new((0, 4), ExcelData::String(String::from("datetime_column"))),
             Cell::new(
                 (0, 5),
-                ExcelDataType::String(String::from("datetime iso column")),
+                ExcelData::String(String::from("datetime iso column")),
             ),
-            Cell::new(
-                (0, 6),
-                ExcelDataType::String(String::from("duration column")),
-            ),
+            Cell::new((0, 6), ExcelData::String(String::from("duration column"))),
             Cell::new(
                 (0, 7),
-                ExcelDataType::String(String::from("duration iso column")),
+                ExcelData::String(String::from("duration iso column")),
             ),
-            Cell::new((1, 0), ExcelDataType::Int(0)),
-            Cell::new((1, 1), ExcelDataType::Bool(true)),
-            Cell::new((1, 2), ExcelDataType::Float(0.333)),
-            Cell::new((1, 3), ExcelDataType::String(String::from("test"))),
-            Cell::new((1, 4), ExcelDataType::DateTime(44986.12)),
-            Cell::new((1, 5), ExcelDataType::DateTimeIso(String::from("test"))),
-            Cell::new((1, 6), ExcelDataType::Duration(44986.12)),
-            Cell::new((1, 7), ExcelDataType::DurationIso(String::from("test"))),
-            Cell::new((2, 0), ExcelDataType::Empty),
-            Cell::new((2, 0), ExcelDataType::Empty),
-            Cell::new((2, 1), ExcelDataType::Empty),
-            Cell::new((2, 2), ExcelDataType::Empty),
-            Cell::new((2, 3), ExcelDataType::Empty),
-            Cell::new((2, 4), ExcelDataType::Empty),
-            Cell::new((2, 5), ExcelDataType::Empty),
-            Cell::new((2, 6), ExcelDataType::Empty),
-            Cell::new((2, 7), ExcelDataType::Empty),
+            Cell::new((1, 0), ExcelData::Int(0)),
+            Cell::new((1, 1), ExcelData::Bool(true)),
+            Cell::new((1, 2), ExcelData::Float(0.333)),
+            Cell::new((1, 3), ExcelData::String(String::from("test"))),
+            Cell::new(
+                (1, 4),
+                ExcelData::DateTime(calamine::ExcelDateTime::new(
+                    44986.12,
+                    calamine::ExcelDateTimeType::DateTime,
+                    false,
+                )),
+            ),
+            Cell::new((1, 5), ExcelData::DateTimeIso(String::from("test"))),
+            Cell::new((1, 6), ExcelData::Float(44986.12)),
+            Cell::new((1, 7), ExcelData::String(String::from("test"))),
+            Cell::new((2, 0), ExcelData::Empty),
+            Cell::new((2, 0), ExcelData::Empty),
+            Cell::new((2, 1), ExcelData::Empty),
+            Cell::new((2, 2), ExcelData::Empty),
+            Cell::new((2, 3), ExcelData::Empty),
+            Cell::new((2, 4), ExcelData::Empty),
+            Cell::new((2, 5), ExcelData::Empty),
+            Cell::new((2, 6), ExcelData::Empty),
+            Cell::new((2, 7), ExcelData::Empty),
         ]);
 
         let schema = infer_schema(&range, &TableOptionExcel::default(), &None).unwrap();
@@ -537,24 +553,16 @@ mod tests {
                     DataType::Timestamp(TimeUnit::Second, None),
                     true
                 ),
-                Field::new(
-                    "duration_column",
-                    DataType::Duration(TimeUnit::Second),
-                    true
-                ),
-                Field::new(
-                    "duration_iso_column",
-                    DataType::Duration(TimeUnit::Second),
-                    true
-                ),
+                Field::new("duration_column", DataType::Float64, true),
+                Field::new("duration_iso_column", DataType::Utf8, true),
             ])
         );
 
-        let range = calamine::Range::<ExcelDataType>::from_sparse(vec![
-            Cell::new((0, 0), ExcelDataType::String(String::from("test_column"))),
-            Cell::new((1, 0), ExcelDataType::Int(0)),
-            Cell::new((2, 0), ExcelDataType::Empty),
-            Cell::new((2, 0), ExcelDataType::Float(0.5)),
+        let range = calamine::Range::<ExcelData>::from_sparse(vec![
+            Cell::new((0, 0), ExcelData::String(String::from("test_column"))),
+            Cell::new((1, 0), ExcelData::Int(0)),
+            Cell::new((2, 0), ExcelData::Empty),
+            Cell::new((2, 0), ExcelData::Float(0.5)),
         ]);
 
         let schema = infer_schema(&range, &TableOptionExcel::default(), &None).unwrap();
@@ -564,27 +572,27 @@ mod tests {
             Schema::new(vec![Field::new("test_column", DataType::Utf8, true)])
         );
 
-        let range = calamine::Range::<ExcelDataType>::from_sparse(vec![
-            Cell::new((0, 0), ExcelDataType::String(String::from("int_column"))),
-            Cell::new((0, 1), ExcelDataType::Empty),
-            Cell::new((0, 2), ExcelDataType::String(String::from("float column"))),
+        let range = calamine::Range::<ExcelData>::from_sparse(vec![
+            Cell::new((0, 0), ExcelData::String(String::from("int_column"))),
+            Cell::new((0, 1), ExcelData::Empty),
+            Cell::new((0, 2), ExcelData::String(String::from("float column"))),
         ]);
 
         assert!(infer_schema(&range, &TableOptionExcel::default(), &None).is_err());
 
-        let range = calamine::Range::<ExcelDataType>::from_sparse(vec![
-            Cell::new((0, 0), ExcelDataType::String(String::from("column1"))),
-            Cell::new((0, 1), ExcelDataType::String(String::from("column2"))),
-            Cell::new((1, 0), ExcelDataType::Int(1)),
-            Cell::new((1, 1), ExcelDataType::Int(1)),
-            Cell::new((1, 3), ExcelDataType::Int(1)),
+        let range = calamine::Range::<ExcelData>::from_sparse(vec![
+            Cell::new((0, 0), ExcelData::String(String::from("column1"))),
+            Cell::new((0, 1), ExcelData::String(String::from("column2"))),
+            Cell::new((1, 0), ExcelData::Int(1)),
+            Cell::new((1, 1), ExcelData::Int(1)),
+            Cell::new((1, 3), ExcelData::Int(1)),
         ]);
         assert!(infer_schema(&range, &TableOptionExcel::default(), &None).is_err());
     }
 
     #[test]
     fn inferes_schema_from_config() {
-        let range = calamine::Range::<ExcelDataType>::from_sparse(vec![]);
+        let range = calamine::Range::<ExcelData>::from_sparse(vec![]);
         let table_schema = TableSchema {
             columns: vec![
                 TableColumn {
@@ -648,7 +656,7 @@ sheet_name = "uk_cities_with_headers"
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics()
+            .partition_statistics(None)
             .unwrap();
         assert_eq!(stats.num_rows, Precision::Exact(37));
     }
@@ -674,7 +682,7 @@ option:
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics()
+            .partition_statistics(None)
             .unwrap();
         assert_eq!(stats.num_rows, Precision::Exact(37));
     }
@@ -704,7 +712,7 @@ option:
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics()
+            .partition_statistics(None)
             .unwrap();
         assert_eq!(stats.column_statistics.len(), 6);
         assert_eq!(stats.num_rows, Precision::Exact(3));
@@ -712,33 +720,46 @@ option:
 
     #[test]
     fn transforms_excel_range_to_record_batch() {
-        let range: calamine::Range<ExcelDataType> =
-            calamine::Range::<ExcelDataType>::from_sparse(vec![
-                Cell::new((0, 0), ExcelDataType::String("float_column".to_string())),
-                Cell::new((1, 0), ExcelDataType::Float(1.333)),
-                Cell::new((2, 0), ExcelDataType::Empty),
-                Cell::new((3, 0), ExcelDataType::Float(3.333)),
-                Cell::new((0, 1), ExcelDataType::String("integer_column".to_string())),
-                Cell::new((1, 1), ExcelDataType::Int(1)),
-                Cell::new((2, 1), ExcelDataType::Int(3)),
-                Cell::new((3, 1), ExcelDataType::Empty),
-                Cell::new((0, 2), ExcelDataType::String("boolean_column".to_string())),
-                Cell::new((1, 2), ExcelDataType::Empty),
-                Cell::new((2, 2), ExcelDataType::Bool(true)),
-                Cell::new((3, 2), ExcelDataType::Bool(false)),
-                Cell::new((0, 3), ExcelDataType::String("string_column".to_string())),
-                Cell::new((1, 3), ExcelDataType::String("foo".to_string())),
-                Cell::new((2, 3), ExcelDataType::String("bar".to_string())),
-                Cell::new((3, 3), ExcelDataType::String("baz".to_string())),
-                Cell::new((0, 4), ExcelDataType::String("mixed_column".to_string())),
-                Cell::new((1, 4), ExcelDataType::Float(1.1)),
-                Cell::new((2, 4), ExcelDataType::Int(1)),
-                Cell::new((3, 4), ExcelDataType::Empty),
-                Cell::new((0, 5), ExcelDataType::String("datetime_column".to_string())),
-                Cell::new((1, 5), ExcelDataType::DateTime(44986.12)), // 2023-03-01T02:52:48
-                Cell::new((2, 5), ExcelDataType::Empty),
-                Cell::new((3, 5), ExcelDataType::DateTime(44900.12)), // 2022-12-05T02:52:48
-            ]);
+        let range: calamine::Range<ExcelData> = calamine::Range::<ExcelData>::from_sparse(vec![
+            Cell::new((0, 0), ExcelData::String("float_column".to_string())),
+            Cell::new((1, 0), ExcelData::Float(1.333)),
+            Cell::new((2, 0), ExcelData::Empty),
+            Cell::new((3, 0), ExcelData::Float(3.333)),
+            Cell::new((0, 1), ExcelData::String("integer_column".to_string())),
+            Cell::new((1, 1), ExcelData::Int(1)),
+            Cell::new((2, 1), ExcelData::Int(3)),
+            Cell::new((3, 1), ExcelData::Empty),
+            Cell::new((0, 2), ExcelData::String("boolean_column".to_string())),
+            Cell::new((1, 2), ExcelData::Empty),
+            Cell::new((2, 2), ExcelData::Bool(true)),
+            Cell::new((3, 2), ExcelData::Bool(false)),
+            Cell::new((0, 3), ExcelData::String("string_column".to_string())),
+            Cell::new((1, 3), ExcelData::String("foo".to_string())),
+            Cell::new((2, 3), ExcelData::String("bar".to_string())),
+            Cell::new((3, 3), ExcelData::String("baz".to_string())),
+            Cell::new((0, 4), ExcelData::String("mixed_column".to_string())),
+            Cell::new((1, 4), ExcelData::Float(1.1)),
+            Cell::new((2, 4), ExcelData::Int(1)),
+            Cell::new((3, 4), ExcelData::Empty),
+            Cell::new((0, 5), ExcelData::String("datetime_column".to_string())),
+            Cell::new(
+                (1, 5),
+                ExcelData::DateTime(calamine::ExcelDateTime::new(
+                    44986.12,
+                    calamine::ExcelDateTimeType::DateTime,
+                    false,
+                )),
+            ), // 2023-03-01T02:52:48
+            Cell::new((2, 5), ExcelData::Empty),
+            Cell::new(
+                (3, 5),
+                ExcelData::DateTime(calamine::ExcelDateTime::new(
+                    44900.12,
+                    calamine::ExcelDateTimeType::DateTime,
+                    false,
+                )),
+            ), // 2022-12-05T02:52:48
+        ]);
 
         let shema = infer_schema(&range, &TableOptionExcel::default(), &None).unwrap();
         let rb = excel_range_to_record_batch(range, &TableOptionExcel::default(), shema).unwrap();

@@ -21,9 +21,9 @@ snmalloc-rs = { version = "0.3", optional = true }
 
 # dependencies related to axum
 tokio = { version = "1", features = ["rt-multi-thread"] }
-axum = { version = "0.7", features = ["default", "http2"] }
+axum = { version = "0.8", features = ["default", "http2"] }
 tower = { version = "0" }                                      # introduced only for tower::layer::util::Stack
-tower-http = { version = "0.5", features = ["cors", "trace"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 tower-layer = "0"
 tower-service = "0"
 tracing = "0"
@@ -44,8 +44,8 @@ thiserror = "1"
 snafu = "0"
 
 # flight-sql
-arrow-flight = { version = "55", features = ["flight-sql-experimental"] }
-tonic = { version = "0", features = ["tls"] }
+arrow-flight = { version = "57", features = ["flight-sql-experimental"] }
+tonic = { version = "0.14", features = ["tls-webpki-roots"] }
 prost = "0"
 futures = "0"
 # TODO: remove once_cell dependency
@@ -58,7 +58,7 @@ rust-embed = { version = "8", optional = true }
 mime_guess = { version = "2", optional = true }
 
 # postgres wire protocol
-pgwire = "0.30.2"
+pgwire = "0.35"
 hex = "0.4"
 
 [features]
@@ -74,7 +74,7 @@ database-postgres = ["columnq/database-postgres"]
 ui = ["rust-embed", "mime_guess"]
 
 [dev-dependencies]
-reqwest = { version = "0", default-features = false, features = [
+reqwest = { version = "0.12", default-features = false, features = [
     "json",
     "rustls-tls",
 ] }
@@ -83,8 +83,8 @@ tokio-postgres = "0.7"
 tower = "*"
 tempfile = "*"
 tokio-stream = { version = "*", features = ["net"] }
-arrow-cast = "55"
-arrow-ipc = "55" # for flight_sql test
+arrow-cast = { version = "57", features = ["prettyprint"] }
+arrow-ipc = "57" # for flight_sql test
 
 # TODO: uncomment this when we exclude roapi from root workspace
 # [profile.release]

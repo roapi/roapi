@@ -311,12 +311,17 @@ impl ROAPIUI {
 fn query_editor(ctx: &egui::Context, ui: &mut egui::Ui, query: &mut String) {
     let theme = egui_extras::syntax_highlighting::CodeTheme::from_memory(ctx, ui.style());
 
-    let mut layouter = |ui: &egui::Ui, string: &str, wrap_width: f32| {
+    let mut layouter = |ui: &egui::Ui, string: &dyn egui::TextBuffer, wrap_width: f32| {
         let language = "sql";
-        let mut layout_job =
-            egui_extras::syntax_highlighting::highlight(ctx, ui.style(), &theme, string, language);
-        layout_job.wrap.max_width = wrap_width;
-        ui.fonts(|f| f.layout_job(layout_job))
+        let mut job = egui_extras::syntax_highlighting::highlight(
+            ctx,
+            ui.style(),
+            &theme,
+            string.as_str(),
+            language,
+        );
+        job.wrap.max_width = wrap_width;
+        ui.painter().layout_job(job)
     };
 
     ui.add(
@@ -371,7 +376,7 @@ impl eframe::App for ROAPIUI {
                 ui.menu_button("⚙", |ui| {
                     if ui.button("Syntax Highlight Theme").clicked() {
                         self.show_settings = true;
-                        ui.close_menu();
+                        ui.close();
                     }
                 });
             });

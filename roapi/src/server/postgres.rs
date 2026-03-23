@@ -20,7 +20,6 @@ use futures::stream;
 use futures::Sink;
 use log::info;
 use pgwire::api::auth::noop::NoopStartupHandler;
-use pgwire::api::copy::NoopCopyHandler;
 use pgwire::api::portal::Portal;
 use pgwire::api::query::{ExtendedQueryHandler, SimpleQueryHandler};
 use pgwire::api::results::{
@@ -28,7 +27,7 @@ use pgwire::api::results::{
     QueryResponse, Response,
 };
 use pgwire::api::stmt::{NoopQueryParser, StoredStatement};
-use pgwire::api::{ClientInfo, ClientPortalStore, NoopErrorHandler, PgWireServerHandlers, Type};
+use pgwire::api::{ClientInfo, ClientPortalStore, PgWireServerHandlers, Type};
 use pgwire::error::{ErrorInfo, PgWireError, PgWireResult};
 use pgwire::messages::PgWireBackendMessage;
 use pgwire::tokio::process_socket;
@@ -112,7 +111,7 @@ impl<H: RoapiContext> RoapiQueryHandler<H> {
         Self { ctx }
     }
 
-    async fn execute_query(&self, query: &str) -> PgWireResult<QueryResponse<'static>> {
+    async fn execute_query(&self, query: &str) -> PgWireResult<QueryResponse> {
         info!("executing query: {query}");
 
         // Handle some special PostgreSQL queries
@@ -359,7 +358,7 @@ impl<H: RoapiContext> NoopStartupHandler for RoapiQueryHandler<H> {
 
 #[async_trait]
 impl<H: RoapiContext> SimpleQueryHandler for RoapiQueryHandler<H> {
-    async fn do_query<'a, C>(&self, _client: &mut C, query: &str) -> PgWireResult<Vec<Response<'a>>>
+    async fn do_query<C>(&self, _client: &mut C, query: &str) -> PgWireResult<Vec<Response>>
     where
         C: ClientInfo + ClientPortalStore + Sink<PgWireBackendMessage> + Unpin + Send + Sync,
         C::Error: Debug,
@@ -412,12 +411,12 @@ impl<H: RoapiContext> ExtendedQueryHandler for RoapiQueryHandler<H> {
         Arc::new(NoopQueryParser)
     }
 
-    async fn do_query<'a, C>(
+    async fn do_query<C>(
         &self,
         _client: &mut C,
         portal: &Portal<Self::Statement>,
         _max_rows: usize,
-    ) -> PgWireResult<Response<'a>>
+    ) -> PgWireResult<Response>
     where
         C: ClientInfo + ClientPortalStore + Sink<PgWireBackendMessage> + Unpin + Send + Sync,
         C::PortalStore: Send + Sync,
@@ -475,30 +474,16 @@ struct RoapiHandlerFactory<H: RoapiContext> {
 }
 
 impl<H: RoapiContext> PgWireServerHandlers for RoapiHandlerFactory<H> {
-    type StartupHandler = RoapiQueryHandler<H>;
-    type SimpleQueryHandler = RoapiQueryHandler<H>;
-    type ExtendedQueryHandler = RoapiQueryHandler<H>;
-    type CopyHandler = NoopCopyHandler;
-    type ErrorHandler = NoopErrorHandler;
-
-    fn simple_query_handler(&self) -> Arc<Self::SimpleQueryHandler> {
+    fn simple_query_handler(&self) -> Arc<impl SimpleQueryHandler> {
         self.handler.clone()
     }
 
-    fn extended_query_handler(&self) -> Arc<Self::ExtendedQueryHandler> {
+    fn extended_query_handler(&self) -> Arc<impl ExtendedQueryHandler> {
         self.handler.clone()
     }
 
-    fn startup_handler(&self) -> Arc<Self::StartupHandler> {
+    fn startup_handler(&self) -> Arc<impl pgwire::api::auth::StartupHandler> {
         self.handler.clone()
-    }
-
-    fn copy_handler(&self) -> Arc<Self::CopyHandler> {
-        Arc::new(NoopCopyHandler)
-    }
-
-    fn error_handler(&self) -> Arc<Self::ErrorHandler> {
-        Arc::new(NoopErrorHandler)
     }
 }
 

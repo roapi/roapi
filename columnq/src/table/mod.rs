@@ -1082,7 +1082,7 @@ schema:
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics()
+            .partition_statistics(None)
             .unwrap();
         assert_eq!(stats.num_rows, Precision::Exact(37));
     }
@@ -1107,7 +1107,7 @@ uri: "sqlite://../test_data/sqlite/sample.{ext}"
                 .scan(&ctx.state(), None, &[], None)
                 .await
                 .unwrap()
-                .statistics()
+                .partition_statistics(None)
                 .unwrap();
             assert_eq!(stats.num_rows, Precision::Exact(37));
         }

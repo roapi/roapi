@@ -16,13 +16,13 @@ pub async fn version() -> Result<impl IntoResponse, crate::error::ApiErrResp> {
 pub fn register_api_routes<H: RoapiContext>() -> Router {
     let mut api_routes = Router::new()
         .route("/version", get(version))
-        .route("/tables/:table_name", get(api::rest::get_table::<H>))
+        .route("/tables/{table_name}", get(api::rest::get_table::<H>))
         .route("/sql", post(api::sql::post::<H>))
-        .route("/kv/:kv_name/:key", get(api::kv::get::<H>))
+        .route("/kv/{kv_name}/{key}", get(api::kv::get::<H>))
         .route("/graphql", post(api::graphql::post::<H>))
         .route("/schema", get(api::schema::schema::<H>))
         .route(
-            "/schema/:table_name",
+            "/schema/{table_name}",
             get(api::schema::get_by_table_name::<H>),
         );
 

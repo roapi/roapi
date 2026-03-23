@@ -59,16 +59,16 @@ mod imp {
                 .map_err(Box::new)
                 .context(table::LoadDatabaseSnafu)?;
 
-            datafusion::datasource::MemTable::try_new(
-                destination.arrow_schema(),
-                vec![destination
-                    .arrow()
-                    .context(ToArrowSnafu)
-                    .map_err(Box::new)
-                    .context(table::LoadDatabaseSnafu)?],
-            )
-            .map_err(Box::new)
-            .context(table::CreateMemTableSnafu)
+            let schema = destination.arrow_schema();
+            let batches = destination
+                .arrow()
+                .context(ToArrowSnafu)
+                .map_err(Box::new)
+                .context(table::LoadDatabaseSnafu)?;
+
+            datafusion::datasource::MemTable::try_new(schema, vec![batches])
+                .map_err(Box::new)
+                .context(table::CreateMemTableSnafu)
         }
     }
 }

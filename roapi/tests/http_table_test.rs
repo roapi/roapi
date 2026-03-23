@@ -7,7 +7,7 @@ use axum::http::HeaderMap;
 use axum::{extract::State, response::IntoResponse, routing::get};
 
 async fn http_server() -> (
-    axum::serve::Serve<axum::Router, axum::Router>,
+    axum::serve::Serve<tokio::net::TcpListener, axum::Router, axum::Router>,
     std::net::SocketAddr,
 ) {
     async fn serve_json(

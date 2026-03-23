@@ -131,7 +131,7 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics()
+            .partition_statistics(None)
             .unwrap();
         assert_eq!(stats.num_rows, Precision::Exact(37 * 3));
     }
@@ -149,7 +149,7 @@ mod tests {
             .scan(&ctx.state(), None, &[], None)
             .await
             .unwrap()
-            .statistics()
+            .partition_statistics(None)
             .unwrap();
         assert_eq!(stats.num_rows, Precision::Exact(37));
     }
