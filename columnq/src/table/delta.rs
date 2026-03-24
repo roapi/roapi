@@ -7,6 +7,8 @@ use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use deltalake::DeltaTableBuilder;
+use object_store::DynObjectStore;
 
 use crate::io::{self, BlobStoreType};
 use crate::table::{self, LoadedTable, TableLoadOption, TableOptionDelta, TableSource};
@@ -76,6 +78,29 @@ async fn update_table(
         })
 }
 
+/// Resolve the table URL and look up the object store that was already
+/// registered in DataFusion's runtime env.  Returns `None` for local
+/// filesystem paths (no store registration needed).
+fn get_registered_store(
+    uri_str: &str,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Option<(url::Url, Arc<DynObjectStore>)>, table::Error> {
+    if !uri_str.contains("://") {
+        // local filesystem – no registered store
+        return Ok(None);
+    }
+    let url = url::Url::parse(uri_str).map_err(|_| table::Error::LoadDelta {
+        source: Box::new(Error::OpenTable {
+            source: deltalake::errors::DeltaTableError::InvalidTableLocation(uri_str.to_string()),
+        }),
+    })?;
+    match dfctx.runtime_env().object_store_registry.get_store(&url) {
+        Ok(store) => Ok(Some((url, store))),
+        // If not registered yet, fall back to delta-rs default resolution
+        Err(_) => Ok(None),
+    }
+}
+
 pub async fn to_loaded_table(
     t: &TableSource,
     dfctx: &datafusion::execution::context::SessionContext,
@@ -88,23 +113,42 @@ pub async fn to_loaded_table(
     let TableOptionDelta { use_memory_table } = opt.as_delta()?;
 
     let uri_str = t.get_uri_str();
-    let url = (if uri_str.contains("://") {
+
+    // Build the URL (handle both remote URIs and bare filesystem paths).
+    let url = if uri_str.contains("://") {
         url::Url::parse(uri_str).ok()
     } else {
         let abs_path =
             std::fs::canonicalize(uri_str).unwrap_or_else(|_| std::path::PathBuf::from(uri_str));
         url::Url::from_file_path(abs_path).ok()
-    })
+    }
     .ok_or_else(|| table::Error::LoadDelta {
         source: Box::new(Error::OpenTable {
             source: deltalake::errors::DeltaTableError::InvalidTableLocation(uri_str.to_string()),
         }),
     })?;
-    let delta_table = deltalake::open_table(url)
-        .await
-        .context(OpenTableSnafu)
-        .map_err(Box::new)
-        .context(table::LoadDeltaSnafu)?;
+
+    // Reuse the object store that is already registered in DataFusion's
+    // runtime env so that settings like `allow_http = true` apply uniformly
+    // to both DataFusion scans and delta-rs metadata reads.
+    let delta_table = match get_registered_store(uri_str, dfctx)? {
+        Some((store_url, store)) => DeltaTableBuilder::from_url(url.clone())
+            .context(OpenTableSnafu)
+            .map_err(Box::new)
+            .context(table::LoadDeltaSnafu)?
+            .with_storage_backend(store, store_url)
+            .load()
+            .await
+            .context(OpenTableSnafu)
+            .map_err(Box::new)
+            .context(table::LoadDeltaSnafu)?,
+        None => deltalake::open_table(url.clone())
+            .await
+            .context(OpenTableSnafu)
+            .map_err(Box::new)
+            .context(table::LoadDeltaSnafu)?,
+    };
+
     let parsed_uri = t.parsed_uri()?;
     let url_scheme = parsed_uri.scheme();
     let blob_type = BlobStoreType::try_from(url_scheme).context(table::IoSnafu)?;
@@ -305,17 +349,6 @@ mod tests {
         .await
         .unwrap()
         .table;
-
-        // In deltalake 0.31, table_provider() returns a DeltaTableProvider adapter
-        // that does not directly expose the inner DeltaTable via as_any().
-        /*
-        match t.as_any().downcast_ref::<DeltaTable>() {
-            Some(delta_table) => {
-                assert_eq!(delta_table.version(), Some(0));
-            }
-            None => panic!("must be of type deltalake::DeltaTable"),
-        }
-        */
     }
 
     fn validate_statistics(stats: Statistics) {
