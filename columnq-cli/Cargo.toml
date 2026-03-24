@@ -19,11 +19,11 @@ snmalloc-rs = { version = "0.3", optional = true }
 serde_json = "*"
 log = "0"
 tokio = "1"
-rustyline = { version = "9" }
+rustyline = { version = "17" }
 env_logger = { version = "0" }
 anyhow = { version = "1" }
 clap = { version = "4", features = ["color"] }
-dirs = { version = "4" }
+dirs = { version = "6" }
 
 [features]
 default = ["rustls", "snmalloc"]

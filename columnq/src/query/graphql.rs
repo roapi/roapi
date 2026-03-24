@@ -79,19 +79,21 @@ fn to_datafusion_sort_columns(sort_columns: &[Value<String>]) -> Result<Vec<Sort
 
 fn operand_to_datafusion_expr(operand: &Value<String>) -> Result<Expr, QueryError> {
     match operand {
-        Value::Boolean(b) => Ok(Expr::Literal(ScalarValue::Boolean(Some(*b)))),
-        Value::String(s) => Ok(Expr::Literal(ScalarValue::Utf8(Some(s.to_string())))),
+        Value::Boolean(b) => Ok(Expr::Literal(ScalarValue::Boolean(Some(*b)), None)),
+        Value::String(s) => Ok(Expr::Literal(ScalarValue::Utf8(Some(s.to_string())), None)),
         // GraphQL only supports int32 scalar input: http://spec.graphql.org/June2018/#sec-Int, but
         // graphql crate only supports in64.
         // TODO: set literal value type based on schema?
-        Value::Int(n) => Ok(Expr::Literal(ScalarValue::Int64(Some(
-            n.as_i64().ok_or_else(|| {
-                invalid_query(format!(
-                    "invalid integer number in filter predicate: {operand}"
-                ))
-            })?,
-        )))),
-        Value::Float(f) => Ok(Expr::Literal(ScalarValue::Float64(Some(f.to_owned())))),
+        Value::Int(n) => Ok(Expr::Literal(
+            ScalarValue::Int64(Some(n.as_i64().ok_or_else(|| {
+                invalid_query(format!("invalid integer number in filter: {n:?}"))
+            })?)),
+            None,
+        )),
+        Value::Float(f) => Ok(Expr::Literal(
+            ScalarValue::Float64(Some(f.to_owned())),
+            None,
+        )),
         other => Err(invalid_query(format!(
             "invalid operand in filter predicate: {other}",
         ))),

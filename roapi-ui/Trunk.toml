@@ -4,4 +4,4 @@ public_url ="/ui/"
 minify = "on_release"
 
 [tools]
-wasm_bindgen = "0.2.100"
+wasm_bindgen = "0.2.114"

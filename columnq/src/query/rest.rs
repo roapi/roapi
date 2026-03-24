@@ -29,13 +29,13 @@ fn rest_query_value_to_expr(v: &str) -> Result<Expr, QueryError> {
     match t {
         // TODO: support column expr instead of just literal
         sqlparser::tokenizer::Token::SingleQuotedString(s) => {
-            Ok(Expr::Literal(ScalarValue::Utf8(Some(s.to_string()))))
+            Ok(Expr::Literal(ScalarValue::Utf8(Some(s.to_string())), None))
         }
         sqlparser::tokenizer::Token::Number(s, _) => {
             if let Ok(n) = s.parse() {
-                Ok(Expr::Literal(ScalarValue::Int64(Some(n))))
+                Ok(Expr::Literal(ScalarValue::Int64(Some(n)), None))
             } else if let Ok(n) = s.parse() {
-                Ok(Expr::Literal(ScalarValue::Float64(Some(n))))
+                Ok(Expr::Literal(ScalarValue::Float64(Some(n)), None))
             } else {
                 Err(QueryError {
                     error: "rest_query_value".to_string(),
@@ -251,7 +251,10 @@ mod tests {
                 .table("ubuntu_ami")
                 .await
                 .unwrap()
-                .filter(col("arch").eq(Expr::Literal(ScalarValue::Utf8(Some("amd64".to_string())))))
+                .filter(col("arch").eq(Expr::Literal(
+                    ScalarValue::Utf8(Some("amd64".to_string())),
+                    None,
+                )))
                 .unwrap()
                 .select(vec![col("ami_id"), col("version")])
                 .unwrap()

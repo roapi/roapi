@@ -23,7 +23,7 @@ pub enum Error {
     BindTcp { source: std::io::Error },
 }
 
-pub type HttpApiServe = axum::serve::Serve<axum::Router, axum::Router>;
+pub type HttpApiServe = axum::serve::Serve<tokio::net::TcpListener, axum::Router, axum::Router>;
 
 pub async fn health() -> Result<impl IntoResponse, crate::error::ApiErrResp> {
     Ok(api::bytes_to_resp("OK".into(), "text/plain"))

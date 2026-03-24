@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context};
 use log::debug;
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
+
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -46,7 +46,7 @@ fn table_arg() -> clap::Arg {
 async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
     let rl_history = history_path()?;
 
-    let mut readline = Editor::<()>::new();
+    let mut readline = rustyline::DefaultEditor::new()?;
     if let Err(e) = readline.load_history(&rl_history) {
         debug!("no query history loaded: {e:?}");
     }
@@ -54,7 +54,7 @@ async fn console_loop(cq: &ColumnQ) -> anyhow::Result<()> {
     loop {
         match readline.readline("columnq(sql)> ") {
             Ok(line) => {
-                readline.add_history_entry(line.as_str());
+                let _ = readline.add_history_entry(line.as_str());
                 match line.as_ref() {
                     "exit" | "quit" | "q" => {
                         println!("Good bye!");

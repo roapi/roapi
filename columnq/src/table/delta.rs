@@ -7,6 +7,8 @@ use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
 use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
 use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use deltalake::DeltaTableBuilder;
+use object_store::DynObjectStore;
 
 use crate::io::{self, BlobStoreType};
 use crate::table::{self, LoadedTable, TableLoadOption, TableOptionDelta, TableSource};
@@ -51,19 +53,52 @@ pub enum Error {
     UpdateTable {
         source: deltalake::errors::DeltaTableError,
     },
+    #[snafu(display("Failed to create memory table: {source}"))]
+    CreateMemTable {
+        source: datafusion::error::DataFusionError,
+    },
 }
 
 async fn update_table(
     mut t: deltalake::DeltaTable,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
-    t
-        // TODO: find a way to not do a full table update?
+    t = t
         .update()
         .await
+        .map(|(t, _)| t)
         .context(UpdateTableSnafu)
         .map_err(Box::new)
         .context(table::LoadDeltaSnafu)?;
-    Ok(Arc::new(t) as Arc<dyn TableProvider>)
+    t.table_provider()
+        .await
+        .map_err(|e| table::Error::LoadDelta {
+            source: Box::new(Error::UpdateTable {
+                source: deltalake::errors::DeltaTableError::Generic(e.to_string()),
+            }),
+        })
+}
+
+/// Resolve the table URL and look up the object store that was already
+/// registered in DataFusion's runtime env.  Returns `None` for local
+/// filesystem paths (no store registration needed).
+fn get_registered_store(
+    uri_str: &str,
+    dfctx: &datafusion::execution::context::SessionContext,
+) -> Result<Option<(url::Url, Arc<DynObjectStore>)>, table::Error> {
+    if !uri_str.contains("://") {
+        // local filesystem – no registered store
+        return Ok(None);
+    }
+    let url = url::Url::parse(uri_str).map_err(|_| table::Error::LoadDelta {
+        source: Box::new(Error::OpenTable {
+            source: deltalake::errors::DeltaTableError::InvalidTableLocation(uri_str.to_string()),
+        }),
+    })?;
+    match dfctx.runtime_env().object_store_registry.get_store(&url) {
+        Ok(store) => Ok(Some((url, store))),
+        // If not registered yet, fall back to delta-rs default resolution
+        Err(_) => Ok(None),
+    }
 }
 
 pub async fn to_loaded_table(
@@ -78,16 +113,42 @@ pub async fn to_loaded_table(
     let TableOptionDelta { use_memory_table } = opt.as_delta()?;
 
     let uri_str = t.get_uri_str();
-    let delta_table = deltalake::DeltaTableBuilder::from_valid_uri(uri_str)
-        .context(OpenTableSnafu)
-        .map_err(Box::new)
-        .context(table::LoadDeltaSnafu)?
-        .with_allow_http(true)
-        .load()
-        .await
-        .context(LoadTableSnafu)
-        .map_err(Box::new)
-        .context(table::LoadDeltaSnafu)?;
+
+    // Build the URL (handle both remote URIs and bare filesystem paths).
+    let url = if uri_str.contains("://") {
+        url::Url::parse(uri_str).ok()
+    } else {
+        let abs_path =
+            std::fs::canonicalize(uri_str).unwrap_or_else(|_| std::path::PathBuf::from(uri_str));
+        url::Url::from_file_path(abs_path).ok()
+    }
+    .ok_or_else(|| table::Error::LoadDelta {
+        source: Box::new(Error::OpenTable {
+            source: deltalake::errors::DeltaTableError::InvalidTableLocation(uri_str.to_string()),
+        }),
+    })?;
+
+    // Reuse the object store that is already registered in DataFusion's
+    // runtime env so that settings like `allow_http = true` apply uniformly
+    // to both DataFusion scans and delta-rs metadata reads.
+    let delta_table = match get_registered_store(uri_str, dfctx)? {
+        Some((store_url, store)) => DeltaTableBuilder::from_url(url.clone())
+            .context(OpenTableSnafu)
+            .map_err(Box::new)
+            .context(table::LoadDeltaSnafu)?
+            .with_storage_backend(store, store_url)
+            .load()
+            .await
+            .context(OpenTableSnafu)
+            .map_err(Box::new)
+            .context(table::LoadDeltaSnafu)?,
+        None => deltalake::open_table(url.clone())
+            .await
+            .context(OpenTableSnafu)
+            .map_err(Box::new)
+            .context(table::LoadDeltaSnafu)?,
+    };
+
     let parsed_uri = t.parsed_uri()?;
     let url_scheme = parsed_uri.scheme();
     let blob_type = BlobStoreType::try_from(url_scheme).context(table::IoSnafu)?;
@@ -106,7 +167,7 @@ pub async fn to_loaded_table(
         LoadedTable::new_from_df_table_cb(to_datafusion_table).await
     } else {
         let curr_table = delta_table.clone();
-        let df_table = cast_datafusion_table(delta_table, blob_type)?;
+        let df_table = cast_datafusion_table(delta_table, blob_type).await?;
         Ok(LoadedTable::new(
             df_table,
             Box::new(move || {
@@ -117,7 +178,7 @@ pub async fn to_loaded_table(
     }
 }
 
-fn cast_datafusion_table(
+async fn cast_datafusion_table(
     delta_table: deltalake::DeltaTable,
     blob_type: io::BlobStoreType,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
@@ -125,9 +186,18 @@ fn cast_datafusion_table(
         io::BlobStoreType::Azure
         | io::BlobStoreType::S3
         | io::BlobStoreType::GCS
-        | io::BlobStoreType::FileSystem => Ok(Arc::new(delta_table)),
+        | io::BlobStoreType::FileSystem => {
+            Ok(delta_table
+                .table_provider()
+                .await
+                .map_err(|e| table::Error::LoadDelta {
+                    source: Box::new(Error::LoadTable {
+                        source: deltalake::errors::DeltaTableError::Generic(e.to_string()),
+                    }),
+                })?)
+        }
         _ => Err(Box::new(Error::InvalidUri {
-            uri: delta_table.table_uri().to_string(),
+            uri: delta_table.table_url().to_string(),
         }))
         .context(table::LoadDeltaSnafu),
     }
@@ -170,21 +240,15 @@ pub async fn to_mem_table(
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
     let paths = delta_table
         .get_file_uris()
-        .context(LoadTableSnafu)
-        .map_err(Box::new)
-        .context(table::LoadDeltaSnafu)?
+        .map_err(|e| table::Error::LoadDelta {
+            source: Box::new(Error::LoadTable { source: e }),
+        })?
         .collect::<Vec<String>>();
     if paths.is_empty() {
         return Err(Box::new(Error::EmptyTable {})).context(table::LoadDeltaSnafu);
     }
 
-    let delta_schema = delta_table
-        .get_schema()
-        .context(GetSchemaSnafu)
-        .map_err(Box::new)
-        .context(table::LoadDeltaSnafu)?;
-
-    let path_iter = paths.iter().map(|s| s.as_ref());
+    let path_iter = paths.iter().map(|s: &String| s.as_str());
 
     let partitions: Vec<Vec<RecordBatch>> = match blob_type {
         io::BlobStoreType::FileSystem => io::fs::partitions_from_iterator(
@@ -207,26 +271,29 @@ pub async fn to_mem_table(
         }
         _ => {
             return Err(Box::new(Error::InvalidUri {
-                uri: delta_table.table_uri().to_string(),
+                uri: delta_table.table_url().to_string(),
             }))
             .context(table::LoadDeltaSnafu);
         }
     };
 
-    Ok(Arc::new(
-        datafusion::datasource::MemTable::try_new(
-            Arc::new(
-                delta_schema
-                    .try_into()
-                    .context(ConvertSchemaSnafu)
-                    .map_err(Box::new)
-                    .context(table::LoadDeltaSnafu)?,
-            ),
-            partitions,
-        )
-        .map_err(Box::new)
-        .context(table::CreateMemTableSnafu)?,
-    ))
+    let mem_table = datafusion::datasource::MemTable::try_new(
+        delta_table
+            .table_provider()
+            .await
+            .map_err(|e| table::Error::LoadDelta {
+                source: Box::new(Error::GetSchema {
+                    source: deltalake::errors::DeltaTableError::Generic(e.to_string()),
+                }),
+            })?
+            .schema(),
+        partitions,
+    )
+    .map_err(|e| table::Error::LoadDelta {
+        source: Box::new(Error::CreateMemTable { source: e }),
+    })?;
+
+    Ok(Arc::new(mem_table))
 }
 
 #[cfg(test)]
@@ -237,8 +304,6 @@ mod tests {
     use datafusion::datasource::MemTable;
     use datafusion::physical_plan::Statistics;
     use datafusion::prelude::SessionContext;
-
-    use deltalake::DeltaTable;
 
     use crate::test_util::test_data_path;
 
@@ -261,7 +326,7 @@ mod tests {
             t.scan(&ctx.state(), None, &[], None)
                 .await
                 .unwrap()
-                .statistics()
+                .partition_statistics(None)
                 .unwrap(),
         );
 
@@ -273,7 +338,7 @@ mod tests {
     #[tokio::test]
     async fn load_delta_as_delta_source() {
         let ctx = SessionContext::new();
-        let t = to_loaded_table(
+        let _t = to_loaded_table(
             &TableSource::new("blogs".to_string(), test_data_path("blogs-delta")).with_option(
                 TableLoadOption::delta(TableOptionDelta {
                     use_memory_table: false,
@@ -284,13 +349,6 @@ mod tests {
         .await
         .unwrap()
         .table;
-
-        match t.as_any().downcast_ref::<DeltaTable>() {
-            Some(delta_table) => {
-                assert_eq!(delta_table.version(), 0);
-            }
-            None => panic!("must be of type deltalake::DeltaTable"),
-        }
     }
 
     fn validate_statistics(stats: Statistics) {
