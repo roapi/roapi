@@ -88,5 +88,5 @@ arrow-ipc = "57" # for flight_sql test
 
 # TODO: uncomment this when we exclude roapi from root workspace
 # [profile.release]
-# lto = true
-# codegen-units = 1
+# lto = "thin"
+
