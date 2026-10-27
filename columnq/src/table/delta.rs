@@ -1,12 +1,8 @@
 use snafu::prelude::*;
-use std::io::Read;
 use std::sync::Arc;
 
-use datafusion::arrow;
-use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::TableProvider;
-use datafusion::parquet::arrow::arrow_reader::ArrowReaderOptions;
-use datafusion::parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use datafusion::physical_plan::collect;
 use deltalake::DeltaTableBuilder;
 use object_store::DynObjectStore;
 
@@ -15,32 +11,8 @@ use crate::table::{self, LoadedTable, TableLoadOption, TableOptionDelta, TableSo
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Failed to read data into memory: {source}"))]
-    ReadBytes { source: std::io::Error },
-    #[snafu(display("Failed to create parquet reader builder: {source}"))]
-    NewReaderBuilder {
-        source: datafusion::parquet::errors::ParquetError,
-    },
-    #[snafu(display("Failed to build parquet reader: {source}"))]
-    BuildReader {
-        source: datafusion::parquet::errors::ParquetError,
-    },
-    #[snafu(display("Failed to collect record batch: {source}"))]
-    CollectRecordBatch {
-        source: datafusion::arrow::error::ArrowError,
-    },
     #[snafu(display("Scheme in table uri not supported for delta table: {uri}"))]
     InvalidUri { uri: String },
-    #[snafu(display("Empty Delta table"))]
-    EmptyTable {},
-    #[snafu(display("Failed to load table schema: {source}"))]
-    GetSchema {
-        source: deltalake::errors::DeltaTableError,
-    },
-    #[snafu(display("Failed to convert Delta schema to Arrow schema: {source}"))]
-    ConvertSchema {
-        source: datafusion::arrow::error::ArrowError,
-    },
     #[snafu(display("Failed to open table: {source}"))]
     OpenTable {
         source: deltalake::errors::DeltaTableError,
@@ -203,94 +175,44 @@ async fn cast_datafusion_table(
     }
 }
 
-fn read_partition<R: Read>(mut r: R, batch_size: usize) -> Result<Vec<RecordBatch>, table::Error> {
-    let mut buffer = Vec::new();
-    r.read_to_end(&mut buffer)
-        .context(ReadBytesSnafu)
-        .map_err(Box::new)
-        .context(table::LoadDeltaSnafu)?;
-
-    let record_batch_reader = ParquetRecordBatchReaderBuilder::try_new_with_options(
-        bytes::Bytes::from(buffer),
-        ArrowReaderOptions::new().with_skip_arrow_metadata(true),
-    )
-    .context(NewReaderBuilderSnafu)
-    .map_err(|e| table::Error::LoadDelta {
-        source: Box::new(e),
-    })?
-    .with_batch_size(batch_size)
-    .build()
-    .context(BuildReaderSnafu)
-    .map_err(Box::new)
-    .context(table::LoadDeltaSnafu)?;
-
-    record_batch_reader
-        .into_iter()
-        .collect::<arrow::error::Result<Vec<RecordBatch>>>()
-        .context(CollectRecordBatchSnafu)
-        .map_err(Box::new)
-        .context(table::LoadDeltaSnafu)
-}
-
+/// Materialize a Delta table into an in-memory MemTable.
+///
+/// Uses Delta's DataFusion [`TableProvider`] so partition columns from table
+/// metadata are included. Reading the underlying parquet files alone omits
+/// those columns and then fails `MemTable::try_new` against the Delta schema
+/// (see #408).
 pub async fn to_mem_table(
     delta_table: deltalake::DeltaTable,
     blob_type: io::BlobStoreType,
-    batch_size: usize,
+    _batch_size: usize,
     dfctx: datafusion::execution::context::SessionContext,
 ) -> Result<Arc<dyn TableProvider>, table::Error> {
-    let paths = delta_table
-        .get_file_uris()
+    let provider = cast_datafusion_table(delta_table, blob_type).await?;
+    let schema = provider.schema();
+
+    let exec = provider
+        .scan(&dfctx.state(), None, &[], None)
+        .await
         .map_err(|e| table::Error::LoadDelta {
-            source: Box::new(Error::LoadTable { source: e }),
-        })?
-        .collect::<Vec<String>>();
-    if paths.is_empty() {
-        return Err(Box::new(Error::EmptyTable {})).context(table::LoadDeltaSnafu);
-    }
+            source: Box::new(Error::CreateMemTable { source: e }),
+        })?;
 
-    let path_iter = paths.iter().map(|s: &String| s.as_str());
+    let batches = collect(exec, dfctx.task_ctx())
+        .await
+        .map_err(|e| table::Error::LoadDelta {
+            source: Box::new(Error::CreateMemTable { source: e }),
+        })?;
 
-    let partitions: Vec<Vec<RecordBatch>> = match blob_type {
-        io::BlobStoreType::FileSystem => io::fs::partitions_from_iterator(
-            path_iter,
-            |r| -> Result<Vec<RecordBatch>, table::Error> {
-                read_partition::<std::fs::File>(r, batch_size)
-            },
-        )
-        .context(table::IoSnafu)?,
-        io::BlobStoreType::S3 | io::BlobStoreType::GCS | io::BlobStoreType::Azure => {
-            io::object_store::partitions_from_path_iterator(
-                path_iter,
-                |r| -> Result<Vec<RecordBatch>, table::Error> {
-                    read_partition::<std::io::Cursor<Vec<u8>>>(r, batch_size)
-                },
-                &dfctx,
-            )
-            .await
-            .context(table::IoSnafu)?
-        }
-        _ => {
-            return Err(Box::new(Error::InvalidUri {
-                uri: delta_table.table_url().to_string(),
-            }))
-            .context(table::LoadDeltaSnafu);
-        }
+    let partitions = if batches.is_empty() {
+        vec![vec![]]
+    } else {
+        vec![batches]
     };
 
-    let mem_table = datafusion::datasource::MemTable::try_new(
-        delta_table
-            .table_provider()
-            .await
-            .map_err(|e| table::Error::LoadDelta {
-                source: Box::new(Error::GetSchema {
-                    source: deltalake::errors::DeltaTableError::Generic(e.to_string()),
-                }),
-            })?
-            .schema(),
-        partitions,
-    )
-    .map_err(|e| table::Error::LoadDelta {
-        source: Box::new(Error::CreateMemTable { source: e }),
+    let mem_table = datafusion::datasource::MemTable::try_new(schema, partitions).map_err(|e| {
+        table::Error::LoadDelta {
+            source: Box::new(Error::CreateMemTable { source: e }),
+        }
     })?;
 
     Ok(Arc::new(mem_table))
@@ -349,6 +271,57 @@ mod tests {
         .await
         .unwrap()
         .table;
+    }
+
+    #[tokio::test]
+    async fn load_partitioned_delta_as_memtable() {
+        let ctx = SessionContext::new();
+        let t = to_loaded_table(
+            &TableSource::new(
+                "partitioned".to_string(),
+                test_data_path("partitioned-delta"),
+            )
+            .with_option(TableLoadOption::delta(TableOptionDelta {
+                use_memory_table: true,
+            })),
+            &ctx,
+        )
+        .await
+        .unwrap()
+        .table;
+
+        assert!(
+            t.as_any().downcast_ref::<MemTable>().is_some(),
+            "must be of type datafusion::datasource::MemTable"
+        );
+
+        let schema = t.schema();
+        let names: Vec<_> = schema.fields().iter().map(|f| f.name().as_str()).collect();
+        assert!(
+            names.contains(&"when"),
+            "partition column `when` must be present in MemTable schema, got {names:?}"
+        );
+        assert!(
+            names.contains(&"id"),
+            "data column `id` must be present in MemTable schema, got {names:?}"
+        );
+
+        let batches = collect(
+            t.scan(&ctx.state(), None, &[], None).await.unwrap(),
+            ctx.task_ctx(),
+        )
+        .await
+        .unwrap();
+        let rows: usize = batches.iter().map(|b| b.num_rows()).sum();
+        assert_eq!(rows, 3);
+
+        // Partition values must be present (not dropped when materializing).
+        let when_idx = schema.index_of("when").unwrap();
+        let nulls: usize = batches
+            .iter()
+            .map(|b| b.column(when_idx).null_count())
+            .sum();
+        assert_eq!(nulls, 0, "partition column `when` must be populated");
     }
 
     fn validate_statistics(stats: Statistics) {
