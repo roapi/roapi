@@ -319,6 +319,26 @@ struct GetReqContext {
 static RE_GOOGLE_SHEET: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"https://docs.google.com/spreadsheets/d/(.+)").unwrap());
 
+/// Build the Sheets API values path segment for a sheet title.
+///
+/// Google Sheets A1 notation requires single quotes around sheet titles that
+/// contain spaces or other special characters, with embedded quotes doubled.
+/// The resulting range must then be percent-encoded for use in the URL path
+/// (e.g. trailing spaces become `%20`, otherwise the API returns HTTP 400).
+fn encode_sheet_title_for_values_url(sheet_title: &str) -> String {
+    // Alphanumeric + underscore titles are valid unquoted A1 sheet names.
+    let needs_quotes = sheet_title
+        .chars()
+        .any(|c| !(c.is_ascii_alphanumeric() || c == '_'));
+    if !needs_quotes {
+        return sheet_title.to_string();
+    }
+    // Quote per A1 rules (escape embedded ' by doubling), then percent-encode
+    // for the values URL path so spaces/special chars do not yield HTTP 400.
+    let range = format!("'{}'", sheet_title.replace("'", "''"));
+    percent_encoding::utf8_percent_encode(&range, percent_encoding::NON_ALPHANUMERIC).to_string()
+}
+
 async fn gs_get_req_contex(t: &TableSource) -> Result<GetReqContext, table::Error> {
     let uri_str = t.get_uri_str();
     if RE_GOOGLE_SHEET.captures(uri_str).is_none() {
@@ -357,10 +377,12 @@ async fn gs_get_req_contex(t: &TableSource) -> Result<GetReqContext, table::Erro
             .context(table::LoadGoogleSheetSnafu)?,
     };
 
+    let encoded_sheet_title = encode_sheet_title_for_values_url(&sheet_title);
+
     Ok(GetReqContext {
         token,
         url: format!(
-            "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{sheet_title}"
+            "https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{encoded_sheet_title}"
         ),
     })
 }
@@ -583,5 +605,39 @@ mod tests {
             batch.column(8).as_ref(),
             Arc::new(StringArray::from(vec![Some("Expired"), None])).as_ref(),
         );
+    }
+
+    #[test]
+    fn encode_sheet_title_with_trailing_space() {
+        // Issue #261: trailing space must be percent-encoded or Sheets API returns 400.
+        let encoded = encode_sheet_title_for_values_url("Sheet1 ");
+        assert!(
+            encoded.contains("%20"),
+            "expected space to be encoded, got {encoded}"
+        );
+        assert!(
+            encoded.starts_with("%27") && encoded.ends_with("%27"),
+            "sheet titles with spaces must be A1-quoted then encoded, got {encoded}"
+        );
+        assert_eq!(encoded, "%27Sheet1%20%27");
+    }
+
+    #[test]
+    fn encode_sheet_title_with_leading_and_internal_spaces() {
+        let encoded = encode_sheet_title_for_values_url(" My Custom Sheet ");
+        assert_eq!(encoded, "%27%20My%20Custom%20Sheet%20%27");
+    }
+
+    #[test]
+    fn encode_sheet_title_with_special_chars() {
+        // Apostrophe in title is doubled inside A1 quotes, then percent-encoded.
+        let encoded = encode_sheet_title_for_values_url("Jon's Data");
+        assert_eq!(encoded, "%27Jon%27%27s%20Data%27");
+    }
+
+    #[test]
+    fn encode_simple_sheet_title_unchanged() {
+        assert_eq!(encode_sheet_title_for_values_url("Sheet1"), "Sheet1");
+        assert_eq!(encode_sheet_title_for_values_url("My_Sheet"), "My_Sheet");
     }
 }
